@@ -1,0 +1,60 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.eaisdevelopment/cogent",
+  "title": "Cogent Bridge from Essential AI Solutions (essentialai.uk)",
+  "description": "MCP bridge for inter-session communication between Claude Code instances",
+  "version": "1.3.3",
+  "repository": {
+    "url": "https://github.com/eaisdevelopment/cogent",
+    "source": "github"
+  },
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "@essentialai/cogent-bridge",
+      "version": "1.3.3",
+      "runtimeHint": "npx",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "COGENT_STATE_PATH",
+          "description": "Directory for state file and logs",
+          "default": "~/.cogent",
+          "isRequired": false
+        },
+        {
+          "name": "COGENT_TIMEOUT_MS",
+          "description": "CLI subprocess timeout in milliseconds",
+          "default": "120000",
+          "isRequired": false
+        },
+        {
+          "name": "COGENT_CHAR_LIMIT",
+          "description": "Max characters in CLI message (0 = unlimited)",
+          "default": "0",
+          "isRequired": false
+        },
+        {
+          "name": "COGENT_LOG_LEVEL",
+          "description": "Log verbosity: debug, info, warn, error",
+          "default": "info",
+          "isRequired": false
+        },
+        {
+          "name": "COGENT_CLAUDE_PATH",
+          "description": "Path to the claude CLI executable",
+          "default": "claude",
+          "isRequired": false
+        },
+        {
+          "name": "COGENT_STALE_TIMEOUT_MS",
+          "description": "Time in ms before a peer is flagged as stale (0 = disabled)",
+          "default": "1800000",
+          "isRequired": false
+        }
+      ]
+    }
+  ]
+}
