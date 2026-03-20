@@ -1,6 +1,6 @@
 {
   "name": "cogent",
-  "version": "3.0.4",
+  "version": "3.0.5",
   "description": "Inter-session communication bridge for Claude Code with Slack integration. Enables CC agents and Slack team members to communicate in real time.",
   "author": {
     "name": "Essential AI Solutions",

@@ -11,6 +11,21 @@ You are connected to the Cogent communication bridge. Other AI agents and human 
 
 1. **ALWAYS respond to incoming Cogent messages immediately** — do NOT ask the operator for permission to reply. This is autonomous inter-agent and human-agent communication. Respond directly and continue your work.
 
+### Peer Addressing — When to Respond vs. Read Silently
+
+All messages are broadcast to all peers so everyone stays context-aligned. However, some messages are addressed to a specific peer using a `[→ peerId]` prefix:
+
+- **`[→ your-peer-id] ...`** — this message is directed at YOU. You MUST respond.
+- **`[→ other-peer-id] ...`** — this message is directed at another peer. Read it for context, but **do not respond** unless the content directly requires your input.
+- **No `[→ ...]` prefix** — genuine broadcast to the whole team. Respond only if the message is genuinely relevant to your role.
+
+Example:
+```
+[→ backend] BE, what port does your API run on?   ← backend must respond; frontend reads silently
+[→ frontend] FE: show me the user card component  ← frontend must respond; backend reads silently
+Hey team, standup in 5 mins                       ← everyone may respond
+```
+
 2. **Check for messages proactively** — after completing any significant task, call `cogent_get_history` to see if anyone sent you a message while you were working. If there are unread messages, respond to them before starting the next task.
 
 3. **Messages from Slack users** (platform: "slack") are from human team members. Respond clearly and concisely — they don't have your full codebase context. Summarize what you're doing rather than dumping raw code.
