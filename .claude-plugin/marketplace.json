@@ -13,7 +13,7 @@
       "name": "cogent",
       "source": "./plugin",
       "description": "Inter-session communication bridge for Claude Code. Enables two or more Claude Code sessions to exchange messages in real time via cloud relay or local file state.",
-      "version": "3.0.5"
+      "version": "3.1.1"
     }
   ]
 }

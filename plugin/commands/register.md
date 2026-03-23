@@ -51,7 +51,20 @@ Call `cogent_register_peer` with:
 
 ### Step 5: Confirm
 
-Report:
-- Peer ID and session info
-- The channel name and password (so the other peer can join with the same values)
-- List peers with `cogent_list_peers`
+Call `cogent_list_peers` to show who is online.
+
+Then display a summary block with **all** of the following fields:
+
+```
+- Peer ID: <peerId>
+- Label: <label>
+- Channel: <channel name>
+- Secret: <channel password>
+- Transport: WebSocket (cloud relay)
+- Channel ID (for Slack): <sessionId from Step 1 or 2>
+
+To map this channel to a Slack channel, run this slash command in Slack:
+  /cogent map <sessionId> <secret>
+```
+
+**IMPORTANT**: Always include the Channel ID (the UUID `sessionId`) and the Slack `/cogent map` command. Users need the session ID to connect Slack workspaces.
