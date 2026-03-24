@@ -30,26 +30,15 @@ Only if Step 1 returns an error (session not found), call `cogent_create_session
 - `label`: the channel name (must match pattern `/^[a-z0-9][a-z0-9-]{1,30}[a-z0-9]$/`)
 - `secret`: the channel password
 
-### Step 3: Discover Session ID
-
-```bash
-ls -t ~/.claude/projects/$(pwd | sed 's/[^a-zA-Z0-9-]/-/g')/*.jsonl 2>/dev/null | head -1 | xargs -I{} basename {} .jsonl
-```
-
-If no session file found, try alternate path:
-```bash
-ls -t ~/.claude/projects/$(pwd | tr '/' '-')/*.jsonl 2>/dev/null | head -1 | xargs -I{} basename {} .jsonl
-```
-
-### Step 4: Register as peer
+### Step 3: Register as peer
 
 Call `cogent_register_peer` with:
 - `peerId`: the peer name from arguments
-- `sessionId`: the UUID discovered in Step 3
+- `sessionId`: the `sessionId` returned by `cogent_join_session` (Step 1) or `cogent_create_session` (Step 2) — this is the **cloud channel ID**, NOT the local CC session ID from the filesystem
 - `cwd`: the absolute working directory path
 - `label`: derive from peerId (capitalize, replace hyphens with spaces)
 
-### Step 5: Confirm
+### Step 4: Confirm
 
 Call `cogent_list_peers` to show who is online.
 
