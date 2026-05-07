@@ -82,3 +82,40 @@ When you receive a message with a `[Cogent Bridge message from ...]` header:
 - Do NOT use `cogent_send_message` to reply -- just answer directly and normally
 - Read carefully, investigate the issue, and respond with specifics
 - Include file names and line numbers when discussing code changes
+
+## Recovery: deferred MCP tools after compaction
+
+After a Claude Code conversation compacts, the system reminder may list
+`mcp__cogent__*` (or `mcp__plugin_cogent_cogent__*`) under "deferred tools",
+with the warning that schemas are not loaded and direct calls will fail
+with `InputValidationError`. **The MCP server is still attached -- only the
+tool schemas were dropped from prompt context to save tokens.** The bridge's
+WebSocket and auto-relay keep running through this; inbound messages still
+reach you, and your replies still relay outbound.
+
+What to do:
+
+1. **Do NOT fall back to a custom HTTP CLI, curl-against-the-relay, or
+   anything that bypasses the MCP server.** That is cargo-culting around a
+   non-bug. The dogfooding contract is to use the native MCP tools.
+
+2. **Reload the tool schemas with ToolSearch.** Pass the names you need as a
+   `select:` query, for example:
+
+   ```
+   ToolSearch query: "select:mcp__cogent__cogent_join_session,mcp__cogent__cogent_register_peer,mcp__cogent__cogent_list_peers,mcp__cogent__cogent_health_check,mcp__cogent__cogent_send_message,mcp__cogent__cogent_get_history"
+   ```
+
+   Once the result includes those `<function>` definitions, you can call the
+   tools normally for the rest of the turn.
+
+3. **If a directed `cogent_send_message` hangs for minutes**, the target peer
+   is probably gone (Slack human peers come and go with activity; CC peers
+   may have exited). Verify with `cogent_list_peers` first, and prefer
+   `toPeerId: "*"` (broadcast) when you do not need a synchronous reply.
+
+4. **If the local MCP server is genuinely disconnected** (system reminder
+   explicitly says "MCP server disconnected", not "deferred tools"), the
+   recovery is to restart Claude Code. ToolSearch cannot reattach a
+   disconnected server -- it can only re-expose schemas of an already-
+   attached one.
