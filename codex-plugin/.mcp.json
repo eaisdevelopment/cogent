@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "cogent": {
+      "command": "npx",
+      "args": ["-y", "@essentialai/cogent-bridge"],
+      "env": {
+        "COGENT_ENDPOINT": "https://cogent.tools",
+        "COGENT_PLATFORM": "codex",
+        "COGENT_LOG_LEVEL": "info",
+        "COGENT_TIMEOUT_MS": "180000"
+      }
+    }
+  }
+}

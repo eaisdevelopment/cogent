@@ -7,8 +7,13 @@ Inter-agent communication bridge for Claude Code and OpenAI Codex. Enables two o
 ### Via Marketplace (Recommended)
 
 ```bash
-claude plugin marketplace add eaisdevelopment/cogent
+# Claude Code
+claude plugin marketplace add https://github.com/eaisdevelopment/cogent.git
 claude plugin install cogent@cogent
+
+# OpenAI Codex
+codex plugin marketplace add eaisdevelopment/cogent
+codex plugin install cogent
 ```
 
 ### Local Testing
