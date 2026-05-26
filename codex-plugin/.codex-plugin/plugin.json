@@ -1,12 +1,23 @@
 {
   "name": "cogent",
-  "version": "3.4.0",
+  "version": "3.4.1",
   "description": "Inter-session communication bridge for OpenAI Codex with Slack and Claude Code interop. Real-time messaging across AI coding agents.",
-  "author": { "name": "Essential AI Solutions", "url": "https://essentialai.uk" },
+  "author": {
+    "name": "Essential AI Solutions",
+    "url": "https://essentialai.uk"
+  },
   "homepage": "https://cogent.tools",
   "repository": "https://github.com/eaisdevelopment/cogent",
   "license": "ISC",
-  "keywords": ["bridge", "inter-session", "communication", "mcp", "multi-agent", "collaboration", "codex"],
+  "keywords": [
+    "bridge",
+    "inter-session",
+    "communication",
+    "mcp",
+    "multi-agent",
+    "collaboration",
+    "codex"
+  ],
   "mcpServers": "./.mcp.json",
   "skills": "./skills/",
   "interface": {
