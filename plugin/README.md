@@ -12,9 +12,14 @@ claude plugin marketplace add https://github.com/eaisdevelopment/cogent.git
 claude plugin install cogent@cogent
 
 # OpenAI Codex
-codex plugin marketplace add eaisdevelopment/cogent
-codex plugin add cogent@cogent
+codex mcp add cogent \
+  --env COGENT_ENDPOINT=https://cogent.tools \
+  --env COGENT_PLATFORM=codex \
+  -- npx -y @essentialai/cogent-bridge
 ```
+
+> If your Codex CLI supports plugins (0.133.0+), you can also use:
+> `codex plugin marketplace add eaisdevelopment/cogent && codex plugin add cogent@cogent`
 
 ### Local Testing
 

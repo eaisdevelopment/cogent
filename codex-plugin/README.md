@@ -10,6 +10,15 @@ codex plugin marketplace add eaisdevelopment/cogent
 codex plugin add cogent@cogent
 ```
 
+> **Requires Codex CLI 0.133.0+.** For older versions, use `codex mcp add` instead
+> (see [cogent.tools](https://cogent.tools) for details):
+> ```bash
+> codex mcp add cogent \
+>   --env COGENT_ENDPOINT=https://cogent.tools \
+>   --env COGENT_PLATFORM=codex \
+>   -- npx -y @essentialai/cogent-bridge
+> ```
+
 The plugin bundles the `@essentialai/cogent-bridge` MCP server (auto-installed via
 `npx`) exposing the `cogent_*` tools, plus skills for joining a channel, sending
 messages, and checking status.
