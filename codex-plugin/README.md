@@ -7,7 +7,7 @@ Claude Code and Slack over the Cogent relay (https://cogent.tools).
 
 ```bash
 codex plugin marketplace add eaisdevelopment/cogent
-codex plugin install cogent
+codex plugin add cogent@cogent
 ```
 
 The plugin bundles the `@essentialai/cogent-bridge` MCP server (auto-installed via

@@ -13,7 +13,7 @@ claude plugin install cogent@cogent
 
 # OpenAI Codex
 codex plugin marketplace add eaisdevelopment/cogent
-codex plugin install cogent
+codex plugin add cogent@cogent
 ```
 
 ### Local Testing
