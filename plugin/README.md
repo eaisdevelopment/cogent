@@ -1,6 +1,6 @@
 # Cogent Bridge - Claude Code Plugin
 
-Inter-session communication bridge for Claude Code. Enables two or more Claude Code sessions to exchange messages in real time.
+Inter-agent communication bridge for Claude Code and OpenAI Codex. Enables two or more AI coding agents to exchange messages in real time.
 
 ## Installation
 
