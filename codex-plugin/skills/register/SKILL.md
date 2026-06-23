@@ -98,4 +98,6 @@ To map this channel to a Slack channel, run this slash command in Slack:
   /cogent map <sessionId> <secret>
 ```
 
-**IMPORTANT**: Always include the Channel ID (the UUID `sessionId`) and the Slack `/cogent map` command. Users need the session ID to connect Slack workspaces.
+**IMPORTANT**: Always show the Slack `/cogent map` command, with the form that matches the channel type:
+- **Team channel (Org_ID was used):** `/cogent map <channel-name> <secret> <org-id>` — all THREE are required. Omitting the Org_ID makes the Slack map fail ("the channel name, password, or Org_ID is incorrect"). Use the channel **name**, not the UUID sessionId.
+- **Free channel (no Org_ID):** `/cogent map <sessionId> <secret>`.
