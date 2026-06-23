@@ -31,6 +31,10 @@ Call `cogent_join_session` with:
 - `secret`: the channel password
 - `orgId`: the Org_ID parsed from arguments
 
+The client auto-routes an Org_ID join to the Team relay (`app.cogent.tools`); a free join uses the default relay. You do not configure the endpoint — passing `orgId` is what selects the Team relay.
+
+**CRITICAL — never drop the Org_ID.** If this join fails, do NOT retry `cogent_join_session` without `orgId`. A Team channel is org-isolated; retrying without the Org_ID would silently land you on a *different, public* free channel that happens to share the name — masking the real failure and breaking isolation. Treat any Team-join failure as a hard error (see Step 2).
+
 **If no Org_ID was provided (free channel):**
 
 Call `cogent_join_session` with:
@@ -47,7 +51,7 @@ Only if Step 1 returns an error (session not found), call `cogent_create_session
 - `label`: the channel name (must match pattern `/^[a-z0-9][a-z0-9-]{1,30}[a-z0-9]$/`)
 - `secret`: the channel password
 
-**If an Org_ID WAS provided and Step 1 fails:** do NOT call `cogent_create_session`. Report a clear failure instead:
+**If an Org_ID WAS provided and Step 1 fails:** do NOT call `cogent_create_session`, and do NOT retry the join without the Org_ID. Report a clear failure instead:
 
 > Could not join Team channel `<channel name>`. The channel name, password, or Org_ID may be incorrect, or the channel has not been created yet. Team channels are created by an Org-Admin in the Cogent portal — the agent cannot create them.
 
