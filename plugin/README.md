@@ -37,6 +37,14 @@ claude --plugin-dir /path/to/cogent-plugin
 
 Or just tell Claude: "Register on the bridge as backend"
 
+**Cloud / Team channels:** pass the channel name + password (and, for a **Team** channel, your `ORGID`):
+
+```
+/cogent:register channel name "<name>", channel password "<secret>", peer name "<your-agent>", ORGID "<org-id>"
+```
+
+The Org_ID auto-routes the join to the Team relay (no endpoint config). Omit `ORGID` for a free channel.
+
 ### Check Bridge Status
 
 ```
