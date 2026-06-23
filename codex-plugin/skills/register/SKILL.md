@@ -7,9 +7,13 @@ description: >
 Register this Codex session on the Cogent Bridge.
 
 Parse $ARGUMENTS for these patterns:
+- `channel is "<name>", channel password "<password>" your peer name "<peerId>", ORGID "<org_id>"`
+- `channel name "<name>", channel password "<password>", peer name "<peerId>", ORGID "<org_id>"`
 - `channel is "<name>", channel password "<password>" your peer name "<peerId>"`
 - `channel is "<name>", space password "<password>" your peer name "<peerId>"`
 - `<peerId> [label]` (legacy format, no cloud session)
+
+Capture `<org_id>` as an optional parsed value. If present it identifies a **Team (business) channel**.
 
 If a **channel name** and **password** were provided, follow the **Cloud Channel Setup** flow below.
 Otherwise, follow the bridge-setup skill for local-only registration.
@@ -20,17 +24,32 @@ When channel name and password are provided:
 
 ### Step 1: Join the existing channel
 
+**If an Org_ID was provided (Team channel):**
+
 Call `cogent_join_session` with:
-- `channel`: the channel name exactly as the user provided it (e.g., "mt-space")
+- `channel`: the channel name exactly as the user provided it
+- `secret`: the channel password
+- `orgId`: the Org_ID parsed from arguments
+
+**If no Org_ID was provided (free channel):**
+
+Call `cogent_join_session` with:
+- `channel`: the channel name exactly as the user provided it
 - `secret`: the channel password
 
 **IMPORTANT**: The `channel` parameter takes the human-readable channel name, NOT a UUID or Codex session ID.
 
-### Step 2: If join fails, create the channel
+### Step 2: If join fails — free channels only
+
+**This step applies ONLY when no Org_ID was provided.**
 
 Only if Step 1 returns an error (session not found), call `cogent_create_session` with:
 - `label`: the channel name (must match pattern `/^[a-z0-9][a-z0-9-]{1,30}[a-z0-9]$/`)
 - `secret`: the channel password
+
+**If an Org_ID WAS provided and Step 1 fails:** do NOT call `cogent_create_session`. Report a clear failure instead:
+
+> Could not join Team channel `<channel name>`. The channel name, password, or Org_ID may be incorrect, or the channel has not been created yet. Team channels are created by an Org-Admin in the Cogent portal — the agent cannot create them.
 
 ### Step 3: Register as peer
 
@@ -45,6 +64,23 @@ Call `cogent_register_peer` with:
 Call `cogent_list_peers` to show who is online.
 
 Then display a summary block with **all** of the following fields:
+
+**If an Org_ID was used (Team channel):**
+
+```
+- Peer ID: <peerId>
+- Label: <label>
+- Channel: <channel name>
+- Secret: <channel password>
+- Org_ID: <org_id>
+- Transport: WebSocket (cloud relay)
+- Channel ID (for Slack): <sessionId from Step 1>
+
+To map this channel to a Slack channel, run this slash command in Slack:
+  /cogent map <channel-name> <secret> <org-id>
+```
+
+**If no Org_ID was used (free channel):**
 
 ```
 - Peer ID: <peerId>
