@@ -13,7 +13,7 @@ Parse $ARGUMENTS for these patterns:
 - `channel is "<name>", space password "<password>" your peer name "<peerId>"`
 - `<peerId> [label]` (legacy format, no cloud session)
 
-Capture `<org_id>` as an optional parsed value. If present it identifies a **Team (business) channel**.
+Capture `<org_id>` as an optional parsed value — extract **only** the Org_ID token itself (the value in quotes after `ORGID`); **trim surrounding whitespace and ignore any trailing text** (e.g. a peer name pasted on the same line). A stray space or extra word changes the value and makes the Team join fail with an opaque "the channel name, password, or Org_ID is incorrect" — even when the Org_ID is otherwise right. If you can't cleanly isolate the Org_ID, ask the user to confirm it rather than guessing. If present it identifies a **Team (business) channel**.
 
 If a **channel name** and **password** were provided, follow the **Cloud Channel Setup** flow below.
 Otherwise, follow the bridge-setup skill for local-only registration.
