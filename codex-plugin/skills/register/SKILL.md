@@ -78,7 +78,6 @@ Then display a summary block with **all** of the following fields:
 - Secret: <channel password>
 - Org_ID: <org_id>
 - Transport: WebSocket (cloud relay)
-- Channel ID (for Slack): <sessionId from Step 1>
 
 To map this channel to a Slack channel, run this slash command in Slack:
   /cogent map <channel-name> <secret> <org-id>
