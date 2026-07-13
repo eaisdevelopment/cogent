@@ -15,8 +15,22 @@ Parse $ARGUMENTS for these patterns:
 
 Capture `<org_id>` as an optional parsed value — extract **only** the Org_ID token itself (the value in quotes after `ORGID`); **trim surrounding whitespace and ignore any trailing text** (e.g. a peer name pasted on the same line). A stray space or extra word changes the value and makes the Team join fail with an opaque "the channel name, password, or Org_ID is incorrect" — even when the Org_ID is otherwise right. If you can't cleanly isolate the Org_ID, ask the user to confirm it rather than guessing. If present it identifies a **Team (business) channel**.
 
-If a **channel name** and **password** were provided, follow the **Cloud Channel Setup** flow below.
-Otherwise, follow the bridge-setup skill for local-only registration.
+## Which channel? (precedence — check the project `.env` BEFORE local-only)
+
+Resolve the channel in this order; **only the last resort is local-only**:
+
+1. **From `$ARGUMENTS`** — if a channel name + password (with an optional Org_ID) were provided, use them.
+2. **From the project `.env`** — if arguments named no channel, the repo almost always configures one in `.env` under a `#COGENT…` comment header. Read it (never assume it is absent):
+   ```bash
+   grep -nE '^#COGENT|^CHANNEL_(NAME|PASSWORD|ORG_ID|PEER_NAME|PEER_LABEL)=' .env 2>/dev/null
+   ```
+   - **Exactly one `#COGENT…` block** → use it: channel=`CHANNEL_NAME`, password=`CHANNEL_PASSWORD`, Org_ID=`CHANNEL_ORG_ID` (present ⇒ **Team** channel), peer=`CHANNEL_PEER_NAME`, label=`CHANNEL_PEER_LABEL`.
+   - **More than one `#COGENT…` block** → list their headers and **ask the user which channel to join**. Never guess.
+3. **Local-only** — follow the bridge-setup skill **only** when there is neither an argument channel nor any `#COGENT` block in `.env`.
+
+When a channel resolved from step 1 or 2, follow **Cloud Channel Setup** below.
+
+> ⚠️ **Never fall through to local-only while a `#COGENT` block exists in `.env`.** Local-only puts you on a *different bridge* than peers who joined the cloud channel — they will not see each other (this was the real cause of "our two agents can't reach each other"). `.env` first; local-only is the last resort.
 
 ## Cloud Channel Setup
 
@@ -57,11 +71,14 @@ Only if Step 1 returns an error (session not found), call `cogent_create_session
 
 ### Step 3: Register as peer
 
+The cloud channel you joined in Step 1 is bound **automatically** (from this process's `cogent_join_session`). Do **NOT** pass the channel UUID as `sessionId`.
+
 Call `cogent_register_peer` with:
-- `peerId`: the peer name from arguments
-- `sessionId`: the `sessionId` returned by `cogent_join_session` (Step 1) or `cogent_create_session` (Step 2) — this is the **cloud channel ID**, NOT the local Codex session ID from the filesystem
+- `peerId`: the peer name (from arguments or `CHANNEL_PEER_NAME`)
+- `sessionId`: **this session's LOCAL Codex session id** — the id the relay uses to wake you (`codex … resume <id>`) for auto-reply. Discover it exactly as in the **bridge-setup** skill's "Discovering your Codex session id" step (`payload.id` of your newest `~/.codex/sessions/**/*.jsonl` rollout for this `cwd`). ⚠️ Passing the **channel UUID** here silently breaks auto-reply: a channel UUID is not a resumable session, so inbound directed messages fail with `DELIVERY_NO_ACK` — the peer looks online but never answers.
 - `cwd`: the absolute working directory path
-- `label`: derive from peerId (capitalize, replace hyphens with spaces)
+- `label`: `CHANNEL_PEER_LABEL`, or derive from peerId (capitalize, replace hyphens with spaces)
+- `mode`: `"agent"` (default — auto-replies to directed messages). Use `"observer"` only to monitor a channel without auto-replying; an observer is not woken, so its local session id does not matter.
 
 ### Step 4: Confirm
 
