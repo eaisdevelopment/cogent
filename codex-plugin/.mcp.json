@@ -1,8 +1,8 @@
 {
   "mcpServers": {
     "cogent": {
-      "command": "npx",
-      "args": ["-y", "@essentialai/cogent-bridge@3.12.3"],
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/bridge/cogent-bridge.mjs"],
       "env": {
         "COGENT_ENDPOINT": "https://cogent.tools",
         "COGENT_PLATFORM": "codex",
