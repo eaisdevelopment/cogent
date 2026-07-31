@@ -613,6 +613,12 @@ function markJoinedInProcess() {
 function hasJoinedInProcess() {
   return joinedInProcessFlag;
 }
+function markCloudAttemptInProcess() {
+  cloudAttemptInProcessFlag = true;
+}
+function hasCloudAttemptInProcess() {
+  return cloudAttemptInProcessFlag;
+}
 async function loadCredentials(credentialPath) {
   const filePath = resolveCredentialPath(credentialPath);
   try {
@@ -640,7 +646,7 @@ async function legacyGlobalCredentialsExist() {
     return false;
   }
 }
-var LEGACY_GLOBAL_CREDENTIAL_PATH, joinedInProcessFlag;
+var LEGACY_GLOBAL_CREDENTIAL_PATH, joinedInProcessFlag, cloudAttemptInProcessFlag;
 var init_credential_store = __esm({
   "src/cloud/credential-store.ts"() {
     "use strict";
@@ -649,6 +655,7 @@ var init_credential_store = __esm({
       ".cogent-credentials.json"
     );
     joinedInProcessFlag = false;
+    cloudAttemptInProcessFlag = false;
   }
 });
 
@@ -22372,8 +22379,8 @@ var init_stdio2 = __esm({
 // src/constants.ts
 import { createRequire } from "node:module";
 function resolveVersion() {
-  if ("3.12.4") {
-    return "3.12.4";
+  if ("3.12.5") {
+    return "3.12.5";
   }
   try {
     const require2 = createRequire(import.meta.url);
@@ -22701,6 +22708,7 @@ var init_errors4 = __esm({
       BridgeErrorCode2["STARTUP_FAILED"] = "STARTUP_FAILED";
       BridgeErrorCode2["DIR_NOT_WRITABLE"] = "DIR_NOT_WRITABLE";
       BridgeErrorCode2["NETWORK_TIMEOUT"] = "NETWORK_TIMEOUT";
+      BridgeErrorCode2["JOIN_NOT_CONFIRMED"] = "JOIN_NOT_CONFIRMED";
       return BridgeErrorCode2;
     })(BridgeErrorCode || {});
     BridgeError = class extends Error {
@@ -29863,6 +29871,16 @@ function registerRegisterPeerTool(server) {
     async ({ peerId, sessionId, cwd, label, mode, role }) => {
       try {
         const config2 = getConfig();
+        const hasExplicitCloudSession = !!config2.COGENT_SESSION_ID || process.env.COGENT_TRUST_PERSISTED_CREDENTIALS === "1";
+        if (!hasExplicitCloudSession && hasCloudAttemptInProcess() && !hasJoinedInProcess()) {
+          return errorResult(
+            new BridgeError(
+              "JOIN_NOT_CONFIRMED" /* JOIN_NOT_CONFIRMED */,
+              "A cogent_join_session/cogent_create_session call was attempted this session but did not succeed, so cogent_register_peer will not fall back to local mode or auto-create a new channel (that would silently put you on the WRONG channel while reporting success)",
+              "Re-run cogent_join_session with the correct channel name + secret (+ Org_ID for Team channels) and confirm it returns success before calling cogent_register_peer"
+            )
+          );
+        }
         const hasCloudEndpointConfig = config2.COGENT_ENDPOINT && isCloudEndpoint(config2.COGENT_ENDPOINT);
         let sessionCreated = false;
         let cloudSessionId;
@@ -30624,6 +30642,7 @@ function registerCreateSessionTool(server) {
     },
     async ({ label, secret }) => {
       try {
+        markCloudAttemptInProcess();
         const config2 = getConfig();
         if (!config2.COGENT_ENDPOINT) {
           return errorResult(
@@ -30739,6 +30758,7 @@ function registerJoinSessionTool(server) {
     },
     async ({ channel, secret, orgId }) => {
       try {
+        markCloudAttemptInProcess();
         channel = channel.trim();
         secret = secret.trim();
         orgId = orgId?.trim() || void 0;
