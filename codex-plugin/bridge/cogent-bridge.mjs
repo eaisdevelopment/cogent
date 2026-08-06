@@ -26380,8 +26380,8 @@ var init_stdio2 = __esm({
 // src/constants.ts
 import { createRequire } from "node:module";
 function resolveVersion() {
-  if ("3.13.0") {
-    return "3.13.0";
+  if ("3.14.0") {
+    return "3.14.0";
   }
   try {
     const require2 = createRequire(import.meta.url);
@@ -26528,6 +26528,12 @@ var init_npm_update_check = __esm({
 // src/config.ts
 import os3 from "node:os";
 import path6 from "node:path";
+function isLocalOptOut(value) {
+  if (value === void 0) return false;
+  return ["1", "true", "yes", "on", "enable", "enabled"].includes(
+    value.trim().toLowerCase()
+  );
+}
 function loadConfig(env = process.env) {
   const result = configSchema.safeParse(env);
   if (!result.success) {
@@ -26535,22 +26541,40 @@ function loadConfig(env = process.env) {
     throw new Error(`Invalid configuration:
 ${issues}`);
   }
-  _config = Object.freeze(result.data);
+  const data = { ...result.data };
+  if (isLocalOptOut(data.COGENT_LOCAL)) {
+    data.COGENT_ENDPOINT = void 0;
+  } else if (!data.COGENT_ENDPOINT) {
+    data.COGENT_ENDPOINT = DEFAULT_FREE_ENDPOINT;
+  }
+  _config = Object.freeze(data);
   return _config;
 }
 function getConfig() {
   if (!_config) throw new Error("Config not loaded. Call loadConfig() first.");
   return _config;
 }
-var import_zod2, defaultStatePath, configSchema, _config;
+var import_zod2, defaultStatePath, DEFAULT_FREE_ENDPOINT, configSchema, _config;
 var init_config = __esm({
   "src/config.ts"() {
     "use strict";
     import_zod2 = __toESM(require_zod(), 1);
     defaultStatePath = path6.join(os3.homedir(), ".cogent");
+    DEFAULT_FREE_ENDPOINT = "https://cogent.tools";
     configSchema = import_zod2.z.object({
       COGENT_STATE_PATH: import_zod2.z.string().default(defaultStatePath),
+      // Relay URL for free (password) channels. **Zero-config default = the hosted FREE
+      // relay (cogent.tools)** — see the loadConfig() resolution below. A hand-rolled MCP
+      // config that OMITTED this used to silently run LOCAL and never reach any cloud
+      // channel (the marvin-coder confusion, 2026-08-06); defaulting it makes "cloud" the
+      // out-of-the-box mode. Opt OUT to local/offline mode with COGENT_LOCAL. An explicit
+      // value (a free self-host URL, or the Team URL for a custom Team agent) always wins.
       COGENT_ENDPOINT: import_zod2.z.string().optional(),
+      // **Local mode opt-out.** Set truthy (1/true/yes/on) to force LOCAL file-based state
+      // even when COGENT_ENDPOINT would otherwise default to the free relay. This is the
+      // switch for offline use, air-gapped/self-contained agents, and (upcoming) local-LLM
+      // operation where no cloud relay is wanted. When set, it wins over any COGENT_ENDPOINT.
+      COGENT_LOCAL: import_zod2.z.string().optional(),
       // Team (business) relay. cogent_join_session auto-routes here when an Org_ID is
       // supplied (free joins use COGENT_ENDPOINT). Default = the hosted Team relay; a
       // self-hosted Team deployment overrides it. No runtime flipping — the presence of
@@ -34372,9 +34396,9 @@ var init_peer = __esm({
       label: import_zod5.z.string().describe("Human-readable label"),
       registeredAt: import_zod5.z.string().datetime().describe("ISO 8601 registration timestamp"),
       lastSeenAt: import_zod5.z.string().datetime().describe("ISO 8601 last activity timestamp"),
-      platform: import_zod5.z.enum(["cc", "codex", "slack", "gchat", "web", "gemini", "whatsapp"]).optional().describe("Platform this peer belongs to"),
+      platform: import_zod5.z.enum(["cc", "codex", "slack", "gchat", "web", "gemini", "whatsapp", "telegram", "discord"]).optional().describe("Platform this peer belongs to"),
       type: import_zod5.z.enum(["agent", "human"]).optional().describe("Peer type: AI agent or human user"),
-      transport: import_zod5.z.enum(["ws", "slack-bot", "gchat-bot", "websocket", "whatsapp-cloud"]).optional().describe("Transport mechanism for this peer"),
+      transport: import_zod5.z.enum(["ws", "slack-bot", "gchat-bot", "websocket", "whatsapp-cloud", "telegram-bot", "discord-bot"]).optional().describe("Transport mechanism for this peer"),
       platformIdentity: import_zod5.z.record(import_zod5.z.string(), import_zod5.z.string()).optional().describe("Platform-specific identity fields (slackUserId, slackChannelId, etc.)"),
       workspaceId: import_zod5.z.string().optional().describe("Durable workspace identifier (Slice 5) \u2014 stable id not tied to the mutable cwd hint"),
       threadId: import_zod5.z.string().optional().describe("Durable thread/conversation identifier (Slice 5)"),
@@ -34400,7 +34424,7 @@ var init_message = __esm({
       durationMs: import_zod6.z.number().nullable().describe("Round-trip duration in ms"),
       success: import_zod6.z.boolean().describe("Whether delivery succeeded"),
       error: import_zod6.z.string().nullable().describe("Error message if delivery failed"),
-      originPlatform: import_zod6.z.enum(["cc", "codex", "slack", "gchat", "web", "gemini", "whatsapp"]).optional().describe("Platform that originated this message")
+      originPlatform: import_zod6.z.enum(["cc", "codex", "slack", "gchat", "web", "gemini", "whatsapp", "telegram", "discord"]).optional().describe("Platform that originated this message")
     });
   }
 });
