@@ -152,31 +152,33 @@ var init_detect = __esm({
 });
 
 // src/wizard/templates.ts
-function mcpJsonContent(npxPath) {
+function cogentEnv(mode) {
+  const env = {
+    COGENT_LOG_LEVEL: "info",
+    COGENT_TIMEOUT_MS: "300000"
+  };
+  if (mode === "local") env.COGENT_LOCAL = "1";
+  return env;
+}
+function mcpJsonContent(npxPath, mode = "cloud") {
   const config2 = {
     mcpServers: {
       "cogent": {
         command: npxPath,
         args: ["-y", "@essentialai/cogent-bridge"],
-        env: {
-          COGENT_LOG_LEVEL: "info",
-          COGENT_TIMEOUT_MS: "300000"
-        }
+        env: cogentEnv(mode)
       }
     }
   };
   return JSON.stringify(config2, null, 2) + "\n";
 }
-function mcpJsonMerge(existing, npxPath) {
+function mcpJsonMerge(existing, npxPath, mode = "cloud") {
   const parsed = JSON.parse(existing);
   if (!parsed.mcpServers) parsed.mcpServers = {};
   parsed.mcpServers["cogent"] = {
     command: npxPath,
     args: ["-y", "@essentialai/cogent-bridge"],
-    env: {
-      COGENT_LOG_LEVEL: "info",
-      COGENT_TIMEOUT_MS: "300000"
-    }
+    env: cogentEnv(mode)
   };
   return JSON.stringify(parsed, null, 2) + "\n";
 }
@@ -380,14 +382,14 @@ var init_scaffold_demo = __esm({
 // src/wizard/scaffold-real.ts
 import fs2 from "node:fs";
 import path2 from "node:path";
-function writeMcpJson(projectPath, npxPath) {
+function writeMcpJson(projectPath, npxPath, mode) {
   const filePath = path2.join(projectPath, ".mcp.json");
   if (fs2.existsSync(filePath)) {
     const existing = fs2.readFileSync(filePath, "utf-8");
-    fs2.writeFileSync(filePath, mcpJsonMerge(existing, npxPath), "utf-8");
+    fs2.writeFileSync(filePath, mcpJsonMerge(existing, npxPath, mode), "utf-8");
     return "modified";
   }
-  fs2.writeFileSync(filePath, mcpJsonContent(npxPath), "utf-8");
+  fs2.writeFileSync(filePath, mcpJsonContent(npxPath, mode), "utf-8");
   return "created";
 }
 function writeClaudeMd(projectPath, peerId, label, otherPeerId) {
@@ -408,7 +410,8 @@ function scaffoldReal(config2) {
   const created = [];
   const modified = [];
   const skipped = [];
-  const mcpA = writeMcpJson(config2.projectAPath, config2.npxPath);
+  const mode = config2.mode ?? "cloud";
+  const mcpA = writeMcpJson(config2.projectAPath, config2.npxPath, mode);
   const mcpAPath = path2.join(config2.projectAPath, ".mcp.json");
   if (mcpA === "created") created.push(mcpAPath);
   else modified.push(mcpAPath);
@@ -422,7 +425,7 @@ function scaffoldReal(config2) {
   if (claudeA === "created") created.push(claudeAPath);
   else if (claudeA === "modified") modified.push(claudeAPath);
   else skipped.push(claudeAPath);
-  const mcpB = writeMcpJson(config2.projectBPath, config2.npxPath);
+  const mcpB = writeMcpJson(config2.projectBPath, config2.npxPath, mode);
   const mcpBPath = path2.join(config2.projectBPath, ".mcp.json");
   if (mcpB === "created") created.push(mcpBPath);
   else modified.push(mcpBPath);
@@ -565,6 +568,11 @@ async function runWizard() {
       const idB = await ask(rl, "Peer ID for Project B:", defaultIdB);
       const defaultLabelB = "CC_" + path3.basename(pathB).replace(/[^a-zA-Z0-9]/g, "_");
       const labelB = await ask(rl, "Label for Project B:", defaultLabelB);
+      const modeIdx = await choose(rl, "How should these agents connect?", [
+        "Cloud \u2014 collaborate with remote agents over cogent.tools (recommended)",
+        "Local \u2014 offline, this machine only (self-hosted / local-LLM / air-gapped)"
+      ]);
+      const mode2 = modeIdx === 1 ? "local" : "cloud";
       heading("Configuring projects");
       const result = scaffoldReal({
         projectAPath: path3.resolve(pathA),
@@ -573,7 +581,8 @@ async function runWizard() {
         projectBPath: path3.resolve(pathB),
         projectBId: idB,
         projectBLabel: labelB,
-        npxPath
+        npxPath,
+        mode: mode2
       });
       printRealNextSteps(path3.resolve(pathA), idA, labelA, path3.resolve(pathB), idB, labelB, result);
     }
@@ -26380,8 +26389,8 @@ var init_stdio2 = __esm({
 // src/constants.ts
 import { createRequire } from "node:module";
 function resolveVersion() {
-  if ("3.14.0") {
-    return "3.14.0";
+  if ("3.14.1") {
+    return "3.14.1";
   }
   try {
     const require2 = createRequire(import.meta.url);
