@@ -1259,8 +1259,8 @@ var init_parseUtil = __esm({
     init_errors();
     init_en();
     makeIssue = (params) => {
-      const { data, path: path12, errorMaps, issueData } = params;
-      const fullPath = [...path12, ...issueData.path || []];
+      const { data, path: path16, errorMaps, issueData } = params;
+      const fullPath = [...path16, ...issueData.path || []];
       const fullIssue = {
         ...issueData,
         path: fullPath
@@ -1540,11 +1540,11 @@ var init_types = __esm({
     init_parseUtil();
     init_util();
     ParseInputLazyPath = class {
-      constructor(parent, value, path12, key) {
+      constructor(parent, value, path16, key) {
         this._cachedPath = [];
         this.parent = parent;
         this.data = value;
-        this._path = path12;
+        this._path = path16;
         this._key = key;
       }
       get path() {
@@ -4996,10 +4996,10 @@ function assignProp(target, prop, value) {
     configurable: true
   });
 }
-function getElementAtPath(obj, path12) {
-  if (!path12)
+function getElementAtPath(obj, path16) {
+  if (!path16)
     return obj;
-  return path12.reduce((acc, key) => acc?.[key], obj);
+  return path16.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -5248,11 +5248,11 @@ function aborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path12, issues) {
+function prefixIssues(path16, issues) {
   return issues.map((iss) => {
     var _a;
     (_a = iss).path ?? (_a.path = []);
-    iss.path.unshift(path12);
+    iss.path.unshift(path16);
     return iss;
   });
 }
@@ -17058,8 +17058,8 @@ var require_utils = __commonJS({
       }
       return ind;
     }
-    function removeDotSegments(path12) {
-      let input = path12;
+    function removeDotSegments(path16) {
+      let input = path16;
       const output = [];
       let nextSlash = -1;
       let len = 0;
@@ -17258,8 +17258,8 @@ var require_schemes = __commonJS({
         wsComponent.secure = void 0;
       }
       if (wsComponent.resourceName) {
-        const [path12, query] = wsComponent.resourceName.split("?");
-        wsComponent.path = path12 && path12 !== "/" ? path12 : void 0;
+        const [path16, query] = wsComponent.resourceName.split("?");
+        wsComponent.path = path16 && path16 !== "/" ? path16 : void 0;
         wsComponent.query = query;
         wsComponent.resourceName = void 0;
       }
@@ -20612,12 +20612,12 @@ var require_dist = __commonJS({
         throw new Error(`Unknown format "${name}"`);
       return f;
     };
-    function addFormats(ajv, list, fs12, exportName) {
+    function addFormats(ajv, list, fs15, exportName) {
       var _a;
       var _b;
       (_a = (_b = ajv.opts.code).formats) !== null && _a !== void 0 ? _a : _b.formats = (0, codegen_1._)`require("ajv-formats/dist/formats").${exportName}`;
       for (const f of list)
-        ajv.addFormat(f, fs12[f]);
+        ajv.addFormat(f, fs15[f]);
     }
     module.exports = exports = formatsPlugin;
     Object.defineProperty(exports, "__esModule", { value: true });
@@ -21729,8 +21729,8 @@ var require_parseUtil = __commonJS({
     var errors_js_1 = require_errors2();
     var en_js_1 = __importDefault(require_en());
     var makeIssue2 = (params) => {
-      const { data, path: path12, errorMaps, issueData } = params;
-      const fullPath = [...path12, ...issueData.path || []];
+      const { data, path: path16, errorMaps, issueData } = params;
+      const fullPath = [...path16, ...issueData.path || []];
       const fullIssue = {
         ...issueData,
         path: fullPath
@@ -21884,11 +21884,11 @@ var require_types2 = __commonJS({
     var parseUtil_js_1 = require_parseUtil();
     var util_js_1 = require_util2();
     var ParseInputLazyPath2 = class {
-      constructor(parent, value, path12, key) {
+      constructor(parent, value, path16, key) {
         this._cachedPath = [];
         this.parent = parent;
         this.data = value;
-        this._path = path12;
+        this._path = path16;
         this._key = key;
       }
       get path() {
@@ -25477,10 +25477,10 @@ var require_zod = __commonJS({
     };
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.z = void 0;
-    var z15 = __importStar(require_external());
-    exports.z = z15;
+    var z18 = __importStar(require_external());
+    exports.z = z18;
     __exportStar(require_external(), exports);
-    exports.default = z15;
+    exports.default = z18;
   }
 });
 
@@ -26389,8 +26389,8 @@ var init_stdio2 = __esm({
 // src/constants.ts
 import { createRequire } from "node:module";
 function resolveVersion() {
-  if ("3.14.1") {
-    return "3.14.1";
+  if ("3.15.0") {
+    return "3.15.0";
   }
   try {
     const require2 = createRequire(import.meta.url);
@@ -27562,7 +27562,7 @@ var init_http_backend = __esm({
        * in cloud mode we ignore it and use this.sessionId (the cloud session).
        */
       async registerPeer(peerId, _sessionId, cwd, label, clientVersion, mode, _channelSessionId, capabilities, workspaceId, threadId) {
-        const path12 = PATHS.peers.replace(":sessionId", this.sessionId);
+        const path16 = PATHS.peers.replace(":sessionId", this.sessionId);
         const body = {
           peerId,
           cwd,
@@ -27590,7 +27590,7 @@ var init_http_backend = __esm({
             body.role = roleCap.slice("role:".length);
           }
         }
-        return this.http.post(path12, body);
+        return this.http.post(path16, body);
       }
       /**
        * Deregister a peer from the cloud session.
@@ -27599,9 +27599,9 @@ var init_http_backend = __esm({
        * Returns true on success, false if the peer was not found.
        */
       async deregisterPeer(peerId) {
-        const path12 = PATHS.peer.replace(":sessionId", this.sessionId).replace(":peerId", peerId);
+        const path16 = PATHS.peer.replace(":sessionId", this.sessionId).replace(":peerId", peerId);
         try {
-          await this.http.delete(path12, {});
+          await this.http.delete(path16, {});
           return true;
         } catch {
           return false;
@@ -27621,8 +27621,8 @@ var init_http_backend = __esm({
        * GET /api/sessions/:sessionId/peers
        */
       async listPeers() {
-        const path12 = PATHS.peers.replace(":sessionId", this.sessionId);
-        const result = await this.http.get(path12);
+        const path16 = PATHS.peers.replace(":sessionId", this.sessionId);
+        const result = await this.http.get(path16);
         return result.peers;
       }
       /**
@@ -27630,8 +27630,8 @@ var init_http_backend = __esm({
        * Calls the lightweight heartbeat endpoint on the cloud relay server.
        */
       async updateLastSeen(peerId) {
-        const path12 = PATHS.heartbeat.replace(":sessionId", this.sessionId);
-        await this.http.post(path12, { peerId });
+        const path16 = PATHS.heartbeat.replace(":sessionId", this.sessionId);
+        await this.http.post(path16, { peerId });
       }
       /**
        * Record a message in the cloud session.
@@ -27642,7 +27642,7 @@ var init_http_backend = __esm({
        * the input record to construct a full MessageRecord.
        */
       async recordMessage(record2) {
-        const path12 = PATHS.messages.replace(":sessionId", this.sessionId);
+        const path16 = PATHS.messages.replace(":sessionId", this.sessionId);
         const body = {
           fromPeerId: record2.fromPeerId,
           toPeerId: record2.toPeerId,
@@ -27651,7 +27651,7 @@ var init_http_backend = __esm({
         if (record2.isRelayEcho === true) {
           body.isRelayEcho = true;
         }
-        const resp = await this.http.post(path12, body);
+        const resp = await this.http.post(path16, body);
         return {
           ...record2,
           id: resp.id,
@@ -27665,7 +27665,7 @@ var init_http_backend = __esm({
        * Supports optional peerId filter and limit (default 300).
        */
       async getHistory(peerId, limit, includeRelayEchoes, metadataOnly, dedupInferredEchoes) {
-        const path12 = PATHS.messages.replace(":sessionId", this.sessionId);
+        const path16 = PATHS.messages.replace(":sessionId", this.sessionId);
         const query = {};
         if (peerId) {
           query.peerId = peerId;
@@ -27680,7 +27680,7 @@ var init_http_backend = __esm({
         if (dedupInferredEchoes) {
           query.dedupInferredEchoes = "true";
         }
-        const result = await this.http.get(path12, query);
+        const result = await this.http.get(path16, query);
         return result.messages;
       }
       /**
@@ -27691,12 +27691,12 @@ var init_http_backend = __esm({
        * so that get-history shows the actual response (not null).
        */
       async updateMessageResponse(messageId, response, durationMs, pending) {
-        const path12 = PATHS.message.replace(":sessionId", this.sessionId).replace(":messageId", messageId);
+        const path16 = PATHS.message.replace(":sessionId", this.sessionId).replace(":messageId", messageId);
         const body = { response, durationMs };
         if (pending === true) {
           body.pending = true;
         }
-        await this.http.patch(path12, body);
+        await this.http.patch(path16, body);
       }
       /**
        * Validate a session.
@@ -27838,8 +27838,8 @@ var init_http_client = __esm({
        * Perform an authenticated GET request.
        * Appends query parameters to the URL if provided.
        */
-      async get(path12, query) {
-        const url = new URL(path12, this.baseUrl);
+      async get(path16, query) {
+        const url = new URL(path16, this.baseUrl);
         if (query) {
           for (const [k, v] of Object.entries(query)) {
             url.searchParams.set(k, v);
@@ -27854,8 +27854,8 @@ var init_http_client = __esm({
       /**
        * Perform an authenticated POST request with a JSON body.
        */
-      async post(path12, body) {
-        const url = new URL(path12, this.baseUrl);
+      async post(path16, body) {
+        const url = new URL(path16, this.baseUrl);
         const resp = await this.fetchWithTimeout(url, {
           method: "POST",
           headers: this.headers(),
@@ -27873,8 +27873,8 @@ var init_http_client = __esm({
        * Perform an authenticated PATCH request with a JSON body.
        * Used to update existing resources (e.g., message response fields).
        */
-      async patch(path12, body) {
-        const url = new URL(path12, this.baseUrl);
+      async patch(path16, body) {
+        const url = new URL(path16, this.baseUrl);
         const resp = await this.fetchWithTimeout(url, {
           method: "PATCH",
           headers: this.headers(),
@@ -27897,8 +27897,8 @@ var init_http_client = __esm({
        * "Malformed JSON in request body" 400 from cogent-server <=3.1.2 when
        * any client (including third-party tools) DELETEd a peer without a body.
        */
-      async delete(path12, body) {
-        const url = new URL(path12, this.baseUrl);
+      async delete(path16, body) {
+        const url = new URL(path16, this.baseUrl);
         const headers = {
           "Authorization": `Bearer ${this.token}`
         };
@@ -32077,14 +32077,14 @@ var init_ws_client = __esm({
         if (this.pollTimer) return;
         const poll = async () => {
           try {
-            const path12 = `/api/sessions/${this.opts.sessionId}/poll`;
+            const path16 = `/api/sessions/${this.opts.sessionId}/poll`;
             const query = {
               peerId: this.opts.peerId
             };
             if (this.lastMessageId) {
               query.lastMessageId = this.lastMessageId;
             }
-            const result = await this.opts.http.get(path12, query);
+            const result = await this.opts.http.get(path16, query);
             if (result.messages && result.messages.length > 0) {
               this.opts.onMessages(result.messages);
               this.lastMessageId = result.messages[result.messages.length - 1].id;
@@ -33882,8 +33882,61 @@ var init_startup = __esm({
   }
 });
 
-// src/tools/register-peer.ts
+// src/cloud/mail-credential-store.ts
 import crypto3 from "node:crypto";
+import fs12 from "node:fs/promises";
+import path12 from "node:path";
+import os7 from "node:os";
+function defaultMailCredentialPath(cwd = process.cwd()) {
+  const hash = crypto3.createHash("sha256").update(path12.resolve(cwd)).digest("hex").slice(0, 16);
+  return path12.join(os7.homedir(), ".cogent", "mail-credentials", `${hash}.json`);
+}
+function resolveMailCredentialPath(credentialPath) {
+  if (credentialPath) return credentialPath;
+  const envOverride = process.env.COGENT_MAIL_CREDENTIALS_FILE;
+  if (envOverride) return envOverride;
+  return defaultMailCredentialPath();
+}
+async function loadMailCredentials(credentialPath) {
+  const filePath = resolveMailCredentialPath(credentialPath);
+  try {
+    return JSON.parse(await fs12.readFile(filePath, "utf-8"));
+  } catch {
+    return null;
+  }
+}
+async function saveMailCredentials(creds, credentialPath) {
+  const filePath = resolveMailCredentialPath(credentialPath);
+  await fs12.mkdir(path12.dirname(filePath), { recursive: true, mode: 448 });
+  await fs12.writeFile(filePath, JSON.stringify(creds, null, 2) + "\n", { encoding: "utf-8", mode: 384 });
+  await fs12.chmod(filePath, 384);
+}
+async function persistProvisionedMailbox(mailbox, credentialPath) {
+  if (!mailbox?.address || !mailbox.password) return false;
+  await saveMailCredentials(
+    {
+      address: mailbox.address,
+      password: mailbox.password,
+      imapHost: MAIL_DEFAULT_HOST,
+      imapPort: 993,
+      smtpHost: MAIL_DEFAULT_HOST,
+      smtpPort: 465,
+      savedAt: (/* @__PURE__ */ new Date()).toISOString()
+    },
+    credentialPath
+  );
+  return true;
+}
+var MAIL_DEFAULT_HOST;
+var init_mail_credential_store = __esm({
+  "src/cloud/mail-credential-store.ts"() {
+    "use strict";
+    MAIL_DEFAULT_HOST = "mail.cogent.tools";
+  }
+});
+
+// src/tools/register-peer.ts
+import crypto4 from "node:crypto";
 function registerRegisterPeerTool(server) {
   server.registerTool(
     "cogent_register_peer",
@@ -33942,7 +33995,7 @@ function registerRegisterPeerTool(server) {
             }
           }
           if (!cloudSessionId) {
-            autoSecret = crypto3.randomBytes(16).toString("hex");
+            autoSecret = crypto4.randomBytes(16).toString("hex");
             const resp = await fetch(
               `${endpoint}/api/sessions`,
               {
@@ -34020,6 +34073,15 @@ function registerRegisterPeerTool(server) {
               `check-on-stop: could not stamp peerId into credentials: ${err.message}`
             );
           }
+        }
+        try {
+          if (await persistProvisionedMailbox(peer?.mailbox)) {
+            logger.info(`Cogent Mail: saved auto-provisioned mailbox ${peer.mailbox?.address}`);
+          }
+        } catch (err) {
+          logger.warn(
+            `Cogent Mail: could not save auto-provisioned mailbox creds: ${err.message}`
+          );
         }
         const resolution = await resolveSession(
           getConfig().COGENT_PLATFORM,
@@ -34103,6 +34165,7 @@ var init_register_peer = __esm({
     init_backend();
     init_errors4();
     init_credential_store();
+    init_mail_credential_store();
     init_logger();
     init_heartbeat();
     init_auto_relay();
@@ -34412,7 +34475,8 @@ var init_peer = __esm({
       workspaceId: import_zod5.z.string().optional().describe("Durable workspace identifier (Slice 5) \u2014 stable id not tied to the mutable cwd hint"),
       threadId: import_zod5.z.string().optional().describe("Durable thread/conversation identifier (Slice 5)"),
       role: import_zod5.z.string().max(64).optional().describe("A2A role advertised by this peer (Agent Card)"),
-      capabilities: import_zod5.z.array(import_zod5.z.string().max(64)).max(16).optional().describe("Capability strings \u2192 A2A Agent Card skills[]")
+      capabilities: import_zod5.z.array(import_zod5.z.string().max(64)).max(16).optional().describe("Capability strings \u2192 A2A Agent Card skills[]"),
+      mailboxAddress: import_zod5.z.string().max(320).optional().describe("Auto-provisioned Cogent Mail address (non-secret); NEVER the password")
     });
   }
 });
@@ -34760,6 +34824,19 @@ function toSkills(peer) {
     };
   });
 }
+function toMailboxExtensions(peer) {
+  const address = peer.mailboxAddress;
+  if (!address)
+    return [];
+  return [
+    {
+      uri: COGENT_MAILBOX_EXTENSION_URI,
+      description: "Cogent Mail mailbox address (non-secret) for this peer.",
+      required: false,
+      params: { address }
+    }
+  ];
+}
 function synthDescription(peer) {
   const parts = [`Cogent fabric peer on ${peer.platform ?? "cc"}`];
   if (peer.role)
@@ -34775,6 +34852,7 @@ function peerInfoToAgentCard(peer, ctx) {
   const version2 = ctx.clientVersion ?? peer.clientVersion ?? "0.0.0";
   const provider = { organization: `Cogent \xB7 ${peer.platform ?? "cc"}`, url: "https://cogent.tools" };
   const skills = toSkills(peer);
+  const extensions = toMailboxExtensions(peer);
   if (ctx.cardVersion === "0.3.0") {
     return {
       protocolVersion: "0.3.0",
@@ -34783,7 +34861,7 @@ function peerInfoToAgentCard(peer, ctx) {
       url,
       version: version2,
       provider,
-      capabilities: {},
+      capabilities: extensions.length ? { extensions } : {},
       defaultInputModes: ["text/plain"],
       defaultOutputModes: ["text/plain"],
       skills,
@@ -34804,7 +34882,7 @@ function peerInfoToAgentCard(peer, ctx) {
         tenant: ctx.sessionId
       }
     ],
-    capabilities: { extensions: [] },
+    capabilities: { extensions },
     defaultInputModes: ["text/plain"],
     defaultOutputModes: ["text/plain"],
     skills,
@@ -34813,12 +34891,13 @@ function peerInfoToAgentCard(peer, ctx) {
     signatures: []
   };
 }
-var COGENT_PROTOCOL_BINDING, A2A_PROTOCOL_VERSION;
+var COGENT_PROTOCOL_BINDING, A2A_PROTOCOL_VERSION, COGENT_MAILBOX_EXTENSION_URI;
 var init_agent_card = __esm({
   "cogent/dist/a2a/agent-card.js"() {
     "use strict";
     COGENT_PROTOCOL_BINDING = "COGENT-RELAY";
     A2A_PROTOCOL_VERSION = "1.0";
+    COGENT_MAILBOX_EXTENSION_URI = "https://cogent.tools/a2a/ext/mailbox";
   }
 });
 
@@ -35113,7 +35192,7 @@ var init_health_check2 = __esm({
 });
 
 // src/tools/create-session.ts
-import crypto4 from "node:crypto";
+import crypto5 from "node:crypto";
 function registerCreateSessionTool(server) {
   server.registerTool(
     "cogent_create_session",
@@ -35144,7 +35223,7 @@ function registerCreateSessionTool(server) {
             )
           );
         }
-        const sessionSecret = secret ?? crypto4.randomBytes(16).toString("hex");
+        const sessionSecret = secret ?? crypto5.randomBytes(16).toString("hex");
         const resp = await fetch(
           `${config2.COGENT_ENDPOINT}/api/sessions`,
           {
@@ -35372,6 +35451,386 @@ var init_join_session = __esm({
   }
 });
 
+// src/mail/validate.ts
+function isValidEmail(value) {
+  return value.length <= 254 && EMAIL_RE.test(value);
+}
+function assertValidEmail(value, field) {
+  if (!isValidEmail(value)) {
+    throw new BridgeError(
+      "INVALID_INPUT" /* INVALID_INPUT */,
+      `${field} is not a valid email address: ${JSON.stringify(value)}`,
+      `Provide a full address like agent-channel@mail.cogent.tools`
+    );
+  }
+}
+var EMAIL_RE;
+var init_validate = __esm({
+  "src/mail/validate.ts"() {
+    "use strict";
+    init_errors4();
+    EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  }
+});
+
+// src/tools/setup-mail.ts
+function registerSetupMailTool(server) {
+  server.registerTool(
+    "cogent_setup_mail",
+    {
+      title: "Configure this agent's mailbox",
+      description: "Store the agent's mailbox address + password (from the admin Mail panel) locally so cogent_send_mail and cogent_fetch_mail can use them. Hosts default to mail.cogent.tools (IMAP 993 / SMTP 465).",
+      inputSchema: {
+        address: import_zod16.z.string().describe("Full mailbox address, e.g. claude-agent-backend@mail.cogent.tools"),
+        password: import_zod16.z.string().describe("Mailbox password (shown once in the admin Mail panel on create/rotate)"),
+        imapHost: import_zod16.z.string().optional().describe(`IMAP host (default ${DEFAULT_MAIL_HOST})`),
+        imapPort: import_zod16.z.number().int().positive().optional().describe("IMAP port (default 993)"),
+        smtpHost: import_zod16.z.string().optional().describe(`SMTP host (default ${DEFAULT_MAIL_HOST})`),
+        smtpPort: import_zod16.z.number().int().positive().optional().describe("SMTP submission port (default 465)")
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false }
+    },
+    async ({ address, password, imapHost, imapPort, smtpHost, smtpPort }) => {
+      try {
+        assertValidEmail(address, "address");
+        await saveMailCredentials({
+          address,
+          password,
+          imapHost: imapHost ?? DEFAULT_MAIL_HOST,
+          imapPort: imapPort ?? 993,
+          smtpHost: smtpHost ?? DEFAULT_MAIL_HOST,
+          smtpPort: smtpPort ?? 465,
+          savedAt: (/* @__PURE__ */ new Date()).toISOString()
+        });
+        return successResult({ configured: true, address });
+      } catch (err) {
+        return errorResult(err);
+      }
+    }
+  );
+}
+var import_zod16, DEFAULT_MAIL_HOST;
+var init_setup_mail = __esm({
+  "src/tools/setup-mail.ts"() {
+    "use strict";
+    import_zod16 = __toESM(require_zod(), 1);
+    init_errors4();
+    init_mail_credential_store();
+    init_validate();
+    DEFAULT_MAIL_HOST = MAIL_DEFAULT_HOST;
+  }
+});
+
+// src/mail/mail-sender.ts
+import fs13 from "node:fs/promises";
+import path13 from "node:path";
+async function buildAndSendMail(sender, creds, params) {
+  const attachments = [];
+  for (const p of params.attachmentPaths ?? []) {
+    const content = await fs13.readFile(p);
+    attachments.push({ filename: path13.basename(p), content });
+  }
+  const { messageId } = await sender.send({
+    from: creds.address,
+    to: params.to,
+    subject: params.subject,
+    text: params.text,
+    attachments
+  });
+  return { messageId, from: creds.address, to: params.to };
+}
+var NodemailerMailSender;
+var init_mail_sender = __esm({
+  "src/mail/mail-sender.ts"() {
+    "use strict";
+    NodemailerMailSender = class {
+      constructor(creds, transportFactory) {
+        this.creds = creds;
+        this.transportFactory = transportFactory;
+      }
+      creds;
+      transportFactory;
+      async send(mail) {
+        const transport = this.transportFactory ? await this.transportFactory() : await this.defaultTransport();
+        const info = await transport.sendMail({
+          from: mail.from,
+          to: mail.to,
+          subject: mail.subject,
+          text: mail.text,
+          attachments: mail.attachments.map((a) => ({ filename: a.filename, content: a.content }))
+        });
+        return { messageId: info.messageId ?? "" };
+      }
+      async defaultTransport() {
+        const specifier = "nodemailer";
+        const nodemailer = await import(specifier);
+        return nodemailer.createTransport({
+          host: this.creds.smtpHost,
+          port: this.creds.smtpPort,
+          secure: this.creds.smtpPort === 465,
+          // implicit TLS on 465, STARTTLS on 587
+          auth: { user: this.creds.address, pass: this.creds.password }
+        });
+      }
+    };
+  }
+});
+
+// src/tools/send-mail.ts
+function registerSendMailTool(server, deps = {}) {
+  const makeSender = deps.senderFactory ?? ((creds) => new NodemailerMailSender(creds));
+  server.registerTool(
+    "cogent_send_mail",
+    {
+      title: "Send an email from this agent's mailbox",
+      description: "Send an email (with optional file attachments) from this agent's Cogent mailbox to another address. Requires cogent_setup_mail to have stored the mailbox credentials first.",
+      inputSchema: {
+        to: import_zod17.z.string().describe("Recipient email address, e.g. other-agent-backend@mail.cogent.tools"),
+        subject: import_zod17.z.string().describe("Email subject"),
+        body: import_zod17.z.string().describe("Plain-text email body"),
+        attachments: import_zod17.z.array(import_zod17.z.string()).optional().describe("Optional local file paths to attach (each is read and attached by basename)")
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true }
+    },
+    async ({ to, subject, body, attachments }) => {
+      try {
+        assertValidEmail(to, "to");
+        const creds = await loadMailCredentials();
+        if (!creds) {
+          return errorResult(
+            new BridgeError(
+              "INVALID_INPUT" /* INVALID_INPUT */,
+              "No mailbox is configured for this agent",
+              "Run cogent_setup_mail with the address + password from the admin Mail panel first"
+            )
+          );
+        }
+        const result = await buildAndSendMail(makeSender(creds), creds, {
+          to: [to],
+          subject,
+          text: body,
+          attachmentPaths: attachments
+        });
+        return successResult({ ...result, attachmentCount: attachments?.length ?? 0 });
+      } catch (err) {
+        return errorResult(err);
+      }
+    }
+  );
+}
+var import_zod17;
+var init_send_mail = __esm({
+  "src/tools/send-mail.ts"() {
+    "use strict";
+    import_zod17 = __toESM(require_zod(), 1);
+    init_errors4();
+    init_mail_credential_store();
+    init_mail_sender();
+    init_validate();
+  }
+});
+
+// src/mail/mail-fetcher.ts
+import fs14 from "node:fs/promises";
+import path14 from "node:path";
+async function saveAttachments(attachments, downloadDir) {
+  if (attachments.length === 0) return [];
+  await fs14.mkdir(downloadDir, { recursive: true });
+  const saved = [];
+  for (const a of attachments) {
+    const name = path14.basename(a.filename) || "attachment";
+    const savedPath = path14.join(downloadDir, name);
+    await fs14.writeFile(savedPath, a.content);
+    saved.push({ filename: name, savedPath, size: a.content.length });
+  }
+  return saved;
+}
+async function defaultImapSessionFactory(creds) {
+  const specifier = "imapflow";
+  const { ImapFlow } = await import(specifier);
+  const client = new ImapFlow({
+    host: creds.imapHost,
+    port: creds.imapPort,
+    secure: creds.imapPort === 993,
+    auth: { user: creds.address, pass: creds.password },
+    logger: false
+  });
+  await client.connect();
+  await client.mailboxOpen("INBOX");
+  return {
+    async list(unreadOnly) {
+      const criteria = unreadOnly ? { seen: false } : { all: true };
+      const rows = [];
+      for await (const msg of client.fetch(criteria, { uid: true, envelope: true, flags: true })) {
+        const env = msg.envelope ?? {};
+        rows.push({
+          uid: msg.uid,
+          from: env.from?.[0]?.address ?? "",
+          subject: env.subject ?? "",
+          date: env.date instanceof Date ? env.date.toISOString() : String(env.date ?? ""),
+          unread: !hasFlag(msg.flags, "\\Seen")
+        });
+      }
+      return rows.reverse();
+    },
+    async fetch(uid) {
+      const msg = await client.fetchOne(uid, { uid: true, envelope: true, bodyStructure: true }, { uid: true });
+      if (!msg) throw new Error(`no message with uid ${uid}`);
+      const parts = flattenBodyStructure(msg.bodyStructure);
+      let text = "";
+      const attachments = [];
+      for (const p of parts) {
+        if (p.filename) {
+          const dl = await client.download(uid, p.part, { uid: true });
+          attachments.push({ filename: p.filename, content: await streamToBuffer(dl.content) });
+        } else if (p.isText && !text) {
+          const dl = await client.download(uid, p.part, { uid: true });
+          text = (await streamToBuffer(dl.content)).toString("utf-8");
+        }
+      }
+      const env = msg.envelope ?? {};
+      return {
+        from: env.from?.[0]?.address ?? "",
+        subject: env.subject ?? "",
+        date: env.date instanceof Date ? env.date.toISOString() : String(env.date ?? ""),
+        text,
+        attachments
+      };
+    },
+    async close() {
+      try {
+        await client.logout();
+      } catch {
+      }
+    }
+  };
+}
+function flattenBodyStructure(node, acc = []) {
+  if (!node || typeof node !== "object") return acc;
+  const n = node;
+  if (Array.isArray(n.childNodes) && n.childNodes.length > 0) {
+    for (const child of n.childNodes) flattenBodyStructure(child, acc);
+    return acc;
+  }
+  const type = (n.type ?? "").toLowerCase();
+  const filename = n.dispositionParameters?.filename ?? n.parameters?.name;
+  const isAttachment = (n.disposition ?? "").toLowerCase() === "attachment" || Boolean(filename);
+  acc.push({
+    part: n.part ?? "1",
+    // single-part messages have no `part`; imapflow addresses them as "1"
+    type,
+    isText: type === "text/plain" && !isAttachment,
+    filename: isAttachment ? filename : void 0
+  });
+  return acc;
+}
+function hasFlag(flags, flag) {
+  if (flags instanceof Set) return flags.has(flag);
+  if (Array.isArray(flags)) return flags.includes(flag);
+  return false;
+}
+async function streamToBuffer(stream) {
+  const chunks = [];
+  if (!stream) return Buffer.alloc(0);
+  for await (const chunk of stream) chunks.push(Buffer.from(chunk));
+  return Buffer.concat(chunks);
+}
+var ImapflowMailFetcher;
+var init_mail_fetcher = __esm({
+  "src/mail/mail-fetcher.ts"() {
+    "use strict";
+    ImapflowMailFetcher = class {
+      constructor(creds, sessionFactory = defaultImapSessionFactory) {
+        this.creds = creds;
+        this.sessionFactory = sessionFactory;
+      }
+      creds;
+      sessionFactory;
+      async list(opts = {}) {
+        const session = await this.sessionFactory(this.creds);
+        try {
+          let rows = await session.list(opts.unreadOnly ?? false);
+          if (opts.limit && opts.limit > 0) rows = rows.slice(0, opts.limit);
+          return rows;
+        } finally {
+          await session.close();
+        }
+      }
+      async fetchOne(uid, downloadDir) {
+        const session = await this.sessionFactory(this.creds);
+        try {
+          const c2 = await session.fetch(uid);
+          const saved = await saveAttachments(c2.attachments, downloadDir);
+          return { uid, from: c2.from, subject: c2.subject, date: c2.date, text: c2.text, attachments: saved };
+        } finally {
+          await session.close();
+        }
+      }
+    };
+  }
+});
+
+// src/tools/fetch-mail.ts
+import os8 from "node:os";
+import path15 from "node:path";
+function registerFetchMailTool(server, deps = {}) {
+  const makeFetcher = deps.fetcherFactory ?? ((creds) => new ImapflowMailFetcher(creds));
+  server.registerTool(
+    "cogent_fetch_mail",
+    {
+      title: "Read this agent's mailbox",
+      description: "List messages in this agent's Cogent mailbox, or fetch one message (text + attachments saved locally) by uid. Requires cogent_setup_mail to have stored the mailbox credentials.",
+      inputSchema: {
+        action: import_zod18.z.enum(["list", "fetch"]).optional().describe("'list' (default) or 'fetch' one message"),
+        uid: import_zod18.z.number().int().positive().optional().describe("Message uid to fetch (required when action='fetch')"),
+        unreadOnly: import_zod18.z.boolean().optional().describe("List only unread messages (default false)"),
+        limit: import_zod18.z.number().int().positive().optional().describe("Max messages to list (default 25)"),
+        downloadDir: import_zod18.z.string().optional().describe(`Directory to save fetched attachments (default ${DEFAULT_DOWNLOAD_DIR})`)
+      },
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true }
+    },
+    async ({ action, uid, unreadOnly, limit, downloadDir }) => {
+      try {
+        const creds = await loadMailCredentials();
+        if (!creds) {
+          return errorResult(
+            new BridgeError(
+              "INVALID_INPUT" /* INVALID_INPUT */,
+              "No mailbox is configured for this agent",
+              "Run cogent_setup_mail with the address + password from the admin Mail panel first"
+            )
+          );
+        }
+        const fetcher = makeFetcher(creds);
+        if (action === "fetch") {
+          if (uid === void 0) {
+            return errorResult(
+              new BridgeError("INVALID_INPUT" /* INVALID_INPUT */, "uid is required when action='fetch'", "Pass the uid from a cogent_fetch_mail list")
+            );
+          }
+          const message = await fetcher.fetchOne(uid, downloadDir ?? DEFAULT_DOWNLOAD_DIR);
+          return successResult({ mailbox: creds.address, message });
+        }
+        const messages = await fetcher.list({ unreadOnly, limit: limit ?? 25 });
+        return successResult({ mailbox: creds.address, count: messages.length, messages });
+      } catch (err) {
+        return errorResult(err);
+      }
+    }
+  );
+}
+var import_zod18, DEFAULT_DOWNLOAD_DIR;
+var init_fetch_mail = __esm({
+  "src/tools/fetch-mail.ts"() {
+    "use strict";
+    import_zod18 = __toESM(require_zod(), 1);
+    init_errors4();
+    init_mail_credential_store();
+    init_mail_fetcher();
+    DEFAULT_DOWNLOAD_DIR = path15.join(os8.homedir(), ".cogent", "mail-downloads");
+  }
+});
+
 // src/index.ts
 var index_exports = {};
 async function main() {
@@ -35385,6 +35844,9 @@ async function main() {
   registerHealthCheckTool(server);
   registerCreateSessionTool(server);
   registerJoinSessionTool(server);
+  registerSetupMailTool(server);
+  registerSendMailTool(server);
+  registerFetchMailTool(server);
   if (cloudInbox) {
     server.registerResource(
       "cogent_inbox",
@@ -35444,6 +35906,9 @@ var init_index = __esm({
     init_health_check2();
     init_create_session();
     init_join_session();
+    init_setup_mail();
+    init_send_mail();
+    init_fetch_mail();
     init_heartbeat();
     process.on("uncaughtException", (err) => {
       if (err.code === "EPIPE") {
