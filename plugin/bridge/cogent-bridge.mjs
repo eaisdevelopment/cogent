@@ -26389,8 +26389,8 @@ var init_stdio2 = __esm({
 // src/constants.ts
 import { createRequire } from "node:module";
 function resolveVersion() {
-  if ("3.15.0") {
-    return "3.15.0";
+  if ("3.16.0") {
+    return "3.16.0";
   }
   try {
     const require2 = createRequire(import.meta.url);
@@ -33080,6 +33080,7 @@ var init_auto_relay = __esm({
         logger.info(`Auto-relay: processing message from ${fromLabel} (${msg.fromPeerId})`);
         const traceId = msg.traceId ?? randomUUID2();
         const startMs = Date.now();
+        let replied = false;
         try {
           const res = await this.refreshSessionId();
           this._trace(traceId, "resolved", {
@@ -33126,6 +33127,7 @@ var init_auto_relay = __esm({
           const durationMs = Date.now() - startMs;
           if (result.exitCode === 0 && result.stdout) {
             await this._relayCapturedReply(msg, result, traceId, durationMs, false);
+            replied = true;
           } else {
             this._trace(traceId, "failed", { exitCode: result.exitCode, sandboxBlocked: result.sandboxBlocked, durationMs });
             logger.warn(
@@ -33142,6 +33144,7 @@ var init_auto_relay = __esm({
                 const bypassRetry = await execRemote(cfg.COGENT_PLATFORM, this.localSessionId, formatted, this.localCwd);
                 if (bypassRetry.exitCode === 0 && bypassRetry.stdout) {
                   await this._relayCapturedReply(msg, bypassRetry, traceId, Date.now() - startMs, true);
+                  replied = true;
                   return;
                 }
                 logger.warn(`Auto-relay: sandbox-bypass retry also failed (exit=${bypassRetry.exitCode})`);
@@ -33171,15 +33174,49 @@ var init_auto_relay = __esm({
               const retry = await execRemote(getConfig().COGENT_PLATFORM, this.localSessionId, formatted, this.localCwd);
               if (retry.exitCode === 0 && retry.stdout) {
                 await this._relayCapturedReply(msg, retry, traceId, Date.now() - startMs, true);
+                replied = true;
               } else {
                 logger.warn(`Auto-relay: retry also failed (exit=${retry.exitCode})`);
               }
             }
           }
+          if (!replied) {
+            await this._recordNoReplyFailure(msg, traceId, Date.now() - startMs);
+          }
         } catch (err) {
           const durationMs = Date.now() - startMs;
           this._trace(traceId, "failed", { threw: true, durationMs });
           logger.error(`Auto-relay: execRemote threw after ${durationMs}ms: ${err}`);
+          if (!replied) {
+            await this._recordNoReplyFailure(msg, traceId, durationMs);
+          }
+        }
+      }
+      /**
+       * Fail-loud (2026-08-11): a wake that captured NO reply — empty stdout, a
+       * non-zero exit with no rotated-session retry, a failed retry, or a thrown
+       * execRemote — used to record NOTHING, so the sender saw response:null with no
+       * error (the invisible failure that hid the demo busy-miss). Record ONE visible
+       * success:false notice to the sender so a human/agent knows to reply manually.
+       * On Codex this pairs with Wake-C (check-on-stop), which auto-recovers the reply
+       * at the next turn boundary. Refusal (AMBIGUOUS_SESSION) and sandbox-blocked
+       * paths record their own failure and return before this, so no double-record.
+       */
+      async _recordNoReplyFailure(msg, traceId, durationMs) {
+        try {
+          await getBackend().recordMessage({
+            fromPeerId: this.localPeerId,
+            toPeerId: msg.fromPeerId,
+            message: `\u26A0\uFE0F Cogent could not capture a reply from "${this.localPeerId}" (it may have been busy, or the resume produced no output). Manual response required \u2014 the target agent must reply in its own session. (trace ${traceId})`,
+            response: null,
+            durationMs,
+            success: false,
+            error: "NO_REPLY_CAPTURED",
+            isRelayEcho: true,
+            traceId
+          });
+        } catch (recordErr) {
+          logger.error(`Auto-relay: failed to record no-reply failure: ${recordErr}`);
         }
       }
       /**
