@@ -26389,8 +26389,8 @@ var init_stdio2 = __esm({
 // src/constants.ts
 import { createRequire } from "node:module";
 function resolveVersion() {
-  if ("3.16.0") {
-    return "3.16.0";
+  if ("3.17.0") {
+    return "3.17.0";
   }
   try {
     const require2 = createRequire(import.meta.url);
@@ -26679,7 +26679,13 @@ var init_config = __esm({
       // "human-broadcast" (toPeerId === "*" from a human origin: slack/gchat/web).
       // Default both. Agent-origin broadcasts are never auto-surfaced by C (storm-safe;
       // COGENT_BROADCAST_AWARENESS already handles seeing peer broadcasts).
-      COGENT_CHECK_ON_STOP_SCOPE: import_zod2.z.string().default("directed,human-broadcast")
+      COGENT_CHECK_ON_STOP_SCOPE: import_zod2.z.string().default("directed,human-broadcast"),
+      // Cogent Mail F4 — the mailbox domains an agent may configure + send to. CSV; default is the
+      // single Cogent mail domain. Cogent mail is ORGANISATION-ONLY (compliance: an accountable org
+      // owns every mailbox), so BYO external / corporate-domain mailboxes are BLOCKED for now — this
+      // allowlist is the configurable seam for adding per-org corporate domains in a future release.
+      // Baked default here (a LIBRARY default, not plugin env) so Team agents get it too.
+      COGENT_MAIL_ALLOWED_DOMAINS: import_zod2.z.string().default("mail.cogent.tools")
     });
     _config = null;
   }
@@ -27463,8 +27469,8 @@ var init_file_backend = __esm({
           threadId
         );
       }
-      deregisterPeer(peerId) {
-        return deregisterPeer(peerId);
+      async deregisterPeer(peerId) {
+        return { removed: await deregisterPeer(peerId), mailboxDeprovisioned: false };
       }
       getPeer(peerId) {
         return getPeer(peerId);
@@ -27531,7 +27537,7 @@ var init_relay_version_cache = __esm({
 });
 
 // src/backend/http-backend.ts
-var PATHS, HttpBackend;
+var MAILBOX_DEPROVISIONED_HEADER, PATHS, HttpBackend;
 var init_http_backend = __esm({
   "src/backend/http-backend.ts"() {
     "use strict";
@@ -27539,6 +27545,7 @@ var init_http_backend = __esm({
     init_constants();
     init_config();
     init_relay_version_cache();
+    MAILBOX_DEPROVISIONED_HEADER = "X-Cogent-Mailbox-Deprovisioned";
     PATHS = {
       peers: "/api/sessions/:sessionId/peers",
       peer: "/api/sessions/:sessionId/peers/:peerId",
@@ -27596,15 +27603,19 @@ var init_http_backend = __esm({
        * Deregister a peer from the cloud session.
        * DELETE /api/sessions/:sessionId/peers/:peerId
        *
-       * Returns true on success, false if the peer was not found.
+       * Returns `{ removed, mailboxDeprovisioned }`. `mailboxDeprovisioned` reflects the relay's
+       * `X-Cogent-Mailbox-Deprovisioned` response header (Cogent Mail F3) — true ONLY when the relay
+       * confirmed the Team mailbox was reaped, so the deregister-peer tool can clear the now-dead
+       * local mail creds. A 404 (peer not found) resolves to `{ removed: false, ... }`, not a throw.
        */
       async deregisterPeer(peerId) {
         const path16 = PATHS.peer.replace(":sessionId", this.sessionId).replace(":peerId", peerId);
         try {
-          await this.http.delete(path16, {});
-          return true;
+          const headers = await this.http.delete(path16, {});
+          const mailboxDeprovisioned = headers.get(MAILBOX_DEPROVISIONED_HEADER) === "true";
+          return { removed: true, mailboxDeprovisioned };
         } catch {
-          return false;
+          return { removed: false, mailboxDeprovisioned: false };
         }
       }
       /**
@@ -27650,6 +27661,9 @@ var init_http_backend = __esm({
         };
         if (record2.isRelayEcho === true) {
           body.isRelayEcho = true;
+        }
+        if (record2.attachments && record2.attachments.length > 0) {
+          body.attachments = record2.attachments;
         }
         const resp = await this.http.post(path16, body);
         return {
@@ -27890,7 +27904,9 @@ var init_http_client = __esm({
       }
       /**
        * Perform an authenticated DELETE request.
-       * Returns void; ignores 204 No Content responses.
+       * Returns the RESPONSE HEADERS (a 204 carries no body, but the relay conveys
+       * out-of-band signals — e.g. Cogent Mail F3's `X-Cogent-Mailbox-Deprovisioned` —
+       * via headers, so callers that need them can read them without a body).
        *
        * When no body is provided, Content-Type is omitted so servers don't try
        * to parse an empty payload as JSON. This was the root cause of a
@@ -27913,6 +27929,7 @@ var init_http_client = __esm({
         if (!resp.ok && resp.status !== 204) {
           await this.throwMappedError(resp);
         }
+        return resp.headers;
       }
       /**
        * Update the Bearer token (e.g., after join-session returns a new token).
@@ -32514,27 +32531,40 @@ function parseStatusNotice(message) {
   const m = STATUS_MARKER_RE.exec(message);
   return m ? m[1] : null;
 }
-function formatRelayMessage(fromLabel, fromPeerId, message) {
+function formatAttachmentsBlock(attachments) {
+  if (!attachments || attachments.length === 0) return "";
+  const lines = attachments.map((a) => {
+    const name = a.name || a.mailMessageId || a.url || "file";
+    const ref = a.mailMessageId ? `fetch via cogent_fetch_mail (${a.mailMessageId})` : a.url ? a.url : "no fetchable reference";
+    const meta = [a.mimeType, a.size != null ? `${a.size}B` : null].filter(Boolean).join(", ");
+    return `  [file: ${name}${meta ? ` (${meta})` : ""} \u2014 ${ref}]`;
+  });
+  return `
+
+\u{1F4CE} Attachments (byte transport = email):
+${lines.join("\n")}`;
+}
+function formatRelayMessage(fromLabel, fromPeerId, message, attachments) {
   return `[Cogent Bridge message from ${fromLabel} (${fromPeerId})]
 
-${message}
+${message}${formatAttachmentsBlock(attachments)}
 
 ---
 Respond directly to the message above. Your entire response is delivered automatically to whoever should receive it \u2014 a broadcast question (to the whole channel) is answered to everyone; a direct message, to the sender. You do NOT need to \u2014 and should NOT \u2014 call cogent_send_message or any bridge tool to deliver it; just answer normally.`;
 }
-function formatInjectOnlyMessage(fromLabel, fromPeerId, message) {
+function formatInjectOnlyMessage(fromLabel, fromPeerId, message, attachments) {
   return `[Cogent Bridge: Response from ${fromLabel} (${fromPeerId})]
 
-${message}
+${message}${formatAttachmentsBlock(attachments)}
 
 ---
 This is the response to your earlier cogent_send_message. No reply will be relayed.
 To continue the conversation, use cogent_send_message again.`;
 }
-function formatPeerBroadcastNotice(fromLabel, fromPeerId, message) {
+function formatPeerBroadcastNotice(fromLabel, fromPeerId, message, attachments) {
   return `[Cogent Bridge: broadcast from ${fromLabel} (${fromPeerId}) to the whole channel]
 
-${message}
+${message}${formatAttachmentsBlock(attachments)}
 
 ---
 FYI ONLY \u2014 another agent addressed the whole channel. Take note for context, but do NOT reply and do NOT call any cogent_* tool in response. A human will drive any reply.`;
@@ -33076,7 +33106,7 @@ var init_auto_relay = __esm({
           }
         } catch {
         }
-        const formatted = formatRelayMessage(fromLabel, msg.fromPeerId, msg.message);
+        const formatted = formatRelayMessage(fromLabel, msg.fromPeerId, msg.message, msg.attachments);
         logger.info(`Auto-relay: processing message from ${fromLabel} (${msg.fromPeerId})`);
         const traceId = msg.traceId ?? randomUUID2();
         const startMs = Date.now();
@@ -33234,7 +33264,7 @@ var init_auto_relay = __esm({
           }
         } catch {
         }
-        const formatted = formatInjectOnlyMessage(fromLabel, msg.fromPeerId, msg.message);
+        const formatted = formatInjectOnlyMessage(fromLabel, msg.fromPeerId, msg.message, msg.attachments);
         try {
           await this.refreshSessionId();
           const result = await execRemote(
@@ -33269,7 +33299,7 @@ var init_auto_relay = __esm({
           }
         } catch {
         }
-        const formatted = formatPeerBroadcastNotice(fromLabel, msg.fromPeerId, msg.message);
+        const formatted = formatPeerBroadcastNotice(fromLabel, msg.fromPeerId, msg.message, msg.attachments);
         try {
           await this.refreshSessionId();
           const result = await execRemote(
@@ -33964,6 +33994,14 @@ async function persistProvisionedMailbox(mailbox, credentialPath) {
   );
   return true;
 }
+async function clearMailCredentials(credentialPath) {
+  const filePath = resolveMailCredentialPath(credentialPath);
+  try {
+    await fs12.unlink(filePath);
+  } catch (err) {
+    if (err.code !== "ENOENT") throw err;
+  }
+}
 var MAIL_DEFAULT_HOST;
 var init_mail_credential_store = __esm({
   "src/cloud/mail-credential-store.ts"() {
@@ -34519,11 +34557,18 @@ var init_peer = __esm({
 });
 
 // cogent/dist/types/message.js
-var import_zod6, MessageRecordSchema;
+var import_zod6, AttachmentSchema, MessageRecordSchema;
 var init_message = __esm({
   "cogent/dist/types/message.js"() {
     "use strict";
     import_zod6 = __toESM(require_zod(), 1);
+    AttachmentSchema = import_zod6.z.object({
+      url: import_zod6.z.string().optional().describe("Public/fetchable URL reference"),
+      mailMessageId: import_zod6.z.string().optional().describe("IMAP message-id in the recipient mailbox"),
+      name: import_zod6.z.string().optional().describe("Display name / filename"),
+      mimeType: import_zod6.z.string().optional().describe("MIME type"),
+      size: import_zod6.z.number().int().nonnegative().optional().describe("Size in bytes")
+    }).describe("A file reference carried alongside a message (byte transport = email)");
     MessageRecordSchema = import_zod6.z.object({
       id: import_zod6.z.string().uuid().describe("Unique message identifier"),
       fromPeerId: import_zod6.z.string().min(1).describe("Sender peer ID"),
@@ -34534,7 +34579,8 @@ var init_message = __esm({
       durationMs: import_zod6.z.number().nullable().describe("Round-trip duration in ms"),
       success: import_zod6.z.boolean().describe("Whether delivery succeeded"),
       error: import_zod6.z.string().nullable().describe("Error message if delivery failed"),
-      originPlatform: import_zod6.z.enum(["cc", "codex", "slack", "gchat", "web", "gemini", "whatsapp", "telegram", "discord"]).optional().describe("Platform that originated this message")
+      originPlatform: import_zod6.z.enum(["cc", "codex", "slack", "gchat", "web", "gemini", "whatsapp", "telegram", "discord"]).optional().describe("Platform that originated this message"),
+      attachments: import_zod6.z.array(AttachmentSchema).optional().describe("Cogent Mail M2.5 \u2014 file references (byte transport = email)")
     });
   }
 });
@@ -35094,8 +35140,16 @@ function registerDeregisterPeerTool(server) {
     async ({ peerId }) => {
       try {
         const backend = getBackend();
-        const removed = await backend.deregisterPeer(peerId);
+        const { removed, mailboxDeprovisioned } = await backend.deregisterPeer(peerId);
         if (removed) heartbeat.stop();
+        if (mailboxDeprovisioned) {
+          try {
+            await clearMailCredentials();
+            logger.info("cleared local mail credentials after mailbox deprovision", { peerId });
+          } catch (err) {
+            logger.warn("failed to clear local mail credentials after deprovision", { error: err });
+          }
+        }
         return successResult({
           success: removed,
           message: removed ? `Peer '${peerId}' deregistered` : `Peer '${peerId}' was not registered`
@@ -35116,6 +35170,7 @@ var init_deregister_peer = __esm({
     init_errors4();
     init_logger();
     init_heartbeat();
+    init_mail_credential_store();
   }
 });
 
@@ -35501,12 +35556,36 @@ function assertValidEmail(value, field) {
     );
   }
 }
-var EMAIL_RE;
+function parseAllowedMailDomains(csv) {
+  const list = (csv ?? DEFAULT_MAIL_DOMAIN).split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+  return list.length ? list : [DEFAULT_MAIL_DOMAIN];
+}
+function allowedMailDomains() {
+  try {
+    return parseAllowedMailDomains(getConfig().COGENT_MAIL_ALLOWED_DOMAINS);
+  } catch {
+    return parseAllowedMailDomains(process.env.COGENT_MAIL_ALLOWED_DOMAINS);
+  }
+}
+function assertAllowedMailDomain(address, field) {
+  const domain = address.split("@")[1]?.toLowerCase() ?? "";
+  const allowed = allowedMailDomains();
+  if (!allowed.includes(domain)) {
+    throw new BridgeError(
+      "INVALID_INPUT" /* INVALID_INPUT */,
+      `${field} domain "${domain}" is not an allowed Cogent mail domain`,
+      `Cogent mail is limited to: ${allowed.join(", ")}. External or corporate-domain mail is a future release.`
+    );
+  }
+}
+var EMAIL_RE, DEFAULT_MAIL_DOMAIN;
 var init_validate = __esm({
   "src/mail/validate.ts"() {
     "use strict";
     init_errors4();
+    init_config();
     EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    DEFAULT_MAIL_DOMAIN = "mail.cogent.tools";
   }
 });
 
@@ -35530,6 +35609,7 @@ function registerSetupMailTool(server) {
     async ({ address, password, imapHost, imapPort, smtpHost, smtpPort }) => {
       try {
         assertValidEmail(address, "address");
+        assertAllowedMailDomain(address, "address");
         await saveMailCredentials({
           address,
           password,
@@ -35613,6 +35693,25 @@ var init_mail_sender = __esm({
   }
 });
 
+// src/mail/auth-error.ts
+function isMailAuthError(err) {
+  if (!err || typeof err !== "object") return false;
+  const e = err;
+  if (e.authenticationFailed === true) return true;
+  if (typeof e.serverResponseCode === "string" && e.serverResponseCode.toUpperCase() === "AUTHENTICATIONFAILED") return true;
+  if (e.code === "EAUTH") return true;
+  if (e.responseCode === 535) return true;
+  return false;
+}
+function mailAuthErrorHint() {
+  return "The mail server refused these credentials. The mailbox may be temporarily SUSPENDED by an admin (retry after it is resumed \u2014 your saved credentials will work again), or it was deleted (only then re-run cogent_setup_mail with a fresh address + password). Your local credentials are kept.";
+}
+var init_auth_error = __esm({
+  "src/mail/auth-error.ts"() {
+    "use strict";
+  }
+});
+
 // src/tools/send-mail.ts
 function registerSendMailTool(server, deps = {}) {
   const makeSender = deps.senderFactory ?? ((creds) => new NodemailerMailSender(creds));
@@ -35632,6 +35731,7 @@ function registerSendMailTool(server, deps = {}) {
     async ({ to, subject, body, attachments }) => {
       try {
         assertValidEmail(to, "to");
+        assertAllowedMailDomain(to, "to");
         const creds = await loadMailCredentials();
         if (!creds) {
           return errorResult(
@@ -35650,6 +35750,10 @@ function registerSendMailTool(server, deps = {}) {
         });
         return successResult({ ...result, attachmentCount: attachments?.length ?? 0 });
       } catch (err) {
+        if (isMailAuthError(err)) {
+          const detail = err instanceof Error ? err.message : String(err);
+          return errorResult(new BridgeError("INVALID_INPUT" /* INVALID_INPUT */, `Mailbox login was refused: ${detail}`, mailAuthErrorHint()));
+        }
         return errorResult(err);
       }
     }
@@ -35664,6 +35768,7 @@ var init_send_mail = __esm({
     init_mail_credential_store();
     init_mail_sender();
     init_validate();
+    init_auth_error();
   }
 });
 
@@ -35838,6 +35943,7 @@ function registerFetchMailTool(server, deps = {}) {
             )
           );
         }
+        assertAllowedMailDomain(creds.address, "mailbox");
         const fetcher = makeFetcher(creds);
         if (action === "fetch") {
           if (uid === void 0) {
@@ -35851,6 +35957,10 @@ function registerFetchMailTool(server, deps = {}) {
         const messages = await fetcher.list({ unreadOnly, limit: limit ?? 25 });
         return successResult({ mailbox: creds.address, count: messages.length, messages });
       } catch (err) {
+        if (isMailAuthError(err)) {
+          const detail = err instanceof Error ? err.message : String(err);
+          return errorResult(new BridgeError("INVALID_INPUT" /* INVALID_INPUT */, `Mailbox login was refused: ${detail}`, mailAuthErrorHint()));
+        }
         return errorResult(err);
       }
     }
@@ -35864,7 +35974,94 @@ var init_fetch_mail = __esm({
     init_errors4();
     init_mail_credential_store();
     init_mail_fetcher();
+    init_auth_error();
+    init_validate();
     DEFAULT_DOWNLOAD_DIR = path15.join(os8.homedir(), ".cogent", "mail-downloads");
+  }
+});
+
+// src/tools/rotate-mail-creds.ts
+function registerRotateMailCredsTool(server) {
+  server.registerTool(
+    "cogent_rotate_mail_creds",
+    {
+      title: "Rotate this agent's mailbox password",
+      description: "Rotate (re-key) this agent's Team mailbox password on the mail server and update the local credential store, so cogent_send_mail / cogent_fetch_mail keep working with the fresh secret. Use it if the mailbox password may be compromised. Team channels only.",
+      inputSchema: {},
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true }
+    },
+    async () => {
+      try {
+        const creds = await loadCredentials();
+        if (!creds || !creds.endpoint || !creds.sessionId || !creds.token) {
+          throw new BridgeError(
+            "INVALID_INPUT" /* INVALID_INPUT */,
+            "Not registered in cloud mode",
+            "Rotation applies to a cloud Team channel \u2014 register the peer first"
+          );
+        }
+        if (!creds.peerId) {
+          throw new BridgeError(
+            "INVALID_INPUT" /* INVALID_INPUT */,
+            "Cannot identify this peer",
+            "Re-register the peer so its peerId is stored, then rotate"
+          );
+        }
+        const url = `${creds.endpoint.replace(/\/+$/, "")}/api/sessions/${encodeURIComponent(creds.sessionId)}/peers/${encodeURIComponent(creds.peerId)}/mail/rotate`;
+        let res;
+        try {
+          res = await fetch(url, {
+            method: "POST",
+            headers: { "content-type": "application/json", authorization: `Bearer ${creds.token}` },
+            body: "{}",
+            signal: AbortSignal.timeout(ROTATE_TIMEOUT_MS)
+          });
+        } catch {
+          throw new BridgeError("NETWORK_TIMEOUT" /* NETWORK_TIMEOUT */, "Could not reach the relay to rotate the mailbox", "Check connectivity and try again");
+        }
+        if (!res.ok) {
+          const detail = await res.text().catch(() => "");
+          throw new BridgeError(
+            "INVALID_INPUT" /* INVALID_INPUT */,
+            `Mailbox rotation was rejected (HTTP ${res.status})`,
+            detail.slice(0, 200) || "Rotation applies to Team channels with a provisioned mailbox"
+          );
+        }
+        const data = await res.json().catch(() => null);
+        if (!data || data.success !== true) {
+          throw new BridgeError("NETWORK_TIMEOUT" /* NETWORK_TIMEOUT */, "Mailbox rotation failed", "The relay returned an unexpected response");
+        }
+        if (!data.rotated) {
+          return successResult({ rotated: false, reason: data.reason ?? "no_mailbox" });
+        }
+        if (!data.address || !data.password) {
+          throw new BridgeError("NETWORK_TIMEOUT" /* NETWORK_TIMEOUT */, "Rotation returned no new password", "Try again; the mailbox password was not updated locally");
+        }
+        const existing = await loadMailCredentials();
+        await saveMailCredentials({
+          address: data.address,
+          password: data.password,
+          imapHost: existing?.imapHost ?? MAIL_DEFAULT_HOST,
+          imapPort: existing?.imapPort ?? 993,
+          smtpHost: existing?.smtpHost ?? MAIL_DEFAULT_HOST,
+          smtpPort: existing?.smtpPort ?? 465,
+          savedAt: (/* @__PURE__ */ new Date()).toISOString()
+        });
+        return successResult({ rotated: true, address: data.address });
+      } catch (err) {
+        return errorResult(err);
+      }
+    }
+  );
+}
+var ROTATE_TIMEOUT_MS;
+var init_rotate_mail_creds = __esm({
+  "src/tools/rotate-mail-creds.ts"() {
+    "use strict";
+    init_errors4();
+    init_credential_store();
+    init_mail_credential_store();
+    ROTATE_TIMEOUT_MS = 8e3;
   }
 });
 
@@ -35884,6 +36081,7 @@ async function main() {
   registerSetupMailTool(server);
   registerSendMailTool(server);
   registerFetchMailTool(server);
+  registerRotateMailCredsTool(server);
   if (cloudInbox) {
     server.registerResource(
       "cogent_inbox",
@@ -35946,6 +36144,7 @@ var init_index = __esm({
     init_setup_mail();
     init_send_mail();
     init_fetch_mail();
+    init_rotate_mail_creds();
     init_heartbeat();
     process.on("uncaughtException", (err) => {
       if (err.code === "EPIPE") {
