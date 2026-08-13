@@ -26389,8 +26389,8 @@ var init_stdio2 = __esm({
 // src/constants.ts
 import { createRequire } from "node:module";
 function resolveVersion() {
-  if ("3.18.0") {
-    return "3.18.0";
+  if ("3.19.0") {
+    return "3.19.0";
   }
   try {
     const require2 = createRequire(import.meta.url);
@@ -27998,6 +27998,9 @@ function isCloudEndpoint(value) {
 }
 function isCloudMode() {
   return _backend instanceof HttpBackend;
+}
+function isCloudDeferred(endpoint) {
+  return !!endpoint && isCloudEndpoint(endpoint) && !isCloudMode();
 }
 function createBackend(endpoint, sessionId, token) {
   if (endpoint && isCloudEndpoint(endpoint)) {
@@ -33616,6 +33619,7 @@ __export(startup_exports, {
   cloudInbox: () => cloudInbox,
   cloudWsClient: () => cloudWsClient,
   reinitCloudBackend: () => reinitCloudBackend,
+  runPreflights: () => runPreflights,
   runStartup: () => runStartup,
   triggerReRegistration: () => triggerReRegistration
 });
@@ -33843,7 +33847,8 @@ async function runStartup() {
     } else {
       try {
         const resolveResp = await fetch(
-          `${effectiveEndpoint}/api/sessions/resolve/${encodeURIComponent(effectiveSessionId)}`
+          `${effectiveEndpoint}/api/sessions/resolve/${encodeURIComponent(effectiveSessionId)}`,
+          { signal: AbortSignal.timeout(2500) }
         );
         if (resolveResp.ok) {
           const resolved = await resolveResp.json();
@@ -33921,6 +33926,13 @@ async function runStartup() {
     await validateStateDir(config2.COGENT_STATE_PATH);
     await checkClaudeCli2(config2.COGENT_CLAUDE_PATH);
   }
+  const mode = isCloud ? "cloud" : "local";
+  logger.info(
+    `Startup complete. Mode: ${mode}, State: ${config2.COGENT_STATE_PATH}, Log level: ${config2.COGENT_LOG_LEVEL}`
+  );
+}
+async function runPreflights() {
+  const config2 = getConfig();
   if (config2.COGENT_PLATFORM === "codex") {
     await preflightCodex(config2.COGENT_CODEX_PATH);
     const sandbox = await preflightCodexSandbox(config2);
@@ -33930,10 +33942,6 @@ async function runStartup() {
   } else {
     await preflightClaude(config2.COGENT_CLAUDE_PATH);
   }
-  const mode = isCloud ? "cloud" : "local";
-  logger.info(
-    `Startup complete. Mode: ${mode}, State: ${config2.COGENT_STATE_PATH}, Log level: ${config2.COGENT_LOG_LEVEL}`
-  );
 }
 var UUID_V4_RE, execFileAsync3, PERSIST_PATH, legacyWarnEmitted, cloudWsClient, cloudInbox, cloudHttpClient, reRegistrationInProgress;
 var init_startup = __esm({
@@ -34070,11 +34078,11 @@ function registerRegisterPeerTool(server) {
         const hasCloudEndpointConfig = config2.COGENT_ENDPOINT && isCloudEndpoint(config2.COGENT_ENDPOINT);
         let sessionCreated = false;
         let cloudSessionId;
+        let cloudToken;
         let autoSecret;
         if (hasCloudEndpointConfig && config2.COGENT_ENDPOINT) {
           let endpoint = config2.COGENT_ENDPOINT;
           cloudSessionId = config2.COGENT_SESSION_ID;
-          let cloudToken;
           if (!cloudSessionId) {
             const trustPersisted = hasJoinedInProcess() || process.env.COGENT_TRUST_PERSISTED_CREDENTIALS === "1";
             if (trustPersisted) {
@@ -34128,6 +34136,15 @@ function registerRegisterPeerTool(server) {
               `Auto-created cloud session ${cloudSessionId}`
             );
           }
+        }
+        if (!cloudToken && isCloudDeferred(config2.COGENT_ENDPOINT)) {
+          return errorResult(
+            new BridgeError(
+              "JOIN_NOT_CONFIRMED" /* JOIN_NOT_CONFIRMED */,
+              "Cloud endpoint + COGENT_SESSION_ID are configured but this bridge has not joined the channel (no session token \u2014 the relay was unreachable or the session label did not resolve at startup). cogent_register_peer will NOT register against local state (that would leave you on no channel while other local agents' data sits on this host).",
+              "Call cogent_join_session with the channel name + secret (+ Org_ID for Team channels) and confirm it returns success, then retry cogent_register_peer."
+            )
+          );
         }
         const backend = getBackend();
         const existing = await backend.getPeer(peerId);
@@ -34314,6 +34331,13 @@ function registerSendMessageTool(server) {
     },
     async ({ fromPeerId, toPeerId, message }) => {
       try {
+        if (isCloudDeferred(getConfig().COGENT_ENDPOINT)) {
+          return successResult({
+            success: false,
+            notJoined: true,
+            error: "Not connected to a channel yet \u2014 call cogent_join_session (or cogent_register_peer) first. Message not sent (cross-channel send is blocked until you join)."
+          });
+        }
         const backend = getBackend();
         const from = await backend.getPeer(fromPeerId);
         if (!from) {
@@ -35031,6 +35055,14 @@ function registerListPeersTool(server) {
     },
     async () => {
       try {
+        if (isCloudDeferred(getConfig().COGENT_ENDPOINT)) {
+          return successResult({
+            peers: [],
+            count: 0,
+            notJoined: true,
+            hint: "Not connected to a channel yet \u2014 call cogent_join_session (or cogent_register_peer) first. Local peers are withheld to prevent cross-channel disclosure."
+          });
+        }
         const backend = getBackend();
         const peers = await backend.listPeers();
         const staleTimeout = getConfig().COGENT_STALE_TIMEOUT_MS;
@@ -35095,6 +35127,16 @@ function registerGetHistoryTool(server) {
     },
     async ({ peerId, limit, includeRelayEchoes, metadataOnly, dedupInferredEchoes }) => {
       try {
+        if (isCloudDeferred(getConfig().COGENT_ENDPOINT)) {
+          return successResult({
+            messages: [],
+            count: 0,
+            truncated: false,
+            totalAvailable: 0,
+            notJoined: true,
+            hint: "Not connected to a channel yet \u2014 call cogent_join_session (or cogent_register_peer) first. Local history is withheld to prevent cross-channel disclosure."
+          });
+        }
         const backend = getBackend();
         const messages = await backend.getHistory(
           peerId,
@@ -35131,6 +35173,7 @@ var init_get_history = __esm({
     "use strict";
     import_zod12 = __toESM(require_zod(), 1);
     init_backend();
+    init_config();
     init_errors4();
     init_logger();
     MAX_RESULT_CHARS = 5e4;
@@ -35156,6 +35199,14 @@ function registerDeregisterPeerTool(server) {
     },
     async ({ peerId }) => {
       try {
+        if (isCloudDeferred(getConfig().COGENT_ENDPOINT)) {
+          return successResult({
+            success: false,
+            notJoined: true,
+            removed: false,
+            message: "Not connected to a channel yet \u2014 call cogent_join_session (or cogent_register_peer) first. Nothing to deregister."
+          });
+        }
         const backend = getBackend();
         const { removed, mailboxDeprovisioned } = await backend.deregisterPeer(peerId);
         if (removed) heartbeat.stop();
@@ -35184,6 +35235,7 @@ var init_deregister_peer = __esm({
     "use strict";
     import_zod13 = __toESM(require_zod(), 1);
     init_backend();
+    init_config();
     init_errors4();
     init_logger();
     init_heartbeat();
@@ -36132,6 +36184,11 @@ async function main() {
     `${SERVER_NAME} v${SERVER_VERSION} running on stdio
 `
   );
+  void runPreflights().catch((err) => {
+    logger.warn(
+      `Preflight error (non-fatal): ${err instanceof Error ? err.message : String(err)}`
+    );
+  });
   void checkForUpdate(SERVER_VERSION).then((nudge) => {
     setLastNudge(nudge);
     if (nudge) process.stderr.write(`${nudge}
