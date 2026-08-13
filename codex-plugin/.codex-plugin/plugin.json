@@ -1,6 +1,6 @@
 {
   "name": "cogent",
-  "version": "3.19.1",
+  "version": "3.19.2",
   "description": "Inter-session communication bridge for OpenAI Codex with Slack and Claude Code interop. Real-time messaging across AI coding agents.",
   "author": {
     "name": "Essential AI Solutions",
