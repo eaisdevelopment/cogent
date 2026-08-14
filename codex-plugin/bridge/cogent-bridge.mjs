@@ -1259,8 +1259,8 @@ var init_parseUtil = __esm({
     init_errors();
     init_en();
     makeIssue = (params) => {
-      const { data, path: path17, errorMaps, issueData } = params;
-      const fullPath = [...path17, ...issueData.path || []];
+      const { data, path: path18, errorMaps, issueData } = params;
+      const fullPath = [...path18, ...issueData.path || []];
       const fullIssue = {
         ...issueData,
         path: fullPath
@@ -1540,11 +1540,11 @@ var init_types = __esm({
     init_parseUtil();
     init_util();
     ParseInputLazyPath = class {
-      constructor(parent, value, path17, key) {
+      constructor(parent, value, path18, key) {
         this._cachedPath = [];
         this.parent = parent;
         this.data = value;
-        this._path = path17;
+        this._path = path18;
         this._key = key;
       }
       get path() {
@@ -4996,10 +4996,10 @@ function assignProp(target, prop, value) {
     configurable: true
   });
 }
-function getElementAtPath(obj, path17) {
-  if (!path17)
+function getElementAtPath(obj, path18) {
+  if (!path18)
     return obj;
-  return path17.reduce((acc, key) => acc?.[key], obj);
+  return path18.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -5248,11 +5248,11 @@ function aborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path17, issues) {
+function prefixIssues(path18, issues) {
   return issues.map((iss) => {
     var _a;
     (_a = iss).path ?? (_a.path = []);
-    iss.path.unshift(path17);
+    iss.path.unshift(path18);
     return iss;
   });
 }
@@ -17058,8 +17058,8 @@ var require_utils = __commonJS({
       }
       return ind;
     }
-    function removeDotSegments(path17) {
-      let input = path17;
+    function removeDotSegments(path18) {
+      let input = path18;
       const output = [];
       let nextSlash = -1;
       let len = 0;
@@ -17258,8 +17258,8 @@ var require_schemes = __commonJS({
         wsComponent.secure = void 0;
       }
       if (wsComponent.resourceName) {
-        const [path17, query] = wsComponent.resourceName.split("?");
-        wsComponent.path = path17 && path17 !== "/" ? path17 : void 0;
+        const [path18, query] = wsComponent.resourceName.split("?");
+        wsComponent.path = path18 && path18 !== "/" ? path18 : void 0;
         wsComponent.query = query;
         wsComponent.resourceName = void 0;
       }
@@ -20612,12 +20612,12 @@ var require_dist = __commonJS({
         throw new Error(`Unknown format "${name}"`);
       return f;
     };
-    function addFormats(ajv, list, fs15, exportName) {
+    function addFormats(ajv, list, fs16, exportName) {
       var _a;
       var _b;
       (_a = (_b = ajv.opts.code).formats) !== null && _a !== void 0 ? _a : _b.formats = (0, codegen_1._)`require("ajv-formats/dist/formats").${exportName}`;
       for (const f of list)
-        ajv.addFormat(f, fs15[f]);
+        ajv.addFormat(f, fs16[f]);
     }
     module.exports = exports = formatsPlugin;
     Object.defineProperty(exports, "__esModule", { value: true });
@@ -21729,8 +21729,8 @@ var require_parseUtil = __commonJS({
     var errors_js_1 = require_errors2();
     var en_js_1 = __importDefault(require_en());
     var makeIssue2 = (params) => {
-      const { data, path: path17, errorMaps, issueData } = params;
-      const fullPath = [...path17, ...issueData.path || []];
+      const { data, path: path18, errorMaps, issueData } = params;
+      const fullPath = [...path18, ...issueData.path || []];
       const fullIssue = {
         ...issueData,
         path: fullPath
@@ -21884,11 +21884,11 @@ var require_types2 = __commonJS({
     var parseUtil_js_1 = require_parseUtil();
     var util_js_1 = require_util2();
     var ParseInputLazyPath2 = class {
-      constructor(parent, value, path17, key) {
+      constructor(parent, value, path18, key) {
         this._cachedPath = [];
         this.parent = parent;
         this.data = value;
-        this._path = path17;
+        this._path = path18;
         this._key = key;
       }
       get path() {
@@ -26389,8 +26389,8 @@ var init_stdio2 = __esm({
 // src/constants.ts
 import { createRequire } from "node:module";
 function resolveVersion() {
-  if ("3.19.2") {
-    return "3.19.2";
+  if ("3.20.0") {
+    return "3.20.0";
   }
   try {
     const require2 = createRequire(import.meta.url);
@@ -26610,6 +26610,18 @@ var init_config = __esm({
       COGENT_PLATFORM: import_zod2.z.enum(["cc", "codex", "slack", "gchat", "web"]).default("cc"),
       COGENT_CODEX_PATH: import_zod2.z.string().default("codex"),
       COGENT_CODEX_SANDBOX: import_zod2.z.enum(["full-auto", "read-only", "workspace-write", "danger-full-access", "bypass"]).default("full-auto"),
+      // Codex real-time-wake rail selector. codex >=0.145 has a SINGLE-WRITER
+      // thread-store: a codex agent running in an interactive TUI holds an exclusive
+      // writer on its own thread, so the current rail (`exec-resume` =
+      // `codex exec resume <same id>`) fast-fails `-32600 already has an active
+      // writer` and the peer never gets a real-time reply. The `app-server` rail
+      // injects the peer's message as a turn THROUGH codex's app-server daemon (the
+      // daemon is the single writer; the human's `codex --remote` TUI and the bridge
+      // are both just clients → no conflict). DEFAULT stays `exec-resume` so this is
+      // purely additive/opt-in: nothing changes for any agent until a codex user
+      // launches via the daemon (see bin/cogent-codex) and sets this to `app-server`.
+      // Only affects COGENT_PLATFORM=codex; claude/gemini/mail rails never read it.
+      COGENT_CODEX_WAKE: import_zod2.z.enum(["exec-resume", "app-server"]).default("exec-resume"),
       // Auto-recovery for a blocked Codex sandbox. On a host where the OS sandbox
       // can't initialize (unprivileged user namespaces blocked — Ubuntu 24.04's
       // apparmor_restrict_unprivileged_userns, containers, hardened kernels),
@@ -27589,7 +27601,7 @@ var init_http_backend = __esm({
        * in cloud mode we ignore it and use this.sessionId (the cloud session).
        */
       async registerPeer(peerId, _sessionId, cwd, label, clientVersion, mode, _channelSessionId, capabilities, workspaceId, threadId) {
-        const path17 = PATHS.peers.replace(":sessionId", this.sessionId);
+        const path18 = PATHS.peers.replace(":sessionId", this.sessionId);
         const body = {
           peerId,
           cwd,
@@ -27617,7 +27629,7 @@ var init_http_backend = __esm({
             body.role = roleCap.slice("role:".length);
           }
         }
-        return this.http.post(path17, body);
+        return this.http.post(path18, body);
       }
       /**
        * Deregister a peer from the cloud session.
@@ -27629,9 +27641,9 @@ var init_http_backend = __esm({
        * local mail creds. A 404 (peer not found) resolves to `{ removed: false, ... }`, not a throw.
        */
       async deregisterPeer(peerId) {
-        const path17 = PATHS.peer.replace(":sessionId", this.sessionId).replace(":peerId", peerId);
+        const path18 = PATHS.peer.replace(":sessionId", this.sessionId).replace(":peerId", peerId);
         try {
-          const headers = await this.http.delete(path17, {});
+          const headers = await this.http.delete(path18, {});
           const mailboxDeprovisioned = headers.get(MAILBOX_DEPROVISIONED_HEADER) === "true";
           return { removed: true, mailboxDeprovisioned };
         } catch {
@@ -27652,8 +27664,8 @@ var init_http_backend = __esm({
        * GET /api/sessions/:sessionId/peers
        */
       async listPeers() {
-        const path17 = PATHS.peers.replace(":sessionId", this.sessionId);
-        const result = await this.http.get(path17);
+        const path18 = PATHS.peers.replace(":sessionId", this.sessionId);
+        const result = await this.http.get(path18);
         return result.peers;
       }
       /**
@@ -27661,8 +27673,8 @@ var init_http_backend = __esm({
        * Calls the lightweight heartbeat endpoint on the cloud relay server.
        */
       async updateLastSeen(peerId) {
-        const path17 = PATHS.heartbeat.replace(":sessionId", this.sessionId);
-        await this.http.post(path17, { peerId });
+        const path18 = PATHS.heartbeat.replace(":sessionId", this.sessionId);
+        await this.http.post(path18, { peerId });
       }
       /**
        * Record a message in the cloud session.
@@ -27673,7 +27685,7 @@ var init_http_backend = __esm({
        * the input record to construct a full MessageRecord.
        */
       async recordMessage(record2) {
-        const path17 = PATHS.messages.replace(":sessionId", this.sessionId);
+        const path18 = PATHS.messages.replace(":sessionId", this.sessionId);
         const body = {
           fromPeerId: record2.fromPeerId,
           toPeerId: record2.toPeerId,
@@ -27685,7 +27697,7 @@ var init_http_backend = __esm({
         if (record2.attachments && record2.attachments.length > 0) {
           body.attachments = record2.attachments;
         }
-        const resp = await this.http.post(path17, body);
+        const resp = await this.http.post(path18, body);
         return {
           ...record2,
           id: resp.id,
@@ -27699,7 +27711,7 @@ var init_http_backend = __esm({
        * Supports optional peerId filter and limit (default 300).
        */
       async getHistory(peerId, limit, includeRelayEchoes, metadataOnly, dedupInferredEchoes) {
-        const path17 = PATHS.messages.replace(":sessionId", this.sessionId);
+        const path18 = PATHS.messages.replace(":sessionId", this.sessionId);
         const query = {};
         if (peerId) {
           query.peerId = peerId;
@@ -27714,7 +27726,7 @@ var init_http_backend = __esm({
         if (dedupInferredEchoes) {
           query.dedupInferredEchoes = "true";
         }
-        const result = await this.http.get(path17, query);
+        const result = await this.http.get(path18, query);
         return result.messages;
       }
       /**
@@ -27725,12 +27737,12 @@ var init_http_backend = __esm({
        * so that get-history shows the actual response (not null).
        */
       async updateMessageResponse(messageId, response, durationMs, pending) {
-        const path17 = PATHS.message.replace(":sessionId", this.sessionId).replace(":messageId", messageId);
+        const path18 = PATHS.message.replace(":sessionId", this.sessionId).replace(":messageId", messageId);
         const body = { response, durationMs };
         if (pending === true) {
           body.pending = true;
         }
-        await this.http.patch(path17, body);
+        await this.http.patch(path18, body);
       }
       /**
        * Validate a session.
@@ -27872,8 +27884,8 @@ var init_http_client = __esm({
        * Perform an authenticated GET request.
        * Appends query parameters to the URL if provided.
        */
-      async get(path17, query) {
-        const url = new URL(path17, this.baseUrl);
+      async get(path18, query) {
+        const url = new URL(path18, this.baseUrl);
         if (query) {
           for (const [k, v] of Object.entries(query)) {
             url.searchParams.set(k, v);
@@ -27888,8 +27900,8 @@ var init_http_client = __esm({
       /**
        * Perform an authenticated POST request with a JSON body.
        */
-      async post(path17, body) {
-        const url = new URL(path17, this.baseUrl);
+      async post(path18, body) {
+        const url = new URL(path18, this.baseUrl);
         const resp = await this.fetchWithTimeout(url, {
           method: "POST",
           headers: this.headers(),
@@ -27907,8 +27919,8 @@ var init_http_client = __esm({
        * Perform an authenticated PATCH request with a JSON body.
        * Used to update existing resources (e.g., message response fields).
        */
-      async patch(path17, body) {
-        const url = new URL(path17, this.baseUrl);
+      async patch(path18, body) {
+        const url = new URL(path18, this.baseUrl);
         const resp = await this.fetchWithTimeout(url, {
           method: "PATCH",
           headers: this.headers(),
@@ -27933,8 +27945,8 @@ var init_http_client = __esm({
        * "Malformed JSON in request body" 400 from cogent-server <=3.1.2 when
        * any client (including third-party tools) DELETEd a peer without a body.
        */
-      async delete(path17, body) {
-        const url = new URL(path17, this.baseUrl);
+      async delete(path18, body) {
+        const url = new URL(path18, this.baseUrl);
         const headers = {
           "Authorization": `Bearer ${this.token}`
         };
@@ -32117,14 +32129,14 @@ var init_ws_client = __esm({
         if (this.pollTimer) return;
         const poll = async () => {
           try {
-            const path17 = `/api/sessions/${this.opts.sessionId}/poll`;
+            const path18 = `/api/sessions/${this.opts.sessionId}/poll`;
             const query = {
               peerId: this.opts.peerId
             };
             if (this.lastMessageId) {
               query.lastMessageId = this.lastMessageId;
             }
-            const result = await this.opts.http.get(path17, query);
+            const result = await this.opts.http.get(path18, query);
             if (result.messages && result.messages.length > 0) {
               this.opts.onMessages(result.messages);
               this.lastMessageId = result.messages[result.messages.length - 1].id;
@@ -32278,11 +32290,13 @@ function execCodex(sessionId, message, cwd, timeoutMs) {
       if (code !== 0) {
         await cleanupFile();
         const sandboxBlocked = SANDBOX_FAILURE_RE.test(stderr);
+        const codexLiveSession = ACTIVE_WRITER_RE.test(stderr);
         safeResolve({
           stdout: "",
           stderr: `CLI_EXEC_FAILED: codex exited with code ${code}. stderr: ${stderr}`,
           exitCode: code,
-          ...sandboxBlocked ? { sandboxBlocked: true } : {}
+          ...sandboxBlocked ? { sandboxBlocked: true } : {},
+          ...codexLiveSession ? { codexLiveSession: true } : {}
         });
         return;
       }
@@ -32412,7 +32426,7 @@ async function validateCodexSession(sessionId) {
     return false;
   }
 }
-var sandboxOverride, SANDBOX_FAILURE_RE;
+var sandboxOverride, SANDBOX_FAILURE_RE, ACTIVE_WRITER_RE;
 var init_codex_cli = __esm({
   "src/services/codex-cli.ts"() {
     "use strict";
@@ -32420,14 +32434,329 @@ var init_codex_cli = __esm({
     init_agent_config();
     sandboxOverride = null;
     SANDBOX_FAILURE_RE = /bwrap:|setting up uid ?map|\/proc\/self\/(uid|gid)_map|newuidmap|user namespaces?|RTM_NEWADDR|unshare[^\n]*(Operation not permitted|Permission denied)|clone3?[^\n]*(EPERM|not permitted)/i;
+    ACTIVE_WRITER_RE = /already has an active writer|thread-store conflict|-32600/i;
+  }
+});
+
+// src/services/codex-app-server.ts
+import path12 from "node:path";
+import fs11 from "node:fs/promises";
+import { spawn as spawn3 } from "node:child_process";
+function appServerSocketPath(codexHome = codexHomeDir()) {
+  return path12.join(codexHome, "app-server-control", "app-server-control.sock");
+}
+function rpcUrl(sock) {
+  return `ws+unix://${sock}:/rpc`;
+}
+async function ensureDaemon(codexHome = codexHomeDir(), deps = {}) {
+  if (ensuredSock) return ensuredSock;
+  const run = deps.run ?? defaultRun;
+  const socketExists = deps.socketExists ?? defaultSocketExists;
+  const waitMs = deps.waitMs ?? 8e3;
+  const pollMs = deps.pollMs ?? 150;
+  const codexPath = getConfig().COGENT_CODEX_PATH;
+  const env = { ...process.env, CODEX_HOME: codexHome };
+  const res = await run(codexPath, ["app-server", "daemon", "start"], env);
+  if (/managed standalone Codex install not found/i.test(`${res.stdout}
+${res.stderr}`)) {
+    throw new Error(
+      "MANAGED_CODEX_REQUIRED: the codex app-server daemon needs the managed-standalone codex install, which the npm/Homebrew @openai/codex package does not provide. Install it with:  curl -fsSL https://chatgpt.com/codex/install.sh | sh  then relaunch via cogent-codex. (Until then, codex answers at its next turn, not in real time.)"
+    );
+  }
+  let sock = appServerSocketPath(codexHome);
+  try {
+    const parsed = JSON.parse(res.stdout.trim());
+    if (parsed && typeof parsed.socketPath === "string") sock = parsed.socketPath;
+  } catch {
+  }
+  const deadline = Date.now() + waitMs;
+  while (!await socketExists(sock)) {
+    if (Date.now() >= deadline) {
+      throw new Error(
+        `app-server daemon socket did not appear at ${sock} within ${waitMs}ms (stderr: ${res.stderr.trim() || "none"})`
+      );
+    }
+    await sleep2(pollMs);
+  }
+  ensuredSock = sock;
+  return sock;
+}
+function isAgentMessage(item) {
+  return typeof item?.type === "string" && /^agent[_-]?message$/i.test(item.type);
+}
+function itemText(item) {
+  if (typeof item?.text === "string") return item.text;
+  if (Array.isArray(item?.content)) {
+    return item.content.filter((c2) => typeof c2?.text === "string").map((c2) => c2.text).join("");
+  }
+  return "";
+}
+function extractAgentMessageText(notes) {
+  const fromCompleted = [];
+  const fromStream = [];
+  for (const n of notes) {
+    if (n.method === "turn/completed") {
+      const items = n.params?.items ?? n.params?.turn?.items ?? [];
+      for (const it of items) if (isAgentMessage(it)) fromCompleted.push(itemText(it));
+    } else if (n.method === "item/completed") {
+      const it = n.params?.item;
+      if (isAgentMessage(it)) fromStream.push(itemText(it));
+    }
+  }
+  const chosen = fromCompleted.length > 0 ? fromCompleted : fromStream;
+  return chosen.join("").trim();
+}
+function sandboxPolicyFor(mode, cwd) {
+  switch (mode) {
+    case "read-only":
+      return { type: "readOnly", networkAccess: false };
+    case "danger-full-access":
+    case "bypass":
+      return { type: "dangerFullAccess" };
+    case "workspace-write":
+    case "full-auto":
+    default:
+      return {
+        type: "workspaceWrite",
+        writableRoots: [cwd],
+        networkAccess: false,
+        excludeTmpdirEnvVar: false,
+        excludeSlashTmp: false
+      };
+  }
+}
+function execCodexViaAppServer(threadId, message, cwd, timeoutMs, deps = {}) {
+  const key = deps.idempotencyKey ? `${threadId}::${deps.idempotencyKey}` : null;
+  if (!key) return _injectTurn(threadId, message, cwd, timeoutMs, deps);
+  const existing = idempotencyCache.get(key);
+  if (existing) {
+    return existing.done ? Promise.resolve(existing.done.result) : existing.promise;
+  }
+  const promise = _injectTurn(threadId, message, cwd, timeoutMs, deps);
+  const entry = { promise };
+  idempotencyCache.set(key, entry);
+  void promise.then((result) => {
+    entry.done = { result, at: Date.now() };
+    const t = setTimeout(() => idempotencyCache.delete(key), IDEMPOTENCY_TTL_MS);
+    if (typeof t.unref === "function") t.unref();
+  });
+  return promise;
+}
+async function _injectTurn(threadId, message, cwd, timeoutMs, deps = {}) {
+  const config2 = getConfig();
+  const effectiveTimeout = timeoutMs ?? config2.COGENT_TIMEOUT_MS;
+  const truncated = config2.COGENT_CHAR_LIMIT > 0 && message.length > config2.COGENT_CHAR_LIMIT ? message.slice(0, config2.COGENT_CHAR_LIMIT) + "\n...[truncated]" : message;
+  const sock = deps.socketPath ?? appServerSocketPath();
+  const wsFactory = deps.wsFactory ?? defaultWsFactory;
+  let client;
+  try {
+    const ws = wsFactory(rpcUrl(sock), { perMessageDeflate: false, headers: { Host: "localhost" } });
+    client = new AppServerClient(ws);
+    await client.waitOpen();
+    await client.request("initialize", {
+      clientInfo: { name: "cogent-bridge", version: "1" },
+      capabilities: { experimentalApi: true }
+    });
+  } catch (err) {
+    return {
+      stdout: "",
+      stderr: `APP_SERVER_UNAVAILABLE: ${err.message}`,
+      exitCode: 1,
+      appServerUnavailable: true
+    };
+  }
+  try {
+    await client.request("thread/resume", { threadId, cwd });
+    const buffered = [];
+    let myTurnId;
+    const isMine = (msg) => msg.method === "turn/completed" && (myTurnId !== void 0 ? msg.params?.turn?.id === myTurnId : msg.params?.threadId === threadId);
+    let deliver = null;
+    const off = client.onNotification((msg) => {
+      if (msg.method !== "turn/completed") return;
+      if (myTurnId === void 0) {
+        buffered.push(msg);
+        return;
+      }
+      if (isMine(msg) && deliver) {
+        const d = deliver;
+        deliver = null;
+        d(msg);
+      }
+    });
+    const startResult = await client.request("turn/start", {
+      threadId,
+      input: [{ type: "text", text: truncated }],
+      // Bound the injected peer turn by the CONFIGURED sandbox (not the human
+      // session's privilege). See sandboxPolicyFor.
+      sandboxPolicy: sandboxPolicyFor(config2.COGENT_CODEX_SANDBOX, cwd),
+      // Native correlation id (daemon does NOT auto-dedupe on it — our own
+      // idempotency guard does; this is for daemon-side correlation/telemetry).
+      ...deps.idempotencyKey ? { clientUserMessageId: deps.idempotencyKey } : {}
+    });
+    myTurnId = startResult?.turn?.id;
+    const turnCompleted = await new Promise((resolve) => {
+      deliver = resolve;
+      const early = buffered.find(isMine);
+      if (early) {
+        deliver = null;
+        resolve(early);
+        return;
+      }
+      setTimeout(() => {
+        if (deliver) {
+          deliver = null;
+          resolve(null);
+        }
+      }, effectiveTimeout);
+    });
+    off();
+    if (!turnCompleted) {
+      return {
+        stdout: "",
+        stderr: `CLI_TIMEOUT: app-server turn did not complete within ${effectiveTimeout}ms`,
+        exitCode: null
+      };
+    }
+    const text = extractAgentMessageText([turnCompleted]);
+    return {
+      stdout: text,
+      stderr: "",
+      exitCode: 0,
+      captureContract: "event_stream",
+      stable: true
+    };
+  } catch (err) {
+    return {
+      stdout: "",
+      stderr: `CLI_EXEC_FAILED: app-server turn failed: ${err.message}`,
+      exitCode: 1
+    };
+  } finally {
+    client.close();
+  }
+}
+var defaultWsFactory, ensuredSock, defaultRun, defaultSocketExists, sleep2, AppServerClient, idempotencyCache, IDEMPOTENCY_TTL_MS;
+var init_codex_app_server = __esm({
+  "src/services/codex-app-server.ts"() {
+    "use strict";
+    init_wrapper();
+    init_config();
+    init_agent_config();
+    defaultWsFactory = (url, opts) => new wrapper_default(url, opts);
+    ensuredSock = null;
+    defaultRun = (cmd, args, env) => new Promise((resolve) => {
+      const child = spawn3(cmd, args, { env, stdio: ["ignore", "pipe", "pipe"] });
+      let stdout = "";
+      let stderr = "";
+      child.stdout.on("data", (c2) => stdout += c2.toString());
+      child.stderr.on("data", (c2) => stderr += c2.toString());
+      child.on("error", (err) => resolve({ stdout, stderr: stderr + String(err), code: 127 }));
+      child.on("close", (code) => resolve({ stdout, stderr, code }));
+    });
+    defaultSocketExists = async (p) => {
+      try {
+        await fs11.stat(p);
+        return true;
+      } catch {
+        return false;
+      }
+    };
+    sleep2 = (ms) => new Promise((r) => setTimeout(r, ms));
+    AppServerClient = class {
+      ws;
+      nextId = 1;
+      pending = /* @__PURE__ */ new Map();
+      notifyListeners = /* @__PURE__ */ new Set();
+      opened;
+      openResolved = false;
+      constructor(ws) {
+        this.ws = ws;
+        this.opened = new Promise((resolve, reject) => {
+          ws.on("open", () => {
+            this.openResolved = true;
+            resolve();
+          });
+          ws.on("unexpected-response", (_req, res) => {
+            if (!this.openResolved) reject(new Error(`app-server ws upgrade rejected: HTTP ${res?.statusCode}`));
+          });
+          ws.on("error", (err) => {
+            if (!this.openResolved) reject(err);
+            else this._failAll(err);
+          });
+          ws.on("close", () => {
+            if (this.openResolved) this._failAll(new Error("app-server ws closed"));
+          });
+        });
+        ws.on("message", (data) => this._onMessage(data));
+      }
+      /** Await the open handshake. Rejects (before open) on connect/upgrade errors. */
+      waitOpen() {
+        return this.opened;
+      }
+      _failAll(err) {
+        for (const [, p] of this.pending) p.reject(err);
+        this.pending.clear();
+      }
+      _onMessage(data) {
+        let msg;
+        try {
+          msg = JSON.parse(data.toString());
+        } catch {
+          return;
+        }
+        if (typeof msg.id === "number" && this.pending.has(msg.id)) {
+          const p = this.pending.get(msg.id);
+          this.pending.delete(msg.id);
+          if (msg.error) p.reject(Object.assign(new Error(msg.error.message ?? "rpc error"), { rpcError: msg.error }));
+          else p.resolve(msg.result);
+          return;
+        }
+        if (typeof msg.method === "string") {
+          for (const cb of this.notifyListeners) cb(msg);
+        }
+      }
+      /** Issue a JSON-RPC request and resolve with its result (rejects on rpc error). */
+      request(method, params) {
+        const id = this.nextId++;
+        const p = new Promise((resolve, reject) => {
+          this.pending.set(id, { resolve, reject });
+        });
+        this.ws.send(JSON.stringify({ jsonrpc: "2.0", id, method, params }));
+        return p;
+      }
+      /** Subscribe to server notifications; returns an unsubscribe fn. */
+      onNotification(cb) {
+        this.notifyListeners.add(cb);
+        return () => this.notifyListeners.delete(cb);
+      }
+      close() {
+        try {
+          this.ws.close();
+        } catch {
+        }
+      }
+    };
+    idempotencyCache = /* @__PURE__ */ new Map();
+    IDEMPOTENCY_TTL_MS = 3e5;
   }
 });
 
 // src/services/exec-remote.ts
-function execRemote(platform, sessionId, message, cwd, timeoutMs) {
+async function execCodexWake(sessionId, message, cwd, timeoutMs, idempotencyKey) {
+  if (getConfig().COGENT_CODEX_WAKE === "app-server") {
+    try {
+      const sock = await ensureDaemon();
+      const result = await execCodexViaAppServer(sessionId, message, cwd, timeoutMs, { socketPath: sock, idempotencyKey });
+      if (!result.appServerUnavailable) return result;
+    } catch {
+    }
+  }
+  return execCodex(sessionId, message, cwd, timeoutMs);
+}
+function execRemote(platform, sessionId, message, cwd, timeoutMs, opts) {
   switch (platform) {
     case "codex":
-      return execCodex(sessionId, message, cwd, timeoutMs);
+      return execCodexWake(sessionId, message, cwd, timeoutMs, opts?.idempotencyKey);
     case "cc":
     default:
       return execClaude(sessionId, message, cwd, timeoutMs);
@@ -32463,8 +32792,10 @@ function validateSessionFor(platform, sessionId, cwd) {
 var init_exec_remote = __esm({
   "src/services/exec-remote.ts"() {
     "use strict";
+    init_config();
     init_cc_cli();
     init_codex_cli();
+    init_codex_app_server();
   }
 });
 
@@ -33172,7 +33503,12 @@ var init_auto_relay = __esm({
             getConfig().COGENT_PLATFORM,
             this.localSessionId,
             formatted,
-            this.localCwd
+            this.localCwd,
+            void 0,
+            // Idempotency: the codex app-server rail runs turns on the daemon
+            // independent of our client, so a redelivery of this same message must
+            // not start a second turn. Keyed by the stable relay message id.
+            { idempotencyKey: msg.id }
           );
           const durationMs = Date.now() - startMs;
           if (result.exitCode === 0 && result.stdout) {
@@ -33221,7 +33557,7 @@ var init_auto_relay = __esm({
             if (freshId && freshId !== this.localSessionId) {
               logger.info(`Auto-relay: retry with rotated session ${this.localSessionId} -> ${freshId}`);
               this.localSessionId = freshId;
-              const retry = await execRemote(getConfig().COGENT_PLATFORM, this.localSessionId, formatted, this.localCwd);
+              const retry = await execRemote(getConfig().COGENT_PLATFORM, this.localSessionId, formatted, this.localCwd, void 0, { idempotencyKey: msg.id });
               if (retry.exitCode === 0 && retry.stdout) {
                 await this._relayCapturedReply(msg, retry, traceId, Date.now() - startMs, true);
                 replied = true;
@@ -33231,7 +33567,9 @@ var init_auto_relay = __esm({
             }
           }
           if (!replied) {
-            await this._recordNoReplyFailure(msg, traceId, Date.now() - startMs);
+            await this._recordNoReplyFailure(msg, traceId, Date.now() - startMs, {
+              codexLiveSession: result.codexLiveSession === true
+            });
           }
         } catch (err) {
           const durationMs = Date.now() - startMs;
@@ -33252,16 +33590,18 @@ var init_auto_relay = __esm({
        * at the next turn boundary. Refusal (AMBIGUOUS_SESSION) and sandbox-blocked
        * paths record their own failure and return before this, so no double-record.
        */
-      async _recordNoReplyFailure(msg, traceId, durationMs) {
+      async _recordNoReplyFailure(msg, traceId, durationMs, opts) {
+        const codexLive = opts?.codexLiveSession === true;
+        const message = codexLive ? `\u{1F4E8} Queued for "${this.localPeerId}": it's live in an interactive Codex session, so Cogent can't resume it in real time \u2014 it will see this at its next turn. For real-time replies, launch it via \`cogent-codex\` (COGENT_CODEX_WAKE=app-server). (trace ${traceId})` : `\u26A0\uFE0F Cogent could not capture a reply from "${this.localPeerId}" (it may have been busy, or the resume produced no output). Manual response required \u2014 the target agent must reply in its own session. (trace ${traceId})`;
         try {
           await getBackend().recordMessage({
             fromPeerId: this.localPeerId,
             toPeerId: msg.fromPeerId,
-            message: `\u26A0\uFE0F Cogent could not capture a reply from "${this.localPeerId}" (it may have been busy, or the resume produced no output). Manual response required \u2014 the target agent must reply in its own session. (trace ${traceId})`,
+            message,
             response: null,
             durationMs,
             success: false,
-            error: "NO_REPLY_CAPTURED",
+            error: codexLive ? "CODEX_LIVE_SESSION" : "NO_REPLY_CAPTURED",
             isRelayEcho: true,
             traceId
           });
@@ -33624,14 +33964,14 @@ __export(startup_exports, {
   triggerReRegistration: () => triggerReRegistration
 });
 import os6 from "node:os";
-import path12 from "node:path";
-import fs11 from "node:fs/promises";
+import path13 from "node:path";
+import fs12 from "node:fs/promises";
 import readline2 from "node:readline";
 import { execFile as execFile5 } from "node:child_process";
 import { promisify as promisify4 } from "node:util";
 async function loadPersistedConfig() {
   try {
-    const raw = await fs11.readFile(PERSIST_PATH, "utf-8");
+    const raw = await fs12.readFile(PERSIST_PATH, "utf-8");
     return JSON.parse(raw);
   } catch {
     return {};
@@ -33639,7 +33979,7 @@ async function loadPersistedConfig() {
 }
 async function savePersistedConfig(config2) {
   try {
-    await fs11.writeFile(PERSIST_PATH, JSON.stringify(config2, null, 2) + "\n", "utf-8");
+    await fs12.writeFile(PERSIST_PATH, JSON.stringify(config2, null, 2) + "\n", "utf-8");
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     logger.warn(`Could not save config to ${PERSIST_PATH}: ${msg}`);
@@ -33674,11 +34014,11 @@ First run detected. Where should cogent-bridge store its data?
   });
 }
 async function validateStateDir(statePath) {
-  await fs11.mkdir(statePath, { recursive: true });
-  const testFile = path12.join(statePath, ".write-test");
+  await fs12.mkdir(statePath, { recursive: true });
+  const testFile = path13.join(statePath, ".write-test");
   try {
-    await fs11.writeFile(testFile, "test", "utf-8");
-    await fs11.unlink(testFile);
+    await fs12.writeFile(testFile, "test", "utf-8");
+    await fs12.unlink(testFile);
   } catch {
     throw new BridgeError(
       "STARTUP_FAILED" /* STARTUP_FAILED */,
@@ -33824,10 +34164,10 @@ async function runStartup() {
   if (envStatePath) {
     statePath = envStatePath;
   } else {
-    const defaultPath = path12.join(os6.homedir(), ".cogent");
+    const defaultPath = path13.join(os6.homedir(), ".cogent");
     statePath = await firstRunPrompt(defaultPath);
   }
-  if (!envStatePath && statePath !== path12.join(os6.homedir(), ".cogent")) {
+  if (!envStatePath && statePath !== path13.join(os6.homedir(), ".cogent")) {
     process.env.COGENT_STATE_PATH = statePath;
   } else if (!envStatePath) {
     process.env.COGENT_STATE_PATH = statePath;
@@ -33905,7 +34245,7 @@ async function runStartup() {
   }
   initLogger(
     config2.COGENT_LOG_LEVEL,
-    path12.join(config2.COGENT_STATE_PATH, "logs")
+    path13.join(config2.COGENT_STATE_PATH, "logs")
   );
   if (isCloud && effectiveSessionId && effectiveToken) {
     cloudInbox = new MessageInbox();
@@ -33965,7 +34305,7 @@ var init_startup = __esm({
     init_auto_relay();
     UUID_V4_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     execFileAsync3 = promisify4(execFile5);
-    PERSIST_PATH = path12.join(os6.homedir(), ".cogent-config.json");
+    PERSIST_PATH = path13.join(os6.homedir(), ".cogent-config.json");
     legacyWarnEmitted = false;
     cloudWsClient = null;
     cloudInbox = null;
@@ -33976,12 +34316,12 @@ var init_startup = __esm({
 
 // src/cloud/mail-credential-store.ts
 import crypto3 from "node:crypto";
-import fs12 from "node:fs/promises";
-import path13 from "node:path";
+import fs13 from "node:fs/promises";
+import path14 from "node:path";
 import os7 from "node:os";
 function defaultMailCredentialPath(cwd = process.cwd()) {
-  const hash = crypto3.createHash("sha256").update(path13.resolve(cwd)).digest("hex").slice(0, 16);
-  return path13.join(os7.homedir(), ".cogent", "mail-credentials", `${hash}.json`);
+  const hash = crypto3.createHash("sha256").update(path14.resolve(cwd)).digest("hex").slice(0, 16);
+  return path14.join(os7.homedir(), ".cogent", "mail-credentials", `${hash}.json`);
 }
 function resolveMailCredentialPath(credentialPath) {
   if (credentialPath) return credentialPath;
@@ -33992,16 +34332,16 @@ function resolveMailCredentialPath(credentialPath) {
 async function loadMailCredentials(credentialPath) {
   const filePath = resolveMailCredentialPath(credentialPath);
   try {
-    return JSON.parse(await fs12.readFile(filePath, "utf-8"));
+    return JSON.parse(await fs13.readFile(filePath, "utf-8"));
   } catch {
     return null;
   }
 }
 async function saveMailCredentials(creds, credentialPath) {
   const filePath = resolveMailCredentialPath(credentialPath);
-  await fs12.mkdir(path13.dirname(filePath), { recursive: true, mode: 448 });
-  await fs12.writeFile(filePath, JSON.stringify(creds, null, 2) + "\n", { encoding: "utf-8", mode: 384 });
-  await fs12.chmod(filePath, 384);
+  await fs13.mkdir(path14.dirname(filePath), { recursive: true, mode: 448 });
+  await fs13.writeFile(filePath, JSON.stringify(creds, null, 2) + "\n", { encoding: "utf-8", mode: 384 });
+  await fs13.chmod(filePath, 384);
 }
 async function persistProvisionedMailbox(mailbox, credentialPath) {
   if (!mailbox?.address || !mailbox.password) return false;
@@ -34022,7 +34362,7 @@ async function persistProvisionedMailbox(mailbox, credentialPath) {
 async function clearMailCredentials(credentialPath) {
   const filePath = resolveMailCredentialPath(credentialPath);
   try {
-    await fs12.unlink(filePath);
+    await fs13.unlink(filePath);
   } catch (err) {
     if (err.code !== "ENOENT") throw err;
   }
@@ -35708,13 +36048,13 @@ var init_setup_mail = __esm({
 });
 
 // src/mail/mail-sender.ts
-import fs13 from "node:fs/promises";
-import path14 from "node:path";
+import fs14 from "node:fs/promises";
+import path15 from "node:path";
 async function buildAndSendMail(sender, creds, params) {
   const attachments = [];
   for (const p of params.attachmentPaths ?? []) {
-    const content = await fs13.readFile(p);
-    attachments.push({ filename: path14.basename(p), content });
+    const content = await fs14.readFile(p);
+    attachments.push({ filename: path15.basename(p), content });
   }
   const { messageId } = await sender.send({
     from: creds.address,
@@ -35842,16 +36182,16 @@ var init_send_mail = __esm({
 });
 
 // src/mail/mail-fetcher.ts
-import fs14 from "node:fs/promises";
-import path15 from "node:path";
+import fs15 from "node:fs/promises";
+import path16 from "node:path";
 async function saveAttachments(attachments, downloadDir) {
   if (attachments.length === 0) return [];
-  await fs14.mkdir(downloadDir, { recursive: true });
+  await fs15.mkdir(downloadDir, { recursive: true });
   const saved = [];
   for (const a of attachments) {
-    const name = path15.basename(a.filename) || "attachment";
-    const savedPath = path15.join(downloadDir, name);
-    await fs14.writeFile(savedPath, a.content);
+    const name = path16.basename(a.filename) || "attachment";
+    const savedPath = path16.join(downloadDir, name);
+    await fs15.writeFile(savedPath, a.content);
     saved.push({ filename: name, savedPath, size: a.content.length });
   }
   return saved;
@@ -35983,7 +36323,7 @@ var init_mail_fetcher = __esm({
 
 // src/tools/fetch-mail.ts
 import os8 from "node:os";
-import path16 from "node:path";
+import path17 from "node:path";
 function registerFetchMailTool(server, deps = {}) {
   const makeFetcher = deps.fetcherFactory ?? ((creds) => new ImapflowMailFetcher(creds));
   server.registerTool(
@@ -36045,7 +36385,7 @@ var init_fetch_mail = __esm({
     init_mail_fetcher();
     init_auth_error();
     init_validate();
-    DEFAULT_DOWNLOAD_DIR = path16.join(os8.homedir(), ".cogent", "mail-downloads");
+    DEFAULT_DOWNLOAD_DIR = path17.join(os8.homedir(), ".cogent", "mail-downloads");
   }
 });
 
