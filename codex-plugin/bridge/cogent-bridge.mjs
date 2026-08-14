@@ -26389,8 +26389,8 @@ var init_stdio2 = __esm({
 // src/constants.ts
 import { createRequire } from "node:module";
 function resolveVersion() {
-  if ("3.20.0") {
-    return "3.20.0";
+  if ("3.20.1") {
+    return "3.20.1";
   }
   try {
     const require2 = createRequire(import.meta.url);
@@ -27253,6 +27253,8 @@ var init_cc_cli = __esm({
 import { execFile as execFile2 } from "node:child_process";
 import { promisify as promisify2 } from "node:util";
 import fs8 from "node:fs/promises";
+import { join } from "node:path";
+import os5 from "node:os";
 function analyzeCodexHelp(helpText) {
   const checked = EXPECTED_CODEX_RESUME_FLAGS.map((f) => f.flag);
   const missing = EXPECTED_CODEX_RESUME_FLAGS.filter(
@@ -27356,6 +27358,27 @@ async function preflightCodexSandbox(config2) {
     logger.info(`Codex sandbox preflight: ${res.detail} (status=${res.status}).`);
   }
   return res;
+}
+function detectCodexCogentServerCollision(configTomlText) {
+  return /^[ \t]*\[mcp_servers\.cogent(\.[^\]]+)?\]/m.test(configTomlText);
+}
+function codexConfigPath(codexHomeDir2) {
+  const home = codexHomeDir2 || process.env.CODEX_HOME || join(os5.homedir(), ".codex");
+  return join(home, "config.toml");
+}
+async function preflightCodexServerCollision(codexHomeDir2) {
+  const cfgPath = codexConfigPath(codexHomeDir2);
+  let text;
+  try {
+    text = await fs8.readFile(cfgPath, "utf8");
+  } catch {
+    return false;
+  }
+  if (!detectCodexCogentServerCollision(text)) return false;
+  logger.error(
+    `Codex config collision: ${cfgPath} defines a standalone [mcp_servers.cogent] server, which has the SAME NAME as the cogent@cogent plugin's MCP server. Codex collapses the two by name and MCP startup can fail ("MCP client for cogent failed to start \u2026 connection closed: initialize response"). FIX: remove the [mcp_servers.cogent] block from ${cfgPath} \u2014 the plugin already provides the cogent tools \u2014 then restart Codex (new thread). Use the plugin OR a manual 'codex mcp add cogent', never both.`
+  );
+  return true;
 }
 var execFileAsync, EXPECTED_CODEX_RESUME_FLAGS;
 var init_codex_preflight = __esm({
@@ -32194,7 +32217,7 @@ var init_cloud = __esm({
 // src/services/codex-cli.ts
 import { spawn as spawn2 } from "node:child_process";
 import fs10 from "node:fs/promises";
-import os5 from "node:os";
+import os6 from "node:os";
 import path11 from "node:path";
 import { randomUUID } from "node:crypto";
 import { createReadStream } from "node:fs";
@@ -32223,7 +32246,7 @@ function execCodex(sessionId, message, cwd, timeoutMs) {
     const config2 = getConfig();
     const effectiveTimeout = timeoutMs ?? config2.COGENT_TIMEOUT_MS;
     const truncated = config2.COGENT_CHAR_LIMIT > 0 && message.length > config2.COGENT_CHAR_LIMIT ? message.slice(0, config2.COGENT_CHAR_LIMIT) + "\n...[truncated]" : message;
-    const lastMsgFile = path11.join(os5.tmpdir(), `cogent-codex-${randomUUID()}.txt`);
+    const lastMsgFile = path11.join(os6.tmpdir(), `cogent-codex-${randomUUID()}.txt`);
     const args = [
       "exec",
       "resume",
@@ -33963,7 +33986,7 @@ __export(startup_exports, {
   runStartup: () => runStartup,
   triggerReRegistration: () => triggerReRegistration
 });
-import os6 from "node:os";
+import os7 from "node:os";
 import path13 from "node:path";
 import fs12 from "node:fs/promises";
 import readline2 from "node:readline";
@@ -34164,10 +34187,10 @@ async function runStartup() {
   if (envStatePath) {
     statePath = envStatePath;
   } else {
-    const defaultPath = path13.join(os6.homedir(), ".cogent");
+    const defaultPath = path13.join(os7.homedir(), ".cogent");
     statePath = await firstRunPrompt(defaultPath);
   }
-  if (!envStatePath && statePath !== path13.join(os6.homedir(), ".cogent")) {
+  if (!envStatePath && statePath !== path13.join(os7.homedir(), ".cogent")) {
     process.env.COGENT_STATE_PATH = statePath;
   } else if (!envStatePath) {
     process.env.COGENT_STATE_PATH = statePath;
@@ -34275,6 +34298,7 @@ async function runPreflights() {
   const config2 = getConfig();
   if (config2.COGENT_PLATFORM === "codex") {
     await preflightCodex(config2.COGENT_CODEX_PATH);
+    await preflightCodexServerCollision();
     const sandbox = await preflightCodexSandbox(config2);
     if (sandbox.status === "blocked" && config2.COGENT_CODEX_SANDBOX_FALLBACK) {
       setSandboxOverride("bypass");
@@ -34305,7 +34329,7 @@ var init_startup = __esm({
     init_auto_relay();
     UUID_V4_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     execFileAsync3 = promisify4(execFile5);
-    PERSIST_PATH = path13.join(os6.homedir(), ".cogent-config.json");
+    PERSIST_PATH = path13.join(os7.homedir(), ".cogent-config.json");
     legacyWarnEmitted = false;
     cloudWsClient = null;
     cloudInbox = null;
@@ -34318,10 +34342,10 @@ var init_startup = __esm({
 import crypto3 from "node:crypto";
 import fs13 from "node:fs/promises";
 import path14 from "node:path";
-import os7 from "node:os";
+import os8 from "node:os";
 function defaultMailCredentialPath(cwd = process.cwd()) {
   const hash = crypto3.createHash("sha256").update(path14.resolve(cwd)).digest("hex").slice(0, 16);
-  return path14.join(os7.homedir(), ".cogent", "mail-credentials", `${hash}.json`);
+  return path14.join(os8.homedir(), ".cogent", "mail-credentials", `${hash}.json`);
 }
 function resolveMailCredentialPath(credentialPath) {
   if (credentialPath) return credentialPath;
@@ -36322,7 +36346,7 @@ var init_mail_fetcher = __esm({
 });
 
 // src/tools/fetch-mail.ts
-import os8 from "node:os";
+import os9 from "node:os";
 import path17 from "node:path";
 function registerFetchMailTool(server, deps = {}) {
   const makeFetcher = deps.fetcherFactory ?? ((creds) => new ImapflowMailFetcher(creds));
@@ -36385,7 +36409,7 @@ var init_fetch_mail = __esm({
     init_mail_fetcher();
     init_auth_error();
     init_validate();
-    DEFAULT_DOWNLOAD_DIR = path17.join(os8.homedir(), ".cogent", "mail-downloads");
+    DEFAULT_DOWNLOAD_DIR = path17.join(os9.homedir(), ".cogent", "mail-downloads");
   }
 });
 
