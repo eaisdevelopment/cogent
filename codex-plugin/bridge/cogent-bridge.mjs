@@ -26389,8 +26389,8 @@ var init_stdio2 = __esm({
 // src/constants.ts
 import { createRequire } from "node:module";
 function resolveVersion() {
-  if ("3.20.1") {
-    return "3.20.1";
+  if ("3.20.2") {
+    return "3.20.2";
   }
   try {
     const require2 = createRequire(import.meta.url);
@@ -26621,7 +26621,7 @@ var init_config = __esm({
       // purely additive/opt-in: nothing changes for any agent until a codex user
       // launches via the daemon (see bin/cogent-codex) and sets this to `app-server`.
       // Only affects COGENT_PLATFORM=codex; claude/gemini/mail rails never read it.
-      COGENT_CODEX_WAKE: import_zod2.z.enum(["exec-resume", "app-server"]).default("exec-resume"),
+      COGENT_CODEX_WAKE: import_zod2.z.enum(["auto", "exec-resume", "app-server"]).default("auto"),
       // Auto-recovery for a blocked Codex sandbox. On a host where the OS sandbox
       // can't initialize (unprivileged user namespaces blocked — Ubuntu 24.04's
       // apparmor_restrict_unprivileged_userns, containers, hardened kernels),
@@ -32464,12 +32464,41 @@ var init_codex_cli = __esm({
 // src/services/codex-app-server.ts
 import path12 from "node:path";
 import fs11 from "node:fs/promises";
-import { spawn as spawn3 } from "node:child_process";
+import { spawn as spawn3, spawnSync } from "node:child_process";
 function appServerSocketPath(codexHome = codexHomeDir()) {
   return path12.join(codexHome, "app-server-control", "app-server-control.sock");
 }
 function rpcUrl(sock) {
   return `ws+unix://${sock}:/rpc`;
+}
+function ancestryHasAppServer(startPid, getProc, maxDepth = 8) {
+  let pid = startPid;
+  for (let i = 0; i < maxDepth && pid > 1; i++) {
+    const p = getProc(pid);
+    if (!p) return false;
+    if (/(?:^|\/)codex\S*\s+app-server(?:\s|$)/.test(p.cmd)) return true;
+    pid = p.ppid;
+  }
+  return false;
+}
+function psProc(pid) {
+  try {
+    const out = spawnSync("ps", ["-o", "ppid=,args=", "-p", String(pid)], {
+      encoding: "utf8",
+      timeout: 3e3
+    }).stdout?.trim();
+    const m = out?.match(/^(\d+)\s+(.*)$/s);
+    if (!m) return null;
+    return { ppid: parseInt(m[1], 10), cmd: m[2] };
+  } catch {
+    return null;
+  }
+}
+function runningUnderAppServerDaemon() {
+  if (_underDaemon === void 0) {
+    _underDaemon = ancestryHasAppServer(process.ppid, psProc);
+  }
+  return _underDaemon;
 }
 async function ensureDaemon(codexHome = codexHomeDir(), deps = {}) {
   if (ensuredSock) return ensuredSock;
@@ -32658,7 +32687,7 @@ async function _injectTurn(threadId, message, cwd, timeoutMs, deps = {}) {
     client.close();
   }
 }
-var defaultWsFactory, ensuredSock, defaultRun, defaultSocketExists, sleep2, AppServerClient, idempotencyCache, IDEMPOTENCY_TTL_MS;
+var defaultWsFactory, _underDaemon, ensuredSock, defaultRun, defaultSocketExists, sleep2, AppServerClient, idempotencyCache, IDEMPOTENCY_TTL_MS;
 var init_codex_app_server = __esm({
   "src/services/codex-app-server.ts"() {
     "use strict";
@@ -32766,7 +32795,9 @@ var init_codex_app_server = __esm({
 
 // src/services/exec-remote.ts
 async function execCodexWake(sessionId, message, cwd, timeoutMs, idempotencyKey) {
-  if (getConfig().COGENT_CODEX_WAKE === "app-server") {
+  const wake = getConfig().COGENT_CODEX_WAKE;
+  const useAppServer = wake === "app-server" || wake === "auto" && runningUnderAppServerDaemon();
+  if (useAppServer) {
     try {
       const sock = await ensureDaemon();
       const result = await execCodexViaAppServer(sessionId, message, cwd, timeoutMs, { socketPath: sock, idempotencyKey });
