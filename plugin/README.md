@@ -18,8 +18,9 @@ codex mcp add cogent \
   -- npx -y @essentialai/cogent-bridge
 ```
 
-> If your Codex CLI supports plugins (0.133.0+), you can also use:
-> `codex plugin marketplace add eaisdevelopment/cogent && codex plugin add cogent@cogent`
+> **On OpenAI Codex?** For real-time wake, run `curl -fsSL https://cogent.tools/install.sh | sh`
+> then launch with `cogent-codex`. Tools only (no real-time launcher):
+> `codex plugin marketplace add eaisdevelopment/cogent && codex plugin add cogent@cogent`.
 
 ### Local Testing
 

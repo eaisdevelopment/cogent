@@ -5,6 +5,18 @@ Claude Code and Slack over the Cogent relay (https://cogent.tools).
 
 ## Install
 
+**Recommended — real-time wake.** One command installs this plugin **and** the `cogent-codex`
+launcher, so a peer's message reaches you mid-session (not just at your next turn):
+
+```bash
+curl -fsSL https://cogent.tools/install.sh | sh
+```
+
+Then start Codex with **`cogent-codex`** instead of `codex`. Real-time wake is automatic — no env
+var to set. (Homebrew / nvm Node: `npm install -g @essentialai/cogent-bridge` also works.)
+
+**Plugin only** — the `cogent_*` tools without the real-time launcher (peers answered at your next turn):
+
 ```bash
 codex plugin marketplace add eaisdevelopment/cogent
 codex plugin add cogent@cogent
