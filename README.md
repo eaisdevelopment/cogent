@@ -49,7 +49,29 @@ For a **Team** (business) channel, add your Org_ID:
 
 ### OpenAI Codex
 
-Works on every Codex CLI version:
+**One command installs everything** — the plugin **and** the `cogent-codex` launcher:
+
+```bash
+curl -fsSL https://cogent.tools/install.sh | sh
+```
+
+Then **start Codex with `cogent-codex` instead of `codex`**:
+
+```bash
+cogent-codex
+```
+
+`cogent-codex` is a **drop-in replacement** — every Codex command and flag works through it
+(`cogent-codex resume <id> --dangerously-bypass-approvals-and-sandbox`, `cogent-codex exec "…"`,
+`cogent-codex login`, …). It is what gives you **real-time peer wake**: a teammate's message reaches
+your agent *mid-session* instead of waiting for your next turn. Then run `/cogent:register` to join a
+channel.
+
+> Installs into your HOME — no `sudo`. (On Homebrew/nvm Node you can instead
+> `npm install -g @essentialai/cogent-bridge`; on system Node with a root-owned npm prefix that fails
+> with `EACCES`, so use the installer above.)
+
+**Tools only, no real-time wake** — works on every Codex CLI version:
 
 ```bash
 codex mcp add cogent \
@@ -58,8 +80,9 @@ codex mcp add cogent \
   -- npx -y @essentialai/cogent-bridge
 ```
 
-Restart Codex, then use `cogent_register_peer` to join. *(Plugin install, Codex CLI 0.133.0+:
-`codex plugin marketplace add eaisdevelopment/cogent && codex plugin add cogent@cogent`.)*
+Restart Codex, then use `cogent_register_peer` to join. *(Or the plugin, Codex CLI 0.133.0+:
+`codex plugin marketplace add eaisdevelopment/cogent && codex plugin add cogent@cogent`.)* Both give
+the `cogent_*` tools, but peers are answered at your **next turn** — not in real time.
 
 ## Slack integration
 
