@@ -149,6 +149,50 @@ export function isMetaNonAnswer(text) {
   return /already (answered|replied|responded|sent|handled)|no duplicate|duplicate (not )?sent|answered (already|via|through)|responded (already|via|through)/.test(t);
 }
 
+/**
+ * Hard ceiling on how long ANY marker may suppress this hook, whatever the writer stamped.
+ * MUST equal wake-inflight.ts INFLIGHT_MAX_MS.
+ */
+export const INFLIGHT_MAX_MS = 1_800_000; // 30 min
+
+/**
+ * Message ids that rail B is CURRENTLY handling — read from the wake-inflight marker
+ * (src/services/wake-inflight.ts). COG-20: rail B records a reply only after it has
+ * captured it, but rail C fires at the end of the very turn B is capturing. Without this,
+ * C tells the agent "unanswered" about a message B is milliseconds from delivering; the
+ * agent appends an extra message, and B captures THAT instead of the real answer.
+ *
+ * EXPIRY COMES FROM THE WRITER. Only rail B knows how long its wake may legitimately run
+ * (COGENT_TIMEOUT_MS, and a wake can run execRemote twice via the rotated-session retry),
+ * so B stamps `expiresAt`. A fixed reader-side TTL would expire while long or retried wakes
+ * are still running and reopen the race on exactly the slow turns rail C exists for.
+ *
+ * But the reader must not trust it unconditionally: `startedAt + INFLIGHT_MAX_MS` caps every
+ * entry, so a corrupt, hostile, or forgotten marker can never mute this hook indefinitely.
+ * Anything malformed or expired is ignored — a bad marker degrades LOUD (we speak up, as
+ * before the fix), never SILENT (the safety net disappearing).
+ *
+ * @param {{messages?:Record<string,{startedAt?:number,expiresAt?:number}>}|null} marker
+ * @param {number} nowMs
+ * @param {number} [maxMs] - hard cap on suppression, default INFLIGHT_MAX_MS
+ * @returns {string[]} message ids still legitimately in flight
+ */
+export function activeInFlightIds(marker, nowMs, maxMs = INFLIGHT_MAX_MS) {
+  const msgs = marker && typeof marker === "object" ? marker.messages : null;
+  if (!msgs || typeof msgs !== "object") return [];
+  const out = [];
+  for (const [id, rec] of Object.entries(msgs)) {
+    if (!rec || typeof rec !== "object") continue;
+    const started = typeof rec.startedAt === "number" && Number.isFinite(rec.startedAt) ? rec.startedAt : null;
+    const expires = typeof rec.expiresAt === "number" && Number.isFinite(rec.expiresAt) ? rec.expiresAt : null;
+    if (started === null || expires === null) continue; // corrupt → do not suppress
+    if (expires <= nowMs) continue; // the writer's own deadline passed → the wake is dead
+    if (nowMs - started > maxMs) continue; // writer stamped an absurd deadline → cap it
+    out.push(id);
+  }
+  return out;
+}
+
 /** Build the { decision: "block" } reason string handed back to the agent. */
 export function buildBlockReason(items, { firstUse }) {
   const n = items.length;

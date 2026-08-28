@@ -1259,8 +1259,8 @@ var init_parseUtil = __esm({
     init_errors();
     init_en();
     makeIssue = (params) => {
-      const { data, path: path18, errorMaps, issueData } = params;
-      const fullPath = [...path18, ...issueData.path || []];
+      const { data, path: path19, errorMaps, issueData } = params;
+      const fullPath = [...path19, ...issueData.path || []];
       const fullIssue = {
         ...issueData,
         path: fullPath
@@ -1540,11 +1540,11 @@ var init_types = __esm({
     init_parseUtil();
     init_util();
     ParseInputLazyPath = class {
-      constructor(parent, value, path18, key) {
+      constructor(parent, value, path19, key) {
         this._cachedPath = [];
         this.parent = parent;
         this.data = value;
-        this._path = path18;
+        this._path = path19;
         this._key = key;
       }
       get path() {
@@ -4996,10 +4996,10 @@ function assignProp(target, prop, value) {
     configurable: true
   });
 }
-function getElementAtPath(obj, path18) {
-  if (!path18)
+function getElementAtPath(obj, path19) {
+  if (!path19)
     return obj;
-  return path18.reduce((acc, key) => acc?.[key], obj);
+  return path19.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -5248,11 +5248,11 @@ function aborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path18, issues) {
+function prefixIssues(path19, issues) {
   return issues.map((iss) => {
     var _a;
     (_a = iss).path ?? (_a.path = []);
-    iss.path.unshift(path18);
+    iss.path.unshift(path19);
     return iss;
   });
 }
@@ -17058,8 +17058,8 @@ var require_utils = __commonJS({
       }
       return ind;
     }
-    function removeDotSegments(path18) {
-      let input = path18;
+    function removeDotSegments(path19) {
+      let input = path19;
       const output = [];
       let nextSlash = -1;
       let len = 0;
@@ -17258,8 +17258,8 @@ var require_schemes = __commonJS({
         wsComponent.secure = void 0;
       }
       if (wsComponent.resourceName) {
-        const [path18, query] = wsComponent.resourceName.split("?");
-        wsComponent.path = path18 && path18 !== "/" ? path18 : void 0;
+        const [path19, query] = wsComponent.resourceName.split("?");
+        wsComponent.path = path19 && path19 !== "/" ? path19 : void 0;
         wsComponent.query = query;
         wsComponent.resourceName = void 0;
       }
@@ -20612,12 +20612,12 @@ var require_dist = __commonJS({
         throw new Error(`Unknown format "${name}"`);
       return f;
     };
-    function addFormats(ajv, list, fs16, exportName) {
+    function addFormats(ajv, list, fs17, exportName) {
       var _a;
       var _b;
       (_a = (_b = ajv.opts.code).formats) !== null && _a !== void 0 ? _a : _b.formats = (0, codegen_1._)`require("ajv-formats/dist/formats").${exportName}`;
       for (const f of list)
-        ajv.addFormat(f, fs16[f]);
+        ajv.addFormat(f, fs17[f]);
     }
     module.exports = exports = formatsPlugin;
     Object.defineProperty(exports, "__esModule", { value: true });
@@ -21729,8 +21729,8 @@ var require_parseUtil = __commonJS({
     var errors_js_1 = require_errors2();
     var en_js_1 = __importDefault(require_en());
     var makeIssue2 = (params) => {
-      const { data, path: path18, errorMaps, issueData } = params;
-      const fullPath = [...path18, ...issueData.path || []];
+      const { data, path: path19, errorMaps, issueData } = params;
+      const fullPath = [...path19, ...issueData.path || []];
       const fullIssue = {
         ...issueData,
         path: fullPath
@@ -21884,11 +21884,11 @@ var require_types2 = __commonJS({
     var parseUtil_js_1 = require_parseUtil();
     var util_js_1 = require_util2();
     var ParseInputLazyPath2 = class {
-      constructor(parent, value, path18, key) {
+      constructor(parent, value, path19, key) {
         this._cachedPath = [];
         this.parent = parent;
         this.data = value;
-        this._path = path18;
+        this._path = path19;
         this._key = key;
       }
       get path() {
@@ -26389,8 +26389,8 @@ var init_stdio2 = __esm({
 // src/constants.ts
 import { createRequire } from "node:module";
 function resolveVersion() {
-  if ("3.20.5") {
-    return "3.20.5";
+  if ("3.20.6") {
+    return "3.20.6";
   }
   try {
     const require2 = createRequire(import.meta.url);
@@ -27624,7 +27624,7 @@ var init_http_backend = __esm({
        * in cloud mode we ignore it and use this.sessionId (the cloud session).
        */
       async registerPeer(peerId, _sessionId, cwd, label, clientVersion, mode, _channelSessionId, capabilities, workspaceId, threadId) {
-        const path18 = PATHS.peers.replace(":sessionId", this.sessionId);
+        const path19 = PATHS.peers.replace(":sessionId", this.sessionId);
         const body = {
           peerId,
           cwd,
@@ -27652,7 +27652,7 @@ var init_http_backend = __esm({
             body.role = roleCap.slice("role:".length);
           }
         }
-        return this.http.post(path18, body);
+        return this.http.post(path19, body);
       }
       /**
        * Deregister a peer from the cloud session.
@@ -27664,9 +27664,9 @@ var init_http_backend = __esm({
        * local mail creds. A 404 (peer not found) resolves to `{ removed: false, ... }`, not a throw.
        */
       async deregisterPeer(peerId) {
-        const path18 = PATHS.peer.replace(":sessionId", this.sessionId).replace(":peerId", peerId);
+        const path19 = PATHS.peer.replace(":sessionId", this.sessionId).replace(":peerId", peerId);
         try {
-          const headers = await this.http.delete(path18, {});
+          const headers = await this.http.delete(path19, {});
           const mailboxDeprovisioned = headers.get(MAILBOX_DEPROVISIONED_HEADER) === "true";
           return { removed: true, mailboxDeprovisioned };
         } catch {
@@ -27687,8 +27687,8 @@ var init_http_backend = __esm({
        * GET /api/sessions/:sessionId/peers
        */
       async listPeers() {
-        const path18 = PATHS.peers.replace(":sessionId", this.sessionId);
-        const result = await this.http.get(path18);
+        const path19 = PATHS.peers.replace(":sessionId", this.sessionId);
+        const result = await this.http.get(path19);
         return result.peers;
       }
       /**
@@ -27696,8 +27696,8 @@ var init_http_backend = __esm({
        * Calls the lightweight heartbeat endpoint on the cloud relay server.
        */
       async updateLastSeen(peerId) {
-        const path18 = PATHS.heartbeat.replace(":sessionId", this.sessionId);
-        await this.http.post(path18, { peerId });
+        const path19 = PATHS.heartbeat.replace(":sessionId", this.sessionId);
+        await this.http.post(path19, { peerId });
       }
       /**
        * Record a message in the cloud session.
@@ -27708,7 +27708,7 @@ var init_http_backend = __esm({
        * the input record to construct a full MessageRecord.
        */
       async recordMessage(record2) {
-        const path18 = PATHS.messages.replace(":sessionId", this.sessionId);
+        const path19 = PATHS.messages.replace(":sessionId", this.sessionId);
         const body = {
           fromPeerId: record2.fromPeerId,
           toPeerId: record2.toPeerId,
@@ -27720,7 +27720,7 @@ var init_http_backend = __esm({
         if (record2.attachments && record2.attachments.length > 0) {
           body.attachments = record2.attachments;
         }
-        const resp = await this.http.post(path18, body);
+        const resp = await this.http.post(path19, body);
         return {
           ...record2,
           id: resp.id,
@@ -27734,7 +27734,7 @@ var init_http_backend = __esm({
        * Supports optional peerId filter and limit (default 300).
        */
       async getHistory(peerId, limit, includeRelayEchoes, metadataOnly, dedupInferredEchoes) {
-        const path18 = PATHS.messages.replace(":sessionId", this.sessionId);
+        const path19 = PATHS.messages.replace(":sessionId", this.sessionId);
         const query = {};
         if (peerId) {
           query.peerId = peerId;
@@ -27749,7 +27749,7 @@ var init_http_backend = __esm({
         if (dedupInferredEchoes) {
           query.dedupInferredEchoes = "true";
         }
-        const result = await this.http.get(path18, query);
+        const result = await this.http.get(path19, query);
         return result.messages;
       }
       /**
@@ -27760,12 +27760,12 @@ var init_http_backend = __esm({
        * so that get-history shows the actual response (not null).
        */
       async updateMessageResponse(messageId, response, durationMs, pending) {
-        const path18 = PATHS.message.replace(":sessionId", this.sessionId).replace(":messageId", messageId);
+        const path19 = PATHS.message.replace(":sessionId", this.sessionId).replace(":messageId", messageId);
         const body = { response, durationMs };
         if (pending === true) {
           body.pending = true;
         }
-        await this.http.patch(path18, body);
+        await this.http.patch(path19, body);
       }
       /**
        * Validate a session.
@@ -27907,8 +27907,8 @@ var init_http_client = __esm({
        * Perform an authenticated GET request.
        * Appends query parameters to the URL if provided.
        */
-      async get(path18, query) {
-        const url = new URL(path18, this.baseUrl);
+      async get(path19, query) {
+        const url = new URL(path19, this.baseUrl);
         if (query) {
           for (const [k, v] of Object.entries(query)) {
             url.searchParams.set(k, v);
@@ -27923,8 +27923,8 @@ var init_http_client = __esm({
       /**
        * Perform an authenticated POST request with a JSON body.
        */
-      async post(path18, body) {
-        const url = new URL(path18, this.baseUrl);
+      async post(path19, body) {
+        const url = new URL(path19, this.baseUrl);
         const resp = await this.fetchWithTimeout(url, {
           method: "POST",
           headers: this.headers(),
@@ -27942,8 +27942,8 @@ var init_http_client = __esm({
        * Perform an authenticated PATCH request with a JSON body.
        * Used to update existing resources (e.g., message response fields).
        */
-      async patch(path18, body) {
-        const url = new URL(path18, this.baseUrl);
+      async patch(path19, body) {
+        const url = new URL(path19, this.baseUrl);
         const resp = await this.fetchWithTimeout(url, {
           method: "PATCH",
           headers: this.headers(),
@@ -27968,8 +27968,8 @@ var init_http_client = __esm({
        * "Malformed JSON in request body" 400 from cogent-server <=3.1.2 when
        * any client (including third-party tools) DELETEd a peer without a body.
        */
-      async delete(path18, body) {
-        const url = new URL(path18, this.baseUrl);
+      async delete(path19, body) {
+        const url = new URL(path19, this.baseUrl);
         const headers = {
           "Authorization": `Bearer ${this.token}`
         };
@@ -32152,14 +32152,14 @@ var init_ws_client = __esm({
         if (this.pollTimer) return;
         const poll = async () => {
           try {
-            const path18 = `/api/sessions/${this.opts.sessionId}/poll`;
+            const path19 = `/api/sessions/${this.opts.sessionId}/poll`;
             const query = {
               peerId: this.opts.peerId
             };
             if (this.lastMessageId) {
               query.lastMessageId = this.lastMessageId;
             }
-            const result = await this.opts.http.get(path18, query);
+            const result = await this.opts.http.get(path19, query);
             if (result.messages && result.messages.length > 0) {
               this.opts.onMessages(result.messages);
               this.lastMessageId = result.messages[result.messages.length - 1].id;
@@ -32920,6 +32920,81 @@ var init_session_resolver = __esm({
   }
 });
 
+// src/services/wake-inflight.ts
+import crypto3 from "node:crypto";
+import fs12 from "node:fs";
+import os7 from "node:os";
+import path13 from "node:path";
+function hashCwd(cwd) {
+  return crypto3.createHash("sha256").update(path13.resolve(cwd)).digest("hex").slice(0, 16);
+}
+function wakeInflightPath(peerId, cwd = process.cwd()) {
+  return path13.join(os7.homedir(), ".cogent", "wake-inflight", `${hashCwd(cwd)}.${safe(peerId)}.json`);
+}
+function ttlMs() {
+  let timeout = 3e5;
+  try {
+    const configured = getConfig()?.COGENT_TIMEOUT_MS;
+    if (typeof configured === "number" && Number.isFinite(configured) && configured > 0) timeout = configured;
+  } catch {
+  }
+  return Math.min(timeout * INFLIGHT_TIMEOUT_FACTOR, INFLIGHT_MAX_MS);
+}
+function readFileSafe(p) {
+  try {
+    const parsed = JSON.parse(fs12.readFileSync(p, "utf-8"));
+    return parsed && typeof parsed === "object" && parsed.messages ? parsed : { messages: {} };
+  } catch {
+    return { messages: {} };
+  }
+}
+function writeAtomic(p, data) {
+  fs12.mkdirSync(path13.dirname(p), { recursive: true });
+  const tmp = `${p}.${process.pid}.tmp`;
+  fs12.writeFileSync(tmp, JSON.stringify(data, null, 2) + "\n", "utf-8");
+  fs12.renameSync(tmp, p);
+}
+function prune(f, now) {
+  for (const [id, rec] of Object.entries(f.messages)) {
+    const ok = rec && typeof rec.startedAt === "number" && typeof rec.expiresAt === "number" && Number.isFinite(rec.expiresAt) && rec.expiresAt > now;
+    if (!ok) delete f.messages[id];
+  }
+}
+function markWakeInFlight(peerId, messageId, traceId, cwd = process.cwd()) {
+  try {
+    const now = Date.now();
+    const p = wakeInflightPath(peerId, cwd);
+    const cur = readFileSafe(p);
+    prune(cur, now);
+    cur.messages[messageId] = { startedAt: now, expiresAt: now + ttlMs(), ...traceId ? { traceId } : {} };
+    writeAtomic(p, cur);
+  } catch (err) {
+    logger.debug(`wake-inflight: could not mark ${messageId}: ${err}`);
+  }
+}
+function clearWakeInFlight(peerId, messageId, cwd = process.cwd()) {
+  try {
+    const p = wakeInflightPath(peerId, cwd);
+    const cur = readFileSafe(p);
+    delete cur.messages[messageId];
+    prune(cur, Date.now());
+    writeAtomic(p, cur);
+  } catch (err) {
+    logger.debug(`wake-inflight: could not clear ${messageId}: ${err}`);
+  }
+}
+var INFLIGHT_MAX_MS, INFLIGHT_TIMEOUT_FACTOR, safe;
+var init_wake_inflight = __esm({
+  "src/services/wake-inflight.ts"() {
+    "use strict";
+    init_config();
+    init_logger();
+    INFLIGHT_MAX_MS = 18e5;
+    INFLIGHT_TIMEOUT_FACTOR = 3;
+    safe = (s) => String(s).replace(/[^A-Za-z0-9._-]/g, "_");
+  }
+});
+
 // src/services/auto-relay.ts
 import { randomUUID as randomUUID2 } from "node:crypto";
 function buildStatusNotice(status, peerId, traceId) {
@@ -32983,6 +33058,7 @@ var init_auto_relay = __esm({
     init_config();
     init_backend();
     init_codex_cli();
+    init_wake_inflight();
     init_logger();
     RELAY_STATUS = {
       QUEUED: "queued",
@@ -33390,6 +33466,9 @@ var init_auto_relay = __esm({
             );
           }
         }
+        if (this.localPeerId && !this.awarenessOnly.has(msg.id)) {
+          markWakeInFlight(this.localPeerId, msg.id, msg.traceId);
+        }
         if (this.processing) {
           logger.debug(`Auto-relay: queuing message from ${msg.fromPeerId} (busy processing)`);
           this.queue.push(msg);
@@ -33422,8 +33501,13 @@ var init_auto_relay = __esm({
       async _dispatch(msg) {
         if (this.awarenessOnly.delete(msg.id)) {
           await this._injectPeerBroadcast(msg);
-        } else {
+          return;
+        }
+        const inflightPeer = this.localPeerId;
+        try {
           await this._processMessage(msg);
+        } finally {
+          if (inflightPeer) clearWakeInFlight(inflightPeer, msg.id);
         }
       }
       /**
@@ -34017,15 +34101,15 @@ __export(startup_exports, {
   runStartup: () => runStartup,
   triggerReRegistration: () => triggerReRegistration
 });
-import os7 from "node:os";
-import path13 from "node:path";
-import fs12 from "node:fs/promises";
+import os8 from "node:os";
+import path14 from "node:path";
+import fs13 from "node:fs/promises";
 import readline2 from "node:readline";
 import { execFile as execFile5 } from "node:child_process";
 import { promisify as promisify4 } from "node:util";
 async function loadPersistedConfig() {
   try {
-    const raw = await fs12.readFile(PERSIST_PATH, "utf-8");
+    const raw = await fs13.readFile(PERSIST_PATH, "utf-8");
     return JSON.parse(raw);
   } catch {
     return {};
@@ -34033,7 +34117,7 @@ async function loadPersistedConfig() {
 }
 async function savePersistedConfig(config2) {
   try {
-    await fs12.writeFile(PERSIST_PATH, JSON.stringify(config2, null, 2) + "\n", "utf-8");
+    await fs13.writeFile(PERSIST_PATH, JSON.stringify(config2, null, 2) + "\n", "utf-8");
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     logger.warn(`Could not save config to ${PERSIST_PATH}: ${msg}`);
@@ -34068,11 +34152,11 @@ First run detected. Where should cogent-bridge store its data?
   });
 }
 async function validateStateDir(statePath) {
-  await fs12.mkdir(statePath, { recursive: true });
-  const testFile = path13.join(statePath, ".write-test");
+  await fs13.mkdir(statePath, { recursive: true });
+  const testFile = path14.join(statePath, ".write-test");
   try {
-    await fs12.writeFile(testFile, "test", "utf-8");
-    await fs12.unlink(testFile);
+    await fs13.writeFile(testFile, "test", "utf-8");
+    await fs13.unlink(testFile);
   } catch {
     throw new BridgeError(
       "STARTUP_FAILED" /* STARTUP_FAILED */,
@@ -34218,10 +34302,10 @@ async function runStartup() {
   if (envStatePath) {
     statePath = envStatePath;
   } else {
-    const defaultPath = path13.join(os7.homedir(), ".cogent");
+    const defaultPath = path14.join(os8.homedir(), ".cogent");
     statePath = await firstRunPrompt(defaultPath);
   }
-  if (!envStatePath && statePath !== path13.join(os7.homedir(), ".cogent")) {
+  if (!envStatePath && statePath !== path14.join(os8.homedir(), ".cogent")) {
     process.env.COGENT_STATE_PATH = statePath;
   } else if (!envStatePath) {
     process.env.COGENT_STATE_PATH = statePath;
@@ -34299,7 +34383,7 @@ async function runStartup() {
   }
   initLogger(
     config2.COGENT_LOG_LEVEL,
-    path13.join(config2.COGENT_STATE_PATH, "logs")
+    path14.join(config2.COGENT_STATE_PATH, "logs")
   );
   if (isCloud && effectiveSessionId && effectiveToken) {
     cloudInbox = new MessageInbox();
@@ -34360,7 +34444,7 @@ var init_startup = __esm({
     init_auto_relay();
     UUID_V4_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     execFileAsync3 = promisify4(execFile5);
-    PERSIST_PATH = path13.join(os7.homedir(), ".cogent-config.json");
+    PERSIST_PATH = path14.join(os8.homedir(), ".cogent-config.json");
     legacyWarnEmitted = false;
     cloudWsClient = null;
     cloudInbox = null;
@@ -34370,13 +34454,13 @@ var init_startup = __esm({
 });
 
 // src/cloud/mail-credential-store.ts
-import crypto3 from "node:crypto";
-import fs13 from "node:fs/promises";
-import path14 from "node:path";
-import os8 from "node:os";
+import crypto4 from "node:crypto";
+import fs14 from "node:fs/promises";
+import path15 from "node:path";
+import os9 from "node:os";
 function defaultMailCredentialPath(cwd = process.cwd()) {
-  const hash = crypto3.createHash("sha256").update(path14.resolve(cwd)).digest("hex").slice(0, 16);
-  return path14.join(os8.homedir(), ".cogent", "mail-credentials", `${hash}.json`);
+  const hash = crypto4.createHash("sha256").update(path15.resolve(cwd)).digest("hex").slice(0, 16);
+  return path15.join(os9.homedir(), ".cogent", "mail-credentials", `${hash}.json`);
 }
 function resolveMailCredentialPath(credentialPath) {
   if (credentialPath) return credentialPath;
@@ -34387,16 +34471,16 @@ function resolveMailCredentialPath(credentialPath) {
 async function loadMailCredentials(credentialPath) {
   const filePath = resolveMailCredentialPath(credentialPath);
   try {
-    return JSON.parse(await fs13.readFile(filePath, "utf-8"));
+    return JSON.parse(await fs14.readFile(filePath, "utf-8"));
   } catch {
     return null;
   }
 }
 async function saveMailCredentials(creds, credentialPath) {
   const filePath = resolveMailCredentialPath(credentialPath);
-  await fs13.mkdir(path14.dirname(filePath), { recursive: true, mode: 448 });
-  await fs13.writeFile(filePath, JSON.stringify(creds, null, 2) + "\n", { encoding: "utf-8", mode: 384 });
-  await fs13.chmod(filePath, 384);
+  await fs14.mkdir(path15.dirname(filePath), { recursive: true, mode: 448 });
+  await fs14.writeFile(filePath, JSON.stringify(creds, null, 2) + "\n", { encoding: "utf-8", mode: 384 });
+  await fs14.chmod(filePath, 384);
 }
 async function persistProvisionedMailbox(mailbox, credentialPath) {
   if (!mailbox?.address || !mailbox.password) return false;
@@ -34417,7 +34501,7 @@ async function persistProvisionedMailbox(mailbox, credentialPath) {
 async function clearMailCredentials(credentialPath) {
   const filePath = resolveMailCredentialPath(credentialPath);
   try {
-    await fs13.unlink(filePath);
+    await fs14.unlink(filePath);
   } catch (err) {
     if (err.code !== "ENOENT") throw err;
   }
@@ -34431,7 +34515,7 @@ var init_mail_credential_store = __esm({
 });
 
 // src/tools/register-peer.ts
-import crypto4 from "node:crypto";
+import crypto5 from "node:crypto";
 function registerRegisterPeerTool(server) {
   server.registerTool(
     "cogent_register_peer",
@@ -34490,7 +34574,7 @@ function registerRegisterPeerTool(server) {
             }
           }
           if (!cloudSessionId) {
-            autoSecret = crypto4.randomBytes(16).toString("hex");
+            autoSecret = crypto5.randomBytes(16).toString("hex");
             const resp = await fetch(
               `${endpoint}/api/sessions`,
               {
@@ -35748,7 +35832,7 @@ var init_health_check2 = __esm({
 });
 
 // src/tools/create-session.ts
-import crypto5 from "node:crypto";
+import crypto6 from "node:crypto";
 function registerCreateSessionTool(server) {
   server.registerTool(
     "cogent_create_session",
@@ -35779,7 +35863,7 @@ function registerCreateSessionTool(server) {
             )
           );
         }
-        const sessionSecret = secret ?? crypto5.randomBytes(16).toString("hex");
+        const sessionSecret = secret ?? crypto6.randomBytes(16).toString("hex");
         const resp = await fetch(
           `${config2.COGENT_ENDPOINT}/api/sessions`,
           {
@@ -36103,13 +36187,13 @@ var init_setup_mail = __esm({
 });
 
 // src/mail/mail-sender.ts
-import fs14 from "node:fs/promises";
-import path15 from "node:path";
+import fs15 from "node:fs/promises";
+import path16 from "node:path";
 async function buildAndSendMail(sender, creds, params) {
   const attachments = [];
   for (const p of params.attachmentPaths ?? []) {
-    const content = await fs14.readFile(p);
-    attachments.push({ filename: path15.basename(p), content });
+    const content = await fs15.readFile(p);
+    attachments.push({ filename: path16.basename(p), content });
   }
   const { messageId } = await sender.send({
     from: creds.address,
@@ -36237,16 +36321,16 @@ var init_send_mail = __esm({
 });
 
 // src/mail/mail-fetcher.ts
-import fs15 from "node:fs/promises";
-import path16 from "node:path";
+import fs16 from "node:fs/promises";
+import path17 from "node:path";
 async function saveAttachments(attachments, downloadDir) {
   if (attachments.length === 0) return [];
-  await fs15.mkdir(downloadDir, { recursive: true });
+  await fs16.mkdir(downloadDir, { recursive: true });
   const saved = [];
   for (const a of attachments) {
-    const name = path16.basename(a.filename) || "attachment";
-    const savedPath = path16.join(downloadDir, name);
-    await fs15.writeFile(savedPath, a.content);
+    const name = path17.basename(a.filename) || "attachment";
+    const savedPath = path17.join(downloadDir, name);
+    await fs16.writeFile(savedPath, a.content);
     saved.push({ filename: name, savedPath, size: a.content.length });
   }
   return saved;
@@ -36377,8 +36461,8 @@ var init_mail_fetcher = __esm({
 });
 
 // src/tools/fetch-mail.ts
-import os9 from "node:os";
-import path17 from "node:path";
+import os10 from "node:os";
+import path18 from "node:path";
 function registerFetchMailTool(server, deps = {}) {
   const makeFetcher = deps.fetcherFactory ?? ((creds) => new ImapflowMailFetcher(creds));
   server.registerTool(
@@ -36440,7 +36524,7 @@ var init_fetch_mail = __esm({
     init_mail_fetcher();
     init_auth_error();
     init_validate();
-    DEFAULT_DOWNLOAD_DIR = path17.join(os9.homedir(), ".cogent", "mail-downloads");
+    DEFAULT_DOWNLOAD_DIR = path18.join(os10.homedir(), ".cogent", "mail-downloads");
   }
 });
 

@@ -17,9 +17,27 @@ import {
   selectUnanswered,
   buildBlockReason,
   credHashForCwd,
+  activeInFlightIds,
 } from "./check-on-stop.lib.mjs";
 
 const HTTP_TIMEOUT_MS = 5000; // < the 8s hook timeout; only bites on a degraded relay
+
+/**
+ * `~/.cogent/wake-inflight/<sha256(cwd)[..16]>.<peerId>.json` — MUST equal
+ * src/services/wake-inflight.ts wakeInflightPath(). Rail B writes it while it is handling a
+ * message; we read it so we never call a message "unanswered" that B is about to answer.
+ *
+ * HOMEDIR-BASED, deliberately NOT COGENT_STATE_PATH — same reasoning as credPath above. Rail
+ * B reads its config from the MCP server's env; this hook reads its own process env, which
+ * the host spawns from the user's shell. An operator setting COGENT_STATE_PATH in the
+ * .mcp.json env block would put the writer and the reader in different directories and the
+ * guard would silently stop working. Keyed by peerId too: two peers can share a cwd, and a
+ * human broadcast carries the SAME message id to every peer.
+ */
+function inflightPath(cwd, me) {
+  const safe = (s) => String(s).replace(/[^A-Za-z0-9._-]/g, "_");
+  return path.join(os.homedir(), ".cogent", "wake-inflight", `${credHashForCwd(cwd)}.${safe(me)}.json`);
+}
 
 async function readStdin() {
   const chunks = [];
@@ -129,7 +147,15 @@ async function main() {
     return process.exit(0); // network/timeout → silent
   }
 
-  const { items } = selectUnanswered({ messages, me, scope });
+  const all = selectUnanswered({ messages, me, scope }).items;
+
+  // COG-20: drop anything rail B is CURRENTLY waking for. B records its reply only after
+  // capture, and we fire at the end of the very turn it is capturing — so without this we
+  // would tell the agent a message is unanswered milliseconds before B delivers it. The
+  // agent then appends an extra message and B captures THAT, not the real answer.
+  // Deliberately id-scoped, not a blanket mute: any OTHER unanswered message still surfaces.
+  const inFlight = activeInFlightIds(await readJson(inflightPath(cwd, me)), Date.now());
+  const items = inFlight.length ? all.filter((m) => !inFlight.includes(m.id)) : all;
   const unansweredIds = items.map((m) => m.id);
 
   // First run: PRIME — record the current backlog as already-surfaced so C never
