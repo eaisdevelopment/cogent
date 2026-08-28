@@ -98,6 +98,21 @@ export function selectUnanswered({ messages, me, scope }) {
       // My message (a reply or my own auto-relay echo) answers a pending item.
       // A directed reply clears that sender's oldest; a broadcast reply clears
       // only the oldest pending BROADCAST (never a directed message).
+      //
+      // COG-20: EXCEPT a meta-non-answer. When the real-time wake's capture fails, the agent
+      // sees its own (undelivered) answer plus this hook saying "unanswered", and resolves the
+      // contradiction by sending "Already answered… no duplicate sent." That is not an answer —
+      // but because this pairing used to clear on ANY outbound, it marked the message answered
+      // and silenced the alarm FOREVER, so the human only ever saw the meta-message. Skipping it
+      // here keeps the message pending until a real answer is sent.
+      //
+      // Same defect, second instance: rail B records its OWN failure notice ("Cogent could not
+      // capture a reply…" / "📨 Queued for …") as a message FROM me with success:false. Counting
+      // that as an answer would make C blind to exactly the miss C exists to catch. A record that
+      // is explicitly a failure is never an answer — check that first, it is stronger than any
+      // string match.
+      if (m.success === false || m.error) continue;
+      if (isMetaNonAnswer(m.message)) continue;
       if (m.toPeerId === "*") dequeueOldestBroadcast();
       else dequeueFrom(m.toPeerId);
       continue;
@@ -113,6 +128,27 @@ export function selectUnanswered({ messages, me, scope }) {
   return { items: items.map(({ _i, ...m }) => m) };
 }
 
+/**
+ * Is this outbound of mine a "meta non-answer" — a note ABOUT answering rather than an answer?
+ * (COG-20)
+ *
+ * Real observed values that reached a human instead of the answer:
+ *   "Already answered through the automatic Slack relay. No duplicate sent."
+ *   "Already answered through the automatic Slack relay with live Jira and repository status. …"
+ *
+ * Deliberately CONSERVATIVE — it must not swallow a genuine answer that happens to contain the
+ * words "already answered". Two gates: the text must be SHORT (real answers carry substance; every
+ * observed meta-message was < 120 chars) AND match the pattern. A false negative just restores the
+ * old behaviour; a false positive would re-nag the agent into sending a duplicate, so short-only.
+ * An empty reply is always a non-answer.
+ */
+export function isMetaNonAnswer(text) {
+  const t = String(text ?? "").replace(/\s+/g, " ").trim().toLowerCase();
+  if (!t) return true;
+  if (t.length > 200) return false; // long enough to carry a real answer — never suppress it
+  return /already (answered|replied|responded|sent|handled)|no duplicate|duplicate (not )?sent|answered (already|via|through)|responded (already|via|through)/.test(t);
+}
+
 /** Build the { decision: "block" } reason string handed back to the agent. */
 export function buildBlockReason(items, { firstUse }) {
   const n = items.length;
@@ -120,11 +156,21 @@ export function buildBlockReason(items, { firstUse }) {
     const snippet = String(m.message || "").replace(/\s+/g, " ").slice(0, 120);
     return ` - from ${m.fromPeerId}${m.toPeerId === "*" ? " (channel)" : ""}: ${snippet}`;
   });
+  // COG-20: the wording matters as much as the detection. The previous text ended with "Do not
+  // repeat work you already did this turn", which — combined with the real-time wake prompt telling
+  // the agent NOT to call cogent_send_message — pushed the agent to answer with a meta-message
+  // ("Already answered… no duplicate sent") instead of the substance. It had in fact answered; the
+  // capture just never delivered it. So: state plainly that nothing was delivered, and demand the
+  // answer itself.
   let reason =
-    `You have ${n} unanswered Cogent message${n === 1 ? "" : "s"} that arrived while you were busy:\n` +
+    `You have ${n} unanswered Cogent message${n === 1 ? "" : "s"} — the channel has NO recorded reply ` +
+    `from you${n === 1 ? "" : " for these"}:\n` +
     lines.join("\n") +
-    `\n\nRead the channel with cogent_get_history and reply to each with cogent_send_message ` +
-    `(or spawn a Task sub-agent to handle them), then continue. Do not repeat work you already did this turn.`;
+    `\n\nIf you already composed an answer this turn, it was NOT delivered — sending it again is ` +
+    `correct, not a duplicate. Read the channel with cogent_get_history if you need context, then ` +
+    `reply with the ANSWER ITSELF via cogent_send_message (or spawn a Task sub-agent) and continue. ` +
+    `NEVER reply with a note about having already answered (e.g. "already answered", "no duplicate ` +
+    `sent") — that is not an answer, and it is all the sender will ever see.`;
   if (firstUse) {
     reason +=
       `\n\n(Cogent auto-check is on: it catches messages that arrive while you're busy. ` +
