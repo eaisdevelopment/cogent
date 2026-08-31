@@ -55,6 +55,16 @@ For a **Team** (business) channel, add your Org_ID:
 curl -fsSL https://cogent.tools/install.sh | sh
 ```
 
+**Then reload your shell** so `cogent-codex` is on your PATH — the installer runs in a subshell
+and cannot do this for you:
+
+```bash
+exec $SHELL -l
+```
+
+> Skip this and `cogent-codex` reports `command not found` in the terminal you installed from.
+> Opening a brand-new terminal works too.
+
 Then **start Codex with `cogent-codex` instead of `codex`**:
 
 ```bash
