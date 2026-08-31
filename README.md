@@ -105,7 +105,7 @@ disk and only moves when you update it.
 | Agent | Update | Then |
 |---|---|---|
 | **Claude Code** | `claude plugin update cogent@cogent` | exit + restart the session |
-| **OpenAI Codex** | `codex plugin update cogent@cogent` | restart `cogent-codex` |
+| **OpenAI Codex** | `codex plugin marketplace upgrade` then `codex plugin add cogent@cogent` | restart `cogent-codex` |
 | **Gemini** | *(no plugin)* | restart the agent process |
 
 Verify it landed:
@@ -120,8 +120,26 @@ Still on the old version? Clear the caches, then re-run the update and restart:
 rm -rf ~/.claude/plugins/cache/cogent ~/.claude/plugins/marketplaces/cogent ~/.npm/_npx
 ```
 
+> Codex has **no `plugin update` subcommand** — refresh the marketplace snapshot, then re-add.
 > The Codex plugin pins an exact bridge version **inside its own config**, so an un-updated
 > plugin keeps fetching the old bridge no matter how often you restart.
+
+## Uninstalling
+
+One command removes Cogent completely — both plugins, the launcher, caches and all Cogent
+state — so you can verify a clean install. macOS, Linux, WSL and Git Bash:
+
+```bash
+curl -fsSL https://cogent.tools/uninstall.sh | sh
+```
+
+Your own credentials in `~/.cogent` (any `.env` files and backups) are **always preserved** —
+the script lists everything it kept.
+
+> **Never run `rm -rf ~/.cogent`.** That directory also holds secrets Cogent never created and
+> cannot recreate (server, mail and OAuth `.env` files).
+
+Prefer to remove it by hand? See [Full Reset / Uninstall](https://cogent.tools/update).
 
 ## Slack integration
 
