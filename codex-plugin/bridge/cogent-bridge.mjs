@@ -1259,8 +1259,8 @@ var init_parseUtil = __esm({
     init_errors();
     init_en();
     makeIssue = (params) => {
-      const { data, path: path19, errorMaps, issueData } = params;
-      const fullPath = [...path19, ...issueData.path || []];
+      const { data, path: path20, errorMaps, issueData } = params;
+      const fullPath = [...path20, ...issueData.path || []];
       const fullIssue = {
         ...issueData,
         path: fullPath
@@ -1540,11 +1540,11 @@ var init_types = __esm({
     init_parseUtil();
     init_util();
     ParseInputLazyPath = class {
-      constructor(parent, value, path19, key) {
+      constructor(parent, value, path20, key) {
         this._cachedPath = [];
         this.parent = parent;
         this.data = value;
-        this._path = path19;
+        this._path = path20;
         this._key = key;
       }
       get path() {
@@ -4996,10 +4996,10 @@ function assignProp(target, prop, value) {
     configurable: true
   });
 }
-function getElementAtPath(obj, path19) {
-  if (!path19)
+function getElementAtPath(obj, path20) {
+  if (!path20)
     return obj;
-  return path19.reduce((acc, key) => acc?.[key], obj);
+  return path20.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -5248,11 +5248,11 @@ function aborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path19, issues) {
+function prefixIssues(path20, issues) {
   return issues.map((iss) => {
     var _a;
     (_a = iss).path ?? (_a.path = []);
-    iss.path.unshift(path19);
+    iss.path.unshift(path20);
     return iss;
   });
 }
@@ -17058,8 +17058,8 @@ var require_utils = __commonJS({
       }
       return ind;
     }
-    function removeDotSegments(path19) {
-      let input = path19;
+    function removeDotSegments(path20) {
+      let input = path20;
       const output = [];
       let nextSlash = -1;
       let len = 0;
@@ -17258,8 +17258,8 @@ var require_schemes = __commonJS({
         wsComponent.secure = void 0;
       }
       if (wsComponent.resourceName) {
-        const [path19, query] = wsComponent.resourceName.split("?");
-        wsComponent.path = path19 && path19 !== "/" ? path19 : void 0;
+        const [path20, query] = wsComponent.resourceName.split("?");
+        wsComponent.path = path20 && path20 !== "/" ? path20 : void 0;
         wsComponent.query = query;
         wsComponent.resourceName = void 0;
       }
@@ -20612,12 +20612,12 @@ var require_dist = __commonJS({
         throw new Error(`Unknown format "${name}"`);
       return f;
     };
-    function addFormats(ajv, list, fs17, exportName) {
+    function addFormats(ajv, list, fs18, exportName) {
       var _a;
       var _b;
       (_a = (_b = ajv.opts.code).formats) !== null && _a !== void 0 ? _a : _b.formats = (0, codegen_1._)`require("ajv-formats/dist/formats").${exportName}`;
       for (const f of list)
-        ajv.addFormat(f, fs17[f]);
+        ajv.addFormat(f, fs18[f]);
     }
     module.exports = exports = formatsPlugin;
     Object.defineProperty(exports, "__esModule", { value: true });
@@ -21729,8 +21729,8 @@ var require_parseUtil = __commonJS({
     var errors_js_1 = require_errors2();
     var en_js_1 = __importDefault(require_en());
     var makeIssue2 = (params) => {
-      const { data, path: path19, errorMaps, issueData } = params;
-      const fullPath = [...path19, ...issueData.path || []];
+      const { data, path: path20, errorMaps, issueData } = params;
+      const fullPath = [...path20, ...issueData.path || []];
       const fullIssue = {
         ...issueData,
         path: fullPath
@@ -21884,11 +21884,11 @@ var require_types2 = __commonJS({
     var parseUtil_js_1 = require_parseUtil();
     var util_js_1 = require_util2();
     var ParseInputLazyPath2 = class {
-      constructor(parent, value, path19, key) {
+      constructor(parent, value, path20, key) {
         this._cachedPath = [];
         this.parent = parent;
         this.data = value;
-        this._path = path19;
+        this._path = path20;
         this._key = key;
       }
       get path() {
@@ -26389,8 +26389,8 @@ var init_stdio2 = __esm({
 // src/constants.ts
 import { createRequire } from "node:module";
 function resolveVersion() {
-  if ("3.20.6") {
-    return "3.20.6";
+  if ("3.21.0") {
+    return "3.21.0";
   }
   try {
     const require2 = createRequire(import.meta.url);
@@ -27031,10 +27031,6 @@ var init_peer_registry = __esm({
 // src/services/agent-config.ts
 import os4 from "node:os";
 import path8 from "node:path";
-function claudeConfigDir() {
-  const override = process.env.CLAUDE_CONFIG_DIR?.trim();
-  return override ? override : path8.join(os4.homedir(), ".claude");
-}
 function codexHomeDir() {
   const override = process.env.CODEX_HOME?.trim();
   return override ? override : path8.join(os4.homedir(), ".codex");
@@ -27053,25 +27049,148 @@ var init_agent_config = __esm({
   }
 });
 
-// src/services/cc-cli.ts
-import { spawn } from "node:child_process";
+// src/services/agent-sessions.ts
+import crypto3 from "node:crypto";
 import fs7 from "node:fs/promises";
+import os5 from "node:os";
 import path9 from "node:path";
-async function listCandidates(cwd) {
+function hashCwd(cwd) {
+  return crypto3.createHash("sha256").update(path9.resolve(cwd)).digest("hex").slice(0, 16);
+}
+function agentSessionsDir() {
+  return path9.join(os5.homedir(), ".cogent", "agent-sessions");
+}
+function agentSessionPath(cwd, platform) {
+  return path9.join(agentSessionsDir(), `${hashCwd(cwd)}.${platform}.json`);
+}
+async function readAgentSession(cwd, platform) {
   try {
-    const escapedCwd = cwd.replace(/[^a-zA-Z0-9-]/g, "-");
-    const projectDir = path9.join(claudeConfigDir(), "projects", escapedCwd);
-    const entries = await fs7.readdir(projectDir);
-    const jsonlFiles = entries.filter((f) => f.endsWith(".jsonl"));
-    return await Promise.all(
-      jsonlFiles.map(async (f) => ({
-        sessionId: f.replace(".jsonl", ""),
-        mtimeMs: (await fs7.stat(path9.join(projectDir, f))).mtimeMs
-      }))
+    const raw = await fs7.readFile(agentSessionPath(cwd, platform), "utf-8");
+    const rec = JSON.parse(raw);
+    if (!rec?.sessionId || !rec?.transcriptPath) return null;
+    return rec;
+  } catch {
+    return null;
+  }
+}
+async function learnedRoots(platform) {
+  try {
+    const dir = agentSessionsDir();
+    const files = (await fs7.readdir(dir)).filter(
+      (f) => f.endsWith(`.${platform}.json`)
     );
+    const recs = await Promise.all(
+      files.map(async (f) => {
+        try {
+          return JSON.parse(
+            await fs7.readFile(path9.join(dir, f), "utf-8")
+          );
+        } catch {
+          return null;
+        }
+      })
+    );
+    return [
+      ...new Set(
+        recs.filter((r) => Boolean(r?.root)).sort((a, b) => a.updatedAt < b.updatedAt ? 1 : -1).map((r) => r.root)
+      )
+    ];
   } catch {
     return [];
   }
+}
+var init_agent_sessions = __esm({
+  "src/services/agent-sessions.ts"() {
+    "use strict";
+  }
+});
+
+// src/services/cc-cli.ts
+import { spawn } from "node:child_process";
+import fs8 from "node:fs/promises";
+import os6 from "node:os";
+import path10 from "node:path";
+async function projectDirsFor(cwd) {
+  const [roots, forms] = await Promise.all([
+    claudeConfigRoots(),
+    cwdForms(cwd)
+  ]);
+  const dirs = roots.flatMap(
+    (root) => forms.map(
+      (f) => path10.join(root, "projects", f.replace(/[^a-zA-Z0-9-]/g, "-"))
+    )
+  );
+  return [...new Set(dirs)];
+}
+async function cwdForms(cwd) {
+  const resolved = path10.resolve(cwd);
+  const forms = /* @__PURE__ */ new Set([resolved]);
+  try {
+    forms.add(await fs8.realpath(resolved));
+  } catch {
+  }
+  return [...forms];
+}
+async function claudeConfigRoots() {
+  const roots = [];
+  const env = process.env.CLAUDE_CONFIG_DIR?.trim();
+  if (env) roots.push(env);
+  roots.push(...await learnedRoots("cc"));
+  roots.push(path10.join(os6.homedir(), ".claude"));
+  roots.push(path10.join(os6.homedir(), ".config", "claude"));
+  return [...new Set(roots.map((r) => path10.resolve(r)))];
+}
+async function recordedCandidate(cwd) {
+  const rec = await readAgentSession(cwd, "cc");
+  if (!rec) return null;
+  try {
+    const st = await fs8.stat(rec.transcriptPath);
+    return { sessionId: rec.sessionId, mtimeMs: st.mtimeMs };
+  } catch {
+    return null;
+  }
+}
+async function transcriptBaseSummary() {
+  const roots = await claudeConfigRoots();
+  const parts = await Promise.all(
+    roots.map(async (root) => {
+      const base = path10.join(root, "projects");
+      try {
+        return `${base} [${(await fs8.readdir(base)).length} project dirs]`;
+      } catch {
+        return `${base} [absent]`;
+      }
+    })
+  );
+  return parts.join(", ");
+}
+async function listCandidates(cwd) {
+  const dirs = await projectDirsFor(cwd);
+  const perDir = await Promise.all(
+    dirs.map(async (projectDir) => {
+      try {
+        const entries = await fs8.readdir(projectDir);
+        return await Promise.all(
+          entries.filter((f) => f.endsWith(".jsonl")).map(async (f) => ({
+            sessionId: f.replace(".jsonl", ""),
+            mtimeMs: (await fs8.stat(path10.join(projectDir, f))).mtimeMs
+          }))
+        );
+      } catch {
+        return [];
+      }
+    })
+  );
+  const byId = /* @__PURE__ */ new Map();
+  for (const c2 of perDir.flat()) {
+    const prev = byId.get(c2.sessionId);
+    if (!prev || c2.mtimeMs > prev.mtimeMs) byId.set(c2.sessionId, c2);
+  }
+  const recorded = await recordedCandidate(cwd);
+  if (recorded && !byId.has(recorded.sessionId)) {
+    byId.set(recorded.sessionId, recorded);
+  }
+  return [...byId.values()];
 }
 async function detectCurrentSession(cwd) {
   const candidates = await listCandidates(cwd);
@@ -27080,19 +27199,20 @@ async function detectCurrentSession(cwd) {
   return candidates[0].sessionId;
 }
 async function validateSession(sessionId, cwd) {
-  const projectHash = cwd.replace(/[^a-zA-Z0-9-]/g, "-");
-  const sessionPath = path9.join(
-    claudeConfigDir(),
-    "projects",
-    projectHash,
-    `${sessionId}.jsonl`
+  const recorded = await recordedCandidate(cwd);
+  if (recorded?.sessionId === sessionId) return true;
+  const dirs = await projectDirsFor(cwd);
+  const hits = await Promise.all(
+    dirs.map(async (dir) => {
+      try {
+        await fs8.access(path10.join(dir, `${sessionId}.jsonl`));
+        return true;
+      } catch {
+        return false;
+      }
+    })
   );
-  try {
-    await fs7.access(sessionPath);
-    return true;
-  } catch {
-    return false;
-  }
+  return hits.some(Boolean);
 }
 function execClaude(sessionId, message, cwd, timeoutMs) {
   return new Promise((resolve) => {
@@ -27246,15 +27366,16 @@ var init_cc_cli = __esm({
     "use strict";
     init_config();
     init_agent_config();
+    init_agent_sessions();
   }
 });
 
 // src/services/codex-preflight.ts
 import { execFile as execFile2 } from "node:child_process";
 import { promisify as promisify2 } from "node:util";
-import fs8 from "node:fs/promises";
+import fs9 from "node:fs/promises";
 import { join } from "node:path";
-import os5 from "node:os";
+import os7 from "node:os";
 function analyzeCodexHelp(helpText) {
   const checked = EXPECTED_CODEX_RESUME_FLAGS.map((f) => f.flag);
   const missing = EXPECTED_CODEX_RESUME_FLAGS.filter(
@@ -27310,7 +27431,7 @@ function classifyUnshareError(err) {
 }
 async function readProc(p) {
   try {
-    return (await fs8.readFile(p, "utf8")).trim();
+    return (await fs9.readFile(p, "utf8")).trim();
   } catch {
     return null;
   }
@@ -27363,14 +27484,14 @@ function detectCodexCogentServerCollision(configTomlText) {
   return /^[ \t]*\[mcp_servers\.cogent(\.[^\]]+)?\]/m.test(configTomlText);
 }
 function codexConfigPath(codexHomeDir2) {
-  const home = codexHomeDir2 || process.env.CODEX_HOME || join(os5.homedir(), ".codex");
+  const home = codexHomeDir2 || process.env.CODEX_HOME || join(os7.homedir(), ".codex");
   return join(home, "config.toml");
 }
 async function preflightCodexServerCollision(codexHomeDir2) {
   const cfgPath = codexConfigPath(codexHomeDir2);
   let text;
   try {
-    text = await fs8.readFile(cfgPath, "utf8");
+    text = await fs9.readFile(cfgPath, "utf8");
   } catch {
     return false;
   }
@@ -27399,22 +27520,22 @@ var init_codex_preflight = __esm({
 });
 
 // src/services/health-check.ts
-import fs9 from "node:fs/promises";
-import path10 from "node:path";
+import fs10 from "node:fs/promises";
+import path11 from "node:path";
 import { execFile as execFile3 } from "node:child_process";
 function getStatePath2() {
-  return path10.join(getConfig().COGENT_STATE_PATH, "cogent-state.json");
+  return path11.join(getConfig().COGENT_STATE_PATH, "cogent-state.json");
 }
 async function checkStateFile() {
   const statePath = getStatePath2();
-  const dir = path10.dirname(statePath);
+  const dir = path11.dirname(statePath);
   try {
-    await fs9.access(dir, fs9.constants.R_OK | fs9.constants.W_OK);
+    await fs10.access(dir, fs10.constants.R_OK | fs10.constants.W_OK);
   } catch {
     return { ok: false, message: `State directory not accessible: ${dir}` };
   }
   try {
-    const raw = await fs9.readFile(statePath, "utf-8");
+    const raw = await fs10.readFile(statePath, "utf-8");
     JSON.parse(raw);
     return { ok: true, message: "State file readable and valid JSON" };
   } catch (err) {
@@ -27430,9 +27551,9 @@ async function checkStateFile() {
 async function checkLockMechanism() {
   const healthLockPath = getStatePath2() + ".health-lock";
   try {
-    await fs9.writeFile(healthLockPath, String(process.pid), { flag: "wx" });
+    await fs10.writeFile(healthLockPath, String(process.pid), { flag: "wx" });
     try {
-      await fs9.unlink(healthLockPath);
+      await fs10.unlink(healthLockPath);
     } catch {
     }
     return { ok: true, message: "Lock acquire/release cycle succeeded" };
@@ -27485,7 +27606,7 @@ async function checkHealth() {
   return {
     healthy,
     mcpServerVersion: SERVER_VERSION,
-    statePath: path10.join(config2.COGENT_STATE_PATH, "cogent-state.json"),
+    statePath: path11.join(config2.COGENT_STATE_PATH, "cogent-state.json"),
     claudePath: config2.COGENT_CLAUDE_PATH,
     checks,
     timestamp: (/* @__PURE__ */ new Date()).toISOString()
@@ -27624,7 +27745,7 @@ var init_http_backend = __esm({
        * in cloud mode we ignore it and use this.sessionId (the cloud session).
        */
       async registerPeer(peerId, _sessionId, cwd, label, clientVersion, mode, _channelSessionId, capabilities, workspaceId, threadId) {
-        const path19 = PATHS.peers.replace(":sessionId", this.sessionId);
+        const path20 = PATHS.peers.replace(":sessionId", this.sessionId);
         const body = {
           peerId,
           cwd,
@@ -27652,7 +27773,7 @@ var init_http_backend = __esm({
             body.role = roleCap.slice("role:".length);
           }
         }
-        return this.http.post(path19, body);
+        return this.http.post(path20, body);
       }
       /**
        * Deregister a peer from the cloud session.
@@ -27664,9 +27785,9 @@ var init_http_backend = __esm({
        * local mail creds. A 404 (peer not found) resolves to `{ removed: false, ... }`, not a throw.
        */
       async deregisterPeer(peerId) {
-        const path19 = PATHS.peer.replace(":sessionId", this.sessionId).replace(":peerId", peerId);
+        const path20 = PATHS.peer.replace(":sessionId", this.sessionId).replace(":peerId", peerId);
         try {
-          const headers = await this.http.delete(path19, {});
+          const headers = await this.http.delete(path20, {});
           const mailboxDeprovisioned = headers.get(MAILBOX_DEPROVISIONED_HEADER) === "true";
           return { removed: true, mailboxDeprovisioned };
         } catch {
@@ -27687,8 +27808,8 @@ var init_http_backend = __esm({
        * GET /api/sessions/:sessionId/peers
        */
       async listPeers() {
-        const path19 = PATHS.peers.replace(":sessionId", this.sessionId);
-        const result = await this.http.get(path19);
+        const path20 = PATHS.peers.replace(":sessionId", this.sessionId);
+        const result = await this.http.get(path20);
         return result.peers;
       }
       /**
@@ -27696,8 +27817,8 @@ var init_http_backend = __esm({
        * Calls the lightweight heartbeat endpoint on the cloud relay server.
        */
       async updateLastSeen(peerId) {
-        const path19 = PATHS.heartbeat.replace(":sessionId", this.sessionId);
-        await this.http.post(path19, { peerId });
+        const path20 = PATHS.heartbeat.replace(":sessionId", this.sessionId);
+        await this.http.post(path20, { peerId });
       }
       /**
        * Record a message in the cloud session.
@@ -27708,7 +27829,7 @@ var init_http_backend = __esm({
        * the input record to construct a full MessageRecord.
        */
       async recordMessage(record2) {
-        const path19 = PATHS.messages.replace(":sessionId", this.sessionId);
+        const path20 = PATHS.messages.replace(":sessionId", this.sessionId);
         const body = {
           fromPeerId: record2.fromPeerId,
           toPeerId: record2.toPeerId,
@@ -27720,7 +27841,7 @@ var init_http_backend = __esm({
         if (record2.attachments && record2.attachments.length > 0) {
           body.attachments = record2.attachments;
         }
-        const resp = await this.http.post(path19, body);
+        const resp = await this.http.post(path20, body);
         return {
           ...record2,
           id: resp.id,
@@ -27734,7 +27855,7 @@ var init_http_backend = __esm({
        * Supports optional peerId filter and limit (default 300).
        */
       async getHistory(peerId, limit, includeRelayEchoes, metadataOnly, dedupInferredEchoes) {
-        const path19 = PATHS.messages.replace(":sessionId", this.sessionId);
+        const path20 = PATHS.messages.replace(":sessionId", this.sessionId);
         const query = {};
         if (peerId) {
           query.peerId = peerId;
@@ -27749,7 +27870,7 @@ var init_http_backend = __esm({
         if (dedupInferredEchoes) {
           query.dedupInferredEchoes = "true";
         }
-        const result = await this.http.get(path19, query);
+        const result = await this.http.get(path20, query);
         return result.messages;
       }
       /**
@@ -27760,12 +27881,12 @@ var init_http_backend = __esm({
        * so that get-history shows the actual response (not null).
        */
       async updateMessageResponse(messageId, response, durationMs, pending) {
-        const path19 = PATHS.message.replace(":sessionId", this.sessionId).replace(":messageId", messageId);
+        const path20 = PATHS.message.replace(":sessionId", this.sessionId).replace(":messageId", messageId);
         const body = { response, durationMs };
         if (pending === true) {
           body.pending = true;
         }
-        await this.http.patch(path19, body);
+        await this.http.patch(path20, body);
       }
       /**
        * Validate a session.
@@ -27907,8 +28028,8 @@ var init_http_client = __esm({
        * Perform an authenticated GET request.
        * Appends query parameters to the URL if provided.
        */
-      async get(path19, query) {
-        const url = new URL(path19, this.baseUrl);
+      async get(path20, query) {
+        const url = new URL(path20, this.baseUrl);
         if (query) {
           for (const [k, v] of Object.entries(query)) {
             url.searchParams.set(k, v);
@@ -27923,8 +28044,8 @@ var init_http_client = __esm({
       /**
        * Perform an authenticated POST request with a JSON body.
        */
-      async post(path19, body) {
-        const url = new URL(path19, this.baseUrl);
+      async post(path20, body) {
+        const url = new URL(path20, this.baseUrl);
         const resp = await this.fetchWithTimeout(url, {
           method: "POST",
           headers: this.headers(),
@@ -27942,8 +28063,8 @@ var init_http_client = __esm({
        * Perform an authenticated PATCH request with a JSON body.
        * Used to update existing resources (e.g., message response fields).
        */
-      async patch(path19, body) {
-        const url = new URL(path19, this.baseUrl);
+      async patch(path20, body) {
+        const url = new URL(path20, this.baseUrl);
         const resp = await this.fetchWithTimeout(url, {
           method: "PATCH",
           headers: this.headers(),
@@ -27968,8 +28089,8 @@ var init_http_client = __esm({
        * "Malformed JSON in request body" 400 from cogent-server <=3.1.2 when
        * any client (including third-party tools) DELETEd a peer without a body.
        */
-      async delete(path19, body) {
-        const url = new URL(path19, this.baseUrl);
+      async delete(path20, body) {
+        const url = new URL(path20, this.baseUrl);
         const headers = {
           "Authorization": `Bearer ${this.token}`
         };
@@ -32152,14 +32273,14 @@ var init_ws_client = __esm({
         if (this.pollTimer) return;
         const poll = async () => {
           try {
-            const path19 = `/api/sessions/${this.opts.sessionId}/poll`;
+            const path20 = `/api/sessions/${this.opts.sessionId}/poll`;
             const query = {
               peerId: this.opts.peerId
             };
             if (this.lastMessageId) {
               query.lastMessageId = this.lastMessageId;
             }
-            const result = await this.opts.http.get(path19, query);
+            const result = await this.opts.http.get(path20, query);
             if (result.messages && result.messages.length > 0) {
               this.opts.onMessages(result.messages);
               this.lastMessageId = result.messages[result.messages.length - 1].id;
@@ -32216,9 +32337,9 @@ var init_cloud = __esm({
 
 // src/services/codex-cli.ts
 import { spawn as spawn2 } from "node:child_process";
-import fs10 from "node:fs/promises";
-import os6 from "node:os";
-import path11 from "node:path";
+import fs11 from "node:fs/promises";
+import os8 from "node:os";
+import path12 from "node:path";
 import { randomUUID } from "node:crypto";
 import { createReadStream } from "node:fs";
 import { createInterface as createInterface2 } from "node:readline";
@@ -32246,7 +32367,7 @@ function execCodex(sessionId, message, cwd, timeoutMs) {
     const config2 = getConfig();
     const effectiveTimeout = timeoutMs ?? config2.COGENT_TIMEOUT_MS;
     const truncated = config2.COGENT_CHAR_LIMIT > 0 && message.length > config2.COGENT_CHAR_LIMIT ? message.slice(0, config2.COGENT_CHAR_LIMIT) + "\n...[truncated]" : message;
-    const lastMsgFile = path11.join(os6.tmpdir(), `cogent-codex-${randomUUID()}.txt`);
+    const lastMsgFile = path12.join(os8.tmpdir(), `cogent-codex-${randomUUID()}.txt`);
     const args = [
       "exec",
       "resume",
@@ -32274,7 +32395,7 @@ function execCodex(sessionId, message, cwd, timeoutMs) {
         resolve(result);
       }
     };
-    const cleanupFile = () => fs10.rm(lastMsgFile, { force: true }).catch(() => {
+    const cleanupFile = () => fs11.rm(lastMsgFile, { force: true }).catch(() => {
     });
     const timer = setTimeout(async () => {
       killed = true;
@@ -32325,7 +32446,7 @@ function execCodex(sessionId, message, cwd, timeoutMs) {
       }
       let fileMessage = "";
       try {
-        fileMessage = await fs10.readFile(lastMsgFile, "utf8");
+        fileMessage = await fs11.readFile(lastMsgFile, "utf8");
       } catch {
         fileMessage = "";
       }
@@ -32346,12 +32467,12 @@ async function listRolloutFiles(root) {
   async function walk(dir) {
     let entries;
     try {
-      entries = await fs10.readdir(dir, { withFileTypes: true });
+      entries = await fs11.readdir(dir, { withFileTypes: true });
     } catch {
       return;
     }
     for (const e of entries) {
-      const full = path11.join(dir, e.name);
+      const full = path12.join(dir, e.name);
       if (e.isDirectory()) await walk(full);
       else if (e.isFile() && e.name.endsWith(".jsonl")) out.push(full);
     }
@@ -32383,19 +32504,19 @@ async function readSessionMeta(file) {
   }
 }
 function codexSessionsRoot() {
-  return path11.join(codexHomeDir(), "sessions");
+  return path12.join(codexHomeDir(), "sessions");
 }
 async function cwdCanonicals(cwd) {
-  const resolved = path11.resolve(cwd);
+  const resolved = path12.resolve(cwd);
   const forms = /* @__PURE__ */ new Set([resolved]);
   try {
-    forms.add(await fs10.realpath(resolved));
+    forms.add(await fs11.realpath(resolved));
   } catch {
   }
   return forms;
 }
 function metaCwdMatches(metaCwd, forms) {
-  return forms.has(path11.resolve(metaCwd));
+  return forms.has(path12.resolve(metaCwd));
 }
 async function detectCurrentCodexSession(cwd) {
   try {
@@ -32403,7 +32524,7 @@ async function detectCurrentCodexSession(cwd) {
     const files = await listRolloutFiles(codexSessionsRoot());
     const withStats = await Promise.all(
       files.map(async (f) => {
-        const stat = await fs10.stat(f);
+        const stat = await fs11.stat(f);
         return { file: f, mtimeMs: stat.mtimeMs };
       })
     );
@@ -32422,7 +32543,7 @@ async function listCodexCandidates(cwd) {
     const forms = await cwdCanonicals(cwd);
     const files = await listRolloutFiles(codexSessionsRoot());
     const withStats = await Promise.all(
-      files.map(async (f) => ({ file: f, mtimeMs: (await fs10.stat(f)).mtimeMs }))
+      files.map(async (f) => ({ file: f, mtimeMs: (await fs11.stat(f)).mtimeMs }))
     );
     const bySession = /* @__PURE__ */ new Map();
     for (const { file, mtimeMs } of withStats) {
@@ -32462,11 +32583,11 @@ var init_codex_cli = __esm({
 });
 
 // src/services/codex-app-server.ts
-import path12 from "node:path";
-import fs11 from "node:fs/promises";
+import path13 from "node:path";
+import fs12 from "node:fs/promises";
 import { spawn as spawn3, spawnSync } from "node:child_process";
 function appServerSocketPath(codexHome = codexHomeDir()) {
-  return path12.join(codexHome, "app-server-control", "app-server-control.sock");
+  return path13.join(codexHome, "app-server-control", "app-server-control.sock");
 }
 function rpcUrl(sock) {
   return `ws+unix://${sock}:/rpc`;
@@ -32707,7 +32828,7 @@ var init_codex_app_server = __esm({
     });
     defaultSocketExists = async (p) => {
       try {
-        await fs11.stat(p);
+        await fs12.stat(p);
         return true;
       } catch {
         return false;
@@ -32834,6 +32955,23 @@ function listCandidatesFor(platform, cwd) {
       return listCandidates(cwd);
   }
 }
+async function reportedSessionFor(platform, cwd) {
+  if (platform !== "cc") return null;
+  try {
+    return (await recordedCandidate(cwd))?.sessionId ?? null;
+  } catch {
+    return null;
+  }
+}
+function probePathsFor(platform, cwd) {
+  switch (platform) {
+    case "codex":
+      return Promise.resolve([codexSessionsRoot()]);
+    case "cc":
+    default:
+      return projectDirsFor(cwd);
+  }
+}
 function validateSessionFor(platform, sessionId, cwd) {
   switch (platform) {
     case "codex":
@@ -32905,12 +33043,31 @@ function decideResolution(candidates, pinnedSessionId, pinnedExists, marginMs) {
   };
 }
 async function resolveSession(platform, cwd, pinnedSessionId, marginMs) {
-  const [candidates, pinnedExists] = await Promise.all([
+  const [candidates, pinnedExists, reported] = await Promise.all([
     listCandidatesFor(platform, cwd),
-    pinnedSessionId ? validateSessionFor(platform, pinnedSessionId, cwd) : Promise.resolve(false)
+    pinnedSessionId ? validateSessionFor(platform, pinnedSessionId, cwd) : Promise.resolve(false),
+    // Layer 1 is an ENHANCEMENT over discovery, never a dependency of it: if the
+    // learned-record lookup is unavailable or throws, resolution must still run
+    // exactly as it did before this layer existed.
+    Promise.resolve().then(() => reportedSessionFor(platform, cwd)).catch(() => null)
   ]);
   const margin = marginMs ?? getConfig().COGENT_RESOLVER_AMBIGUOUS_MARGIN_MS;
-  return decideResolution(candidates, pinnedSessionId, pinnedExists, margin);
+  const effectivePin = pinnedExists ? pinnedSessionId : reported ?? pinnedSessionId;
+  const effectiveExists = pinnedExists || reported !== null && reported === effectivePin;
+  const res = decideResolution(candidates, effectivePin, effectiveExists, margin);
+  if (res.candidateCount === 0) {
+    try {
+      const probedPaths = await probePathsFor(platform, cwd);
+      if (probedPaths.length) {
+        res.probedPaths = probedPaths;
+        if (res.fallbackReason) {
+          res.fallbackReason = `${res.fallbackReason} (cwd=${cwd}; scanned ${probedPaths.join(", ")})`;
+        }
+      }
+    } catch {
+    }
+  }
+  return res;
 }
 var init_session_resolver = __esm({
   "src/services/session-resolver.ts"() {
@@ -32921,15 +33078,15 @@ var init_session_resolver = __esm({
 });
 
 // src/services/wake-inflight.ts
-import crypto3 from "node:crypto";
-import fs12 from "node:fs";
-import os7 from "node:os";
-import path13 from "node:path";
-function hashCwd(cwd) {
-  return crypto3.createHash("sha256").update(path13.resolve(cwd)).digest("hex").slice(0, 16);
+import crypto4 from "node:crypto";
+import fs13 from "node:fs";
+import os9 from "node:os";
+import path14 from "node:path";
+function hashCwd2(cwd) {
+  return crypto4.createHash("sha256").update(path14.resolve(cwd)).digest("hex").slice(0, 16);
 }
 function wakeInflightPath(peerId, cwd = process.cwd()) {
-  return path13.join(os7.homedir(), ".cogent", "wake-inflight", `${hashCwd(cwd)}.${safe(peerId)}.json`);
+  return path14.join(os9.homedir(), ".cogent", "wake-inflight", `${hashCwd2(cwd)}.${safe(peerId)}.json`);
 }
 function ttlMs() {
   let timeout = 3e5;
@@ -32942,17 +33099,17 @@ function ttlMs() {
 }
 function readFileSafe(p) {
   try {
-    const parsed = JSON.parse(fs12.readFileSync(p, "utf-8"));
+    const parsed = JSON.parse(fs13.readFileSync(p, "utf-8"));
     return parsed && typeof parsed === "object" && parsed.messages ? parsed : { messages: {} };
   } catch {
     return { messages: {} };
   }
 }
 function writeAtomic(p, data) {
-  fs12.mkdirSync(path13.dirname(p), { recursive: true });
+  fs13.mkdirSync(path14.dirname(p), { recursive: true });
   const tmp = `${p}.${process.pid}.tmp`;
-  fs12.writeFileSync(tmp, JSON.stringify(data, null, 2) + "\n", "utf-8");
-  fs12.renameSync(tmp, p);
+  fs13.writeFileSync(tmp, JSON.stringify(data, null, 2) + "\n", "utf-8");
+  fs13.renameSync(tmp, p);
 }
 function prune(f, now) {
   for (const [id, rec] of Object.entries(f.messages)) {
@@ -34101,15 +34258,15 @@ __export(startup_exports, {
   runStartup: () => runStartup,
   triggerReRegistration: () => triggerReRegistration
 });
-import os8 from "node:os";
-import path14 from "node:path";
-import fs13 from "node:fs/promises";
+import os10 from "node:os";
+import path15 from "node:path";
+import fs14 from "node:fs/promises";
 import readline2 from "node:readline";
 import { execFile as execFile5 } from "node:child_process";
 import { promisify as promisify4 } from "node:util";
 async function loadPersistedConfig() {
   try {
-    const raw = await fs13.readFile(PERSIST_PATH, "utf-8");
+    const raw = await fs14.readFile(PERSIST_PATH, "utf-8");
     return JSON.parse(raw);
   } catch {
     return {};
@@ -34117,7 +34274,7 @@ async function loadPersistedConfig() {
 }
 async function savePersistedConfig(config2) {
   try {
-    await fs13.writeFile(PERSIST_PATH, JSON.stringify(config2, null, 2) + "\n", "utf-8");
+    await fs14.writeFile(PERSIST_PATH, JSON.stringify(config2, null, 2) + "\n", "utf-8");
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     logger.warn(`Could not save config to ${PERSIST_PATH}: ${msg}`);
@@ -34152,11 +34309,11 @@ First run detected. Where should cogent-bridge store its data?
   });
 }
 async function validateStateDir(statePath) {
-  await fs13.mkdir(statePath, { recursive: true });
-  const testFile = path14.join(statePath, ".write-test");
+  await fs14.mkdir(statePath, { recursive: true });
+  const testFile = path15.join(statePath, ".write-test");
   try {
-    await fs13.writeFile(testFile, "test", "utf-8");
-    await fs13.unlink(testFile);
+    await fs14.writeFile(testFile, "test", "utf-8");
+    await fs14.unlink(testFile);
   } catch {
     throw new BridgeError(
       "STARTUP_FAILED" /* STARTUP_FAILED */,
@@ -34302,10 +34459,10 @@ async function runStartup() {
   if (envStatePath) {
     statePath = envStatePath;
   } else {
-    const defaultPath = path14.join(os8.homedir(), ".cogent");
+    const defaultPath = path15.join(os10.homedir(), ".cogent");
     statePath = await firstRunPrompt(defaultPath);
   }
-  if (!envStatePath && statePath !== path14.join(os8.homedir(), ".cogent")) {
+  if (!envStatePath && statePath !== path15.join(os10.homedir(), ".cogent")) {
     process.env.COGENT_STATE_PATH = statePath;
   } else if (!envStatePath) {
     process.env.COGENT_STATE_PATH = statePath;
@@ -34383,7 +34540,7 @@ async function runStartup() {
   }
   initLogger(
     config2.COGENT_LOG_LEVEL,
-    path14.join(config2.COGENT_STATE_PATH, "logs")
+    path15.join(config2.COGENT_STATE_PATH, "logs")
   );
   if (isCloud && effectiveSessionId && effectiveToken) {
     cloudInbox = new MessageInbox();
@@ -34444,7 +34601,7 @@ var init_startup = __esm({
     init_auto_relay();
     UUID_V4_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     execFileAsync3 = promisify4(execFile5);
-    PERSIST_PATH = path14.join(os8.homedir(), ".cogent-config.json");
+    PERSIST_PATH = path15.join(os10.homedir(), ".cogent-config.json");
     legacyWarnEmitted = false;
     cloudWsClient = null;
     cloudInbox = null;
@@ -34454,13 +34611,13 @@ var init_startup = __esm({
 });
 
 // src/cloud/mail-credential-store.ts
-import crypto4 from "node:crypto";
-import fs14 from "node:fs/promises";
-import path15 from "node:path";
-import os9 from "node:os";
+import crypto5 from "node:crypto";
+import fs15 from "node:fs/promises";
+import path16 from "node:path";
+import os11 from "node:os";
 function defaultMailCredentialPath(cwd = process.cwd()) {
-  const hash = crypto4.createHash("sha256").update(path15.resolve(cwd)).digest("hex").slice(0, 16);
-  return path15.join(os9.homedir(), ".cogent", "mail-credentials", `${hash}.json`);
+  const hash = crypto5.createHash("sha256").update(path16.resolve(cwd)).digest("hex").slice(0, 16);
+  return path16.join(os11.homedir(), ".cogent", "mail-credentials", `${hash}.json`);
 }
 function resolveMailCredentialPath(credentialPath) {
   if (credentialPath) return credentialPath;
@@ -34471,16 +34628,16 @@ function resolveMailCredentialPath(credentialPath) {
 async function loadMailCredentials(credentialPath) {
   const filePath = resolveMailCredentialPath(credentialPath);
   try {
-    return JSON.parse(await fs14.readFile(filePath, "utf-8"));
+    return JSON.parse(await fs15.readFile(filePath, "utf-8"));
   } catch {
     return null;
   }
 }
 async function saveMailCredentials(creds, credentialPath) {
   const filePath = resolveMailCredentialPath(credentialPath);
-  await fs14.mkdir(path15.dirname(filePath), { recursive: true, mode: 448 });
-  await fs14.writeFile(filePath, JSON.stringify(creds, null, 2) + "\n", { encoding: "utf-8", mode: 384 });
-  await fs14.chmod(filePath, 384);
+  await fs15.mkdir(path16.dirname(filePath), { recursive: true, mode: 448 });
+  await fs15.writeFile(filePath, JSON.stringify(creds, null, 2) + "\n", { encoding: "utf-8", mode: 384 });
+  await fs15.chmod(filePath, 384);
 }
 async function persistProvisionedMailbox(mailbox, credentialPath) {
   if (!mailbox?.address || !mailbox.password) return false;
@@ -34501,7 +34658,7 @@ async function persistProvisionedMailbox(mailbox, credentialPath) {
 async function clearMailCredentials(credentialPath) {
   const filePath = resolveMailCredentialPath(credentialPath);
   try {
-    await fs14.unlink(filePath);
+    await fs15.unlink(filePath);
   } catch (err) {
     if (err.code !== "ENOENT") throw err;
   }
@@ -34515,7 +34672,7 @@ var init_mail_credential_store = __esm({
 });
 
 // src/tools/register-peer.ts
-import crypto5 from "node:crypto";
+import crypto6 from "node:crypto";
 function registerRegisterPeerTool(server) {
   server.registerTool(
     "cogent_register_peer",
@@ -34574,7 +34731,7 @@ function registerRegisterPeerTool(server) {
             }
           }
           if (!cloudSessionId) {
-            autoSecret = crypto5.randomBytes(16).toString("hex");
+            autoSecret = crypto6.randomBytes(16).toString("hex");
             const resp = await fetch(
               `${endpoint}/api/sessions`,
               {
@@ -34680,6 +34837,19 @@ function registerRegisterPeerTool(server) {
         logger.info(
           `Register: session resolved ${resolution.decision}/${resolution.confidence} (${resolution.candidateCount} candidate[s]) -> ${localSessionId}`
         );
+        const noLocalSession = resolution.candidateCount === 0;
+        if (noLocalSession) {
+          try {
+            const base = getConfig().COGENT_PLATFORM === "cc" ? await transcriptBaseSummary() : "(codex: scans CODEX_HOME/sessions)";
+            logger.warn(
+              `Register: NO local ${getConfig().COGENT_PLATFORM} session found for cwd \u2014 auto-wake WILL be refused. cwd=${cwd}; scanned ${(resolution.probedPaths ?? []).join(", ") || "(unknown)"}; base ${base}. If the base is missing or empty, this agent's config dir is elsewhere \u2014 set CLAUDE_CONFIG_DIR / CODEX_HOME so the BRIDGE process sees it too. If the base has project dirs but none match, the registered cwd is not where this agent runs.`
+            );
+          } catch (err) {
+            logger.warn(
+              `Register: NO local session found for cwd=${cwd} (auto-wake WILL be refused); could not describe the transcript base: ${err.message}`
+            );
+          }
+        }
         autoRelay.setLocalPeer(peerId, localSessionId, cwd, mode, label, localSessionId);
         const result = {
           success: true,
@@ -34688,7 +34858,12 @@ function registerRegisterPeerTool(server) {
           sessionResolution: {
             decision: resolution.decision,
             confidence: resolution.confidence,
-            candidateCount: resolution.candidateCount
+            candidateCount: resolution.candidateCount,
+            // Only on the broken path — keeps the happy-path result terse.
+            ...noLocalSession ? {
+              warning: "No local session transcript found for this cwd \u2014 auto-wake will be REFUSED. Verify the cwd is where this agent actually runs and that CLAUDE_CONFIG_DIR / CODEX_HOME are visible to the bridge process.",
+              scannedPaths: resolution.probedPaths ?? []
+            } : {}
           }
         };
         const relayAdvisory = peer?.advisory;
@@ -34758,6 +34933,7 @@ var init_register_peer = __esm({
     init_heartbeat();
     init_auto_relay();
     init_session_resolver();
+    init_cc_cli();
     init_durable_identity();
     init_constants();
     init_npm_update_check();
@@ -35832,7 +36008,7 @@ var init_health_check2 = __esm({
 });
 
 // src/tools/create-session.ts
-import crypto6 from "node:crypto";
+import crypto7 from "node:crypto";
 function registerCreateSessionTool(server) {
   server.registerTool(
     "cogent_create_session",
@@ -35863,7 +36039,7 @@ function registerCreateSessionTool(server) {
             )
           );
         }
-        const sessionSecret = secret ?? crypto6.randomBytes(16).toString("hex");
+        const sessionSecret = secret ?? crypto7.randomBytes(16).toString("hex");
         const resp = await fetch(
           `${config2.COGENT_ENDPOINT}/api/sessions`,
           {
@@ -36187,13 +36363,13 @@ var init_setup_mail = __esm({
 });
 
 // src/mail/mail-sender.ts
-import fs15 from "node:fs/promises";
-import path16 from "node:path";
+import fs16 from "node:fs/promises";
+import path17 from "node:path";
 async function buildAndSendMail(sender, creds, params) {
   const attachments = [];
   for (const p of params.attachmentPaths ?? []) {
-    const content = await fs15.readFile(p);
-    attachments.push({ filename: path16.basename(p), content });
+    const content = await fs16.readFile(p);
+    attachments.push({ filename: path17.basename(p), content });
   }
   const { messageId } = await sender.send({
     from: creds.address,
@@ -36321,16 +36497,16 @@ var init_send_mail = __esm({
 });
 
 // src/mail/mail-fetcher.ts
-import fs16 from "node:fs/promises";
-import path17 from "node:path";
+import fs17 from "node:fs/promises";
+import path18 from "node:path";
 async function saveAttachments(attachments, downloadDir) {
   if (attachments.length === 0) return [];
-  await fs16.mkdir(downloadDir, { recursive: true });
+  await fs17.mkdir(downloadDir, { recursive: true });
   const saved = [];
   for (const a of attachments) {
-    const name = path17.basename(a.filename) || "attachment";
-    const savedPath = path17.join(downloadDir, name);
-    await fs16.writeFile(savedPath, a.content);
+    const name = path18.basename(a.filename) || "attachment";
+    const savedPath = path18.join(downloadDir, name);
+    await fs17.writeFile(savedPath, a.content);
     saved.push({ filename: name, savedPath, size: a.content.length });
   }
   return saved;
@@ -36461,8 +36637,8 @@ var init_mail_fetcher = __esm({
 });
 
 // src/tools/fetch-mail.ts
-import os10 from "node:os";
-import path18 from "node:path";
+import os12 from "node:os";
+import path19 from "node:path";
 function registerFetchMailTool(server, deps = {}) {
   const makeFetcher = deps.fetcherFactory ?? ((creds) => new ImapflowMailFetcher(creds));
   server.registerTool(
@@ -36524,7 +36700,7 @@ var init_fetch_mail = __esm({
     init_mail_fetcher();
     init_auth_error();
     init_validate();
-    DEFAULT_DOWNLOAD_DIR = path18.join(os10.homedir(), ".cogent", "mail-downloads");
+    DEFAULT_DOWNLOAD_DIR = path19.join(os12.homedir(), ".cogent", "mail-downloads");
   }
 });
 

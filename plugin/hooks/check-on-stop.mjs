@@ -18,6 +18,8 @@ import {
   buildBlockReason,
   credHashForCwd,
   activeInFlightIds,
+  agentSessionRecordPath,
+  buildAgentSessionRecord,
 } from "./check-on-stop.lib.mjs";
 
 const HTTP_TIMEOUT_MS = 5000; // < the 8s hook timeout; only bites on a degraded relay
@@ -104,8 +106,35 @@ async function peerIdFromState(env, cwd) {
   return byCwd ? byCwd.peerId : undefined;
 }
 
+/**
+ * Refresh the learned session record from this payload — the authoritative answer
+ * to "where does this agent's transcript live" (see record-session.mjs for the
+ * full rationale). Done here as well as on SessionStart because this hook already
+ * receives the payload on every turn, so the record stays correct for free even
+ * if the session was started before the plugin was installed. Best-effort and
+ * completely silent: it must never affect whether this hook blocks.
+ */
+async function refreshSessionRecord(input) {
+  try {
+    const record = buildAgentSessionRecord(input, new Date().toISOString());
+    if (!record) return;
+    const target = agentSessionRecordPath(record.cwd, record.platform);
+    await fsp.mkdir(path.dirname(target), { recursive: true });
+    const tmp = `${target}.${process.pid}.tmp`;
+    await fsp.writeFile(tmp, JSON.stringify(record, null, 2), "utf-8");
+    await fsp.rename(tmp, target);
+  } catch {
+    // learning is an optimisation, never a reason to change this hook's outcome
+  }
+}
+
 async function main() {
   const input = await readStdin();
+
+  // Record BEFORE the loop guard: a continuation turn still carries a valid
+  // transcript path, and skipping it would lose the refresh on exactly the turns
+  // where auto-wake is most active.
+  await refreshSessionRecord(input);
 
   // Loop guard: if we already caused this continuation, never block again.
   if (input && input.stop_hook_active === true) return process.exit(0);

@@ -3,6 +3,7 @@
 // defaultCredentialPath. Kept separate from the runtime (check-on-stop.mjs) so it is
 // unit-tested (plugin/hooks/check-on-stop.lib.test.mjs, gate-counted via vitest include).
 import crypto from "node:crypto";
+import os from "node:os";
 import path from "node:path";
 
 /** MUST equal src/services/auto-relay.ts:629 — human-origin broadcasts only. */
@@ -23,6 +24,64 @@ export function parseScope(csv) {
 /** sha256(path.resolve(cwd))[..16] — MUST equal credential-store.defaultCredentialPath's hash. */
 export function credHashForCwd(cwd) {
   return crypto.createHash("sha256").update(path.resolve(cwd)).digest("hex").slice(0, 16);
+}
+
+/**
+ * MUST equal src/services/agent-sessions.ts rootFromTranscriptPath.
+ *
+ * Recovers the agent's config ROOT from an absolute transcript path by STRUCTURE
+ * (`<root>/projects/<encoded-cwd>/<id>.jsonl`) rather than by matching a known
+ * prefix — which is the whole point: a root nobody has ever seen still resolves.
+ */
+export function rootFromTranscriptPath(transcriptPath) {
+  if (!transcriptPath) return null;
+  const parts = path.resolve(transcriptPath).split(path.sep);
+  const i = parts.lastIndexOf("projects");
+  if (i <= 0) return null;
+  return parts.slice(0, i).join(path.sep) || path.sep;
+}
+
+/** MUST equal src/services/agent-sessions.ts agentSessionPath. */
+export function agentSessionRecordPath(cwd, platform) {
+  return path.join(
+    os.homedir(),
+    ".cogent",
+    "agent-sessions",
+    `${credHashForCwd(cwd)}.${platform}.json`,
+  );
+}
+
+/**
+ * Turn a hook payload into a learned session record — the AUTHORITATIVE answer to
+ * "where does this agent's transcript live". Pure; the caller does the write.
+ *
+ * The host hands every hook `cwd`, `session_id` and `transcript_path`. Persisting
+ * that trio removes both guesses the wake resolver used to make (which config root,
+ * and how the cwd was encoded into a directory name), so a relocated or otherwise
+ * unusual agent installation resolves without any configuration.
+ *
+ * `platform` is inferred STRUCTURALLY so this file can stay byte-identical across
+ * the Claude and Codex plugins: only Claude Code lays transcripts out under a
+ * `projects/` segment, so a recoverable root means Claude Code.
+ *
+ * Returns null when the payload lacks any of the three fields (some hosts/events
+ * omit them) — a partial record is worse than none, because it would look
+ * authoritative while pointing nowhere.
+ */
+export function buildAgentSessionRecord(payload, nowIso) {
+  const cwd = payload?.cwd;
+  const sessionId = payload?.session_id;
+  const transcriptPath = payload?.transcript_path;
+  if (!cwd || !sessionId || !transcriptPath) return null;
+  const root = rootFromTranscriptPath(transcriptPath);
+  return {
+    cwd: path.resolve(cwd),
+    sessionId: String(sessionId),
+    transcriptPath: path.resolve(transcriptPath),
+    ...(root ? { root } : {}),
+    platform: root ? "cc" : "codex",
+    updatedAt: nowIso,
+  };
 }
 
 function isForMe(msg, me, scope) {
