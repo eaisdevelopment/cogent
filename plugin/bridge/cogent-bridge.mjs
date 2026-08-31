@@ -26389,8 +26389,8 @@ var init_stdio2 = __esm({
 // src/constants.ts
 import { createRequire } from "node:module";
 function resolveVersion() {
-  if ("3.21.0") {
-    return "3.21.0";
+  if ("3.21.1") {
+    return "3.21.1";
   }
   try {
     const require2 = createRequire(import.meta.url);
@@ -34253,9 +34253,13 @@ __export(startup_exports, {
   cloudHttpClient: () => cloudHttpClient,
   cloudInbox: () => cloudInbox,
   cloudWsClient: () => cloudWsClient,
+  hasPendingLabelResolve: () => hasPendingLabelResolve,
+  isCloudMode: () => isCloudMode2,
   reinitCloudBackend: () => reinitCloudBackend,
+  resolvePendingLabel: () => resolvePendingLabel,
   runPreflights: () => runPreflights,
   runStartup: () => runStartup,
+  setInboxNotifier: () => setInboxNotifier,
   triggerReRegistration: () => triggerReRegistration
 });
 import os10 from "node:os";
@@ -34264,6 +34268,18 @@ import fs14 from "node:fs/promises";
 import readline2 from "node:readline";
 import { execFile as execFile5 } from "node:child_process";
 import { promisify as promisify4 } from "node:util";
+function isCloudMode2() {
+  return cloudModeActive;
+}
+function setInboxNotifier(fn) {
+  inboxNotifier = fn;
+  bindInboxNotifier();
+}
+function bindInboxNotifier() {
+  if (!inboxNotifier || !cloudInbox || notifierBoundTo === cloudInbox) return;
+  cloudInbox.onNewMessage(inboxNotifier);
+  notifierBoundTo = cloudInbox;
+}
 async function loadPersistedConfig() {
   try {
     const raw = await fs14.readFile(PERSIST_PATH, "utf-8");
@@ -34427,6 +34443,46 @@ function createCloudWsClient(endpoint, sessionId, token, http, inbox, pollInterv
   });
   return client;
 }
+function hasPendingLabelResolve() {
+  return pendingLabelResolve !== null;
+}
+async function resolvePendingLabel() {
+  const pending = pendingLabelResolve;
+  pendingLabelResolve = null;
+  if (!pending) return;
+  let resolvedId;
+  try {
+    const resp = await fetch(
+      `${pending.endpoint}/api/sessions/resolve/${encodeURIComponent(pending.label)}`,
+      { signal: AbortSignal.timeout(2500) }
+    );
+    if (!resp.ok) {
+      logger.warn(
+        `Failed to resolve session label "${pending.label}": HTTP ${resp.status}. Staying in deferred mode \u2014 use cogent_join_session.`
+      );
+      return;
+    }
+    resolvedId = (await resp.json()).sessionId;
+  } catch (err) {
+    logger.warn(
+      `Failed to resolve session label "${pending.label}": ${err}. Staying in deferred mode \u2014 use cogent_join_session.`
+    );
+    return;
+  }
+  logger.info(`Resolved session label "${pending.label}" to UUID ${resolvedId}`);
+  try {
+    const persisted = await loadCredentials();
+    if (persisted && persisted.sessionId === resolvedId && persisted.endpoint === pending.endpoint) {
+      await reinitCloudBackend(pending.endpoint, resolvedId, persisted.token);
+    } else {
+      logger.info(
+        `No persisted token for session ${resolvedId}; staying deferred until cogent_join_session provides one.`
+      );
+    }
+  } catch (err) {
+    logger.warn(`Post-connect label upgrade failed (non-fatal): ${err}`);
+  }
+}
 async function reinitCloudBackend(endpoint, sessionId, token) {
   const config2 = getConfig();
   cloudHttpClient = new HttpClient(endpoint, token);
@@ -34442,6 +34498,7 @@ async function reinitCloudBackend(endpoint, sessionId, token) {
     if (!cloudInbox) {
       cloudInbox = new MessageInbox();
     }
+    bindInboxNotifier();
     cloudWsClient = createCloudWsClient(
       endpoint,
       sessionId,
@@ -34473,6 +34530,7 @@ async function runStartup() {
   let effectiveToken;
   const effectiveEndpoint = config2.COGENT_ENDPOINT;
   const isCloud = effectiveEndpoint && isCloudEndpoint(effectiveEndpoint);
+  cloudModeActive = Boolean(isCloud);
   if (isCloud && effectiveSessionId && !UUID_V4_RE.test(effectiveSessionId)) {
     const persisted = await loadCredentials();
     if (persisted && persisted.label === effectiveSessionId && persisted.endpoint === effectiveEndpoint) {
@@ -34480,23 +34538,8 @@ async function runStartup() {
       effectiveSessionId = persisted.sessionId;
       effectiveToken = persisted.token;
     } else {
-      try {
-        const resolveResp = await fetch(
-          `${effectiveEndpoint}/api/sessions/resolve/${encodeURIComponent(effectiveSessionId)}`,
-          { signal: AbortSignal.timeout(2500) }
-        );
-        if (resolveResp.ok) {
-          const resolved = await resolveResp.json();
-          logger.info(`Resolved session label "${effectiveSessionId}" to UUID ${resolved.sessionId}`);
-          effectiveSessionId = resolved.sessionId;
-        } else {
-          logger.warn(`Failed to resolve session label "${effectiveSessionId}": HTTP ${resolveResp.status}. Entering deferred mode.`);
-          effectiveSessionId = void 0;
-        }
-      } catch (err) {
-        logger.warn(`Failed to resolve session label: ${err}. Entering deferred mode.`);
-        effectiveSessionId = void 0;
-      }
+      pendingLabelResolve = { label: effectiveSessionId, endpoint: effectiveEndpoint };
+      effectiveSessionId = void 0;
     }
   }
   if (isCloud) {
@@ -34544,6 +34587,7 @@ async function runStartup() {
   );
   if (isCloud && effectiveSessionId && effectiveToken) {
     cloudInbox = new MessageInbox();
+    bindInboxNotifier();
     cloudHttpClient = new HttpClient(effectiveEndpoint, effectiveToken);
     cloudWsClient = createCloudWsClient(
       effectiveEndpoint,
@@ -34579,7 +34623,7 @@ async function runPreflights() {
     await preflightClaude(config2.COGENT_CLAUDE_PATH);
   }
 }
-var UUID_V4_RE, execFileAsync3, PERSIST_PATH, legacyWarnEmitted, cloudWsClient, cloudInbox, cloudHttpClient, reRegistrationInProgress;
+var UUID_V4_RE, execFileAsync3, PERSIST_PATH, legacyWarnEmitted, cloudWsClient, cloudInbox, cloudHttpClient, cloudModeActive, inboxNotifier, notifierBoundTo, reRegistrationInProgress, pendingLabelResolve;
 var init_startup = __esm({
   "src/startup.ts"() {
     "use strict";
@@ -34606,7 +34650,11 @@ var init_startup = __esm({
     cloudWsClient = null;
     cloudInbox = null;
     cloudHttpClient = null;
+    cloudModeActive = false;
+    inboxNotifier = null;
+    notifierBoundTo = null;
     reRegistrationInProgress = false;
+    pendingLabelResolve = null;
   }
 });
 
@@ -36806,7 +36854,7 @@ async function main() {
   registerSendMailTool(server);
   registerFetchMailTool(server);
   registerRotateMailCredsTool(server);
-  if (cloudInbox) {
+  if (isCloudMode2()) {
     server.registerResource(
       "cogent_inbox",
       "cogent://inbox",
@@ -36814,18 +36862,21 @@ async function main() {
         description: "Incoming messages received via cloud bridge WebSocket. Read this resource to see new messages from other peers.",
         mimeType: "application/json"
       },
+      // Read the inbox LAZILY: in deferred mode it does not exist yet and is
+      // created later by reinitCloudBackend(). An empty inbox is the honest
+      // answer for "connected to cloud, no session joined yet".
       async (uri) => ({
         contents: [{
           uri: uri.href,
           mimeType: "application/json",
           text: JSON.stringify({
-            messages: cloudInbox.getUnread(),
-            lastMessageId: cloudInbox.getLastMessageId()
+            messages: cloudInbox ? cloudInbox.getUnread() : [],
+            lastMessageId: cloudInbox ? cloudInbox.getLastMessageId() : null
           })
         }]
       })
     );
-    cloudInbox.onNewMessage(() => {
+    setInboxNotifier(() => {
       try {
         server.server.sendResourceUpdated({ uri: "cogent://inbox" });
       } catch (err) {
@@ -36839,6 +36890,11 @@ async function main() {
     `${SERVER_NAME} v${SERVER_VERSION} running on stdio
 `
   );
+  void resolvePendingLabel().catch((err) => {
+    logger.warn(
+      `Label resolve error (non-fatal): ${err instanceof Error ? err.message : String(err)}`
+    );
+  });
   void runPreflights().catch((err) => {
     logger.warn(
       `Preflight error (non-fatal): ${err instanceof Error ? err.message : String(err)}`
