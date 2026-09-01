@@ -26389,8 +26389,8 @@ var init_stdio2 = __esm({
 // src/constants.ts
 import { createRequire } from "node:module";
 function resolveVersion() {
-  if ("3.21.4") {
-    return "3.21.4";
+  if ("3.21.5") {
+    return "3.21.5";
   }
   try {
     const require2 = createRequire(import.meta.url);
@@ -27031,6 +27031,10 @@ var init_peer_registry = __esm({
 // src/services/agent-config.ts
 import os4 from "node:os";
 import path8 from "node:path";
+function claudeConfigDir() {
+  const override = process.env.CLAUDE_CONFIG_DIR?.trim();
+  return override ? override : path8.join(os4.homedir(), ".claude");
+}
 function codexHomeDir() {
   const override = process.env.CODEX_HOME?.trim();
   return override ? override : path8.join(os4.homedir(), ".codex");
@@ -27276,7 +27280,9 @@ async function execClaude(sessionId, message, cwd, timeoutMs) {
       truncated
     ];
     const cleanEnv = buildResumeEnv(process.env, "CLAUDE", ["CLAUDE_CONFIG_DIR"]);
-    if (resolvedRoot) cleanEnv.CLAUDE_CONFIG_DIR = resolvedRoot;
+    if (resolvedRoot && resolvedRoot !== path10.resolve(claudeConfigDir())) {
+      cleanEnv.CLAUDE_CONFIG_DIR = resolvedRoot;
+    }
     cleanEnv.COGENT_CHECK_ON_STOP = "0";
     const child = spawn(config2.COGENT_CLAUDE_PATH, args, {
       cwd,
