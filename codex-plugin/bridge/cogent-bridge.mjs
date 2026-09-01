@@ -26389,8 +26389,8 @@ var init_stdio2 = __esm({
 // src/constants.ts
 import { createRequire } from "node:module";
 function resolveVersion() {
-  if ("3.21.1") {
-    return "3.21.1";
+  if ("3.21.2") {
+    return "3.21.2";
   }
   try {
     const require2 = createRequire(import.meta.url);
