@@ -26389,8 +26389,8 @@ var init_stdio2 = __esm({
 // src/constants.ts
 import { createRequire } from "node:module";
 function resolveVersion() {
-  if ("3.21.3") {
-    return "3.21.3";
+  if ("3.21.4") {
+    return "3.21.4";
   }
   try {
     const require2 = createRequire(import.meta.url);
@@ -27214,7 +27214,42 @@ async function validateSession(sessionId, cwd) {
   );
   return hits.some(Boolean);
 }
-function execClaude(sessionId, message, cwd, timeoutMs) {
+async function rootForSession(sessionId, cwd) {
+  const rec = await readAgentSession(cwd, "cc");
+  if (rec?.sessionId === sessionId && rec.root) {
+    try {
+      await fs8.stat(rec.transcriptPath);
+      return path10.resolve(rec.root);
+    } catch {
+    }
+  }
+  const [roots, forms] = await Promise.all([
+    claudeConfigRoots(),
+    cwdForms(cwd)
+  ]);
+  for (const root of roots) {
+    const hits = await Promise.all(
+      forms.map(async (form) => {
+        const file = path10.join(
+          root,
+          "projects",
+          form.replace(/[^a-zA-Z0-9-]/g, "-"),
+          `${sessionId}.jsonl`
+        );
+        try {
+          await fs8.access(file);
+          return true;
+        } catch {
+          return false;
+        }
+      })
+    );
+    if (hits.some(Boolean)) return root;
+  }
+  return null;
+}
+async function execClaude(sessionId, message, cwd, timeoutMs) {
+  const resolvedRoot = await rootForSession(sessionId, cwd).catch(() => null);
   return new Promise((resolve) => {
     const config2 = getConfig();
     const effectiveTimeout = timeoutMs ?? config2.COGENT_TIMEOUT_MS;
@@ -27241,6 +27276,7 @@ function execClaude(sessionId, message, cwd, timeoutMs) {
       truncated
     ];
     const cleanEnv = buildResumeEnv(process.env, "CLAUDE", ["CLAUDE_CONFIG_DIR"]);
+    if (resolvedRoot) cleanEnv.CLAUDE_CONFIG_DIR = resolvedRoot;
     cleanEnv.COGENT_CHECK_ON_STOP = "0";
     const child = spawn(config2.COGENT_CLAUDE_PATH, args, {
       cwd,
@@ -33206,7 +33242,41 @@ ${message}${formatAttachmentsBlock(attachments)}
 ---
 FYI ONLY \u2014 another agent addressed the whole channel. Take note for context, but do NOT reply and do NOT call any cogent_* tool in response. A human will drive any reply.`;
 }
-var RELAY_STATUS, STATUS_MARKER_RE, AutoRelayService, autoRelay;
+function describeWakeFailure(exitCode, stderr) {
+  const raw = (stderr ?? "").trim();
+  if (!raw && exitCode !== 0) return "";
+  const firstLine = raw.split("\n").map((l) => l.trim()).find(Boolean) ?? "";
+  const missing = /No conversation found with session ID:?\s*(\S+)/i.exec(raw);
+  if (missing) {
+    return truncate(
+      `claude could not find session ${missing[1]} in the config directory it searched \u2014 the agent's Claude state is probably outside ~/.claude. Upgrade the bridge (3.21.4+ passes the resolved config directory to the resume), or set CLAUDE_CONFIG_DIR.`
+    );
+  }
+  if (/CLI_NOT_FOUND/.test(raw)) {
+    return truncate(
+      `the claude executable was not found \u2014 install Claude Code or set COGENT_CLAUDE_PATH.`
+    );
+  }
+  const timedOut = /CLI_TIMEOUT: CLI subprocess timed out after (\d+)ms/.exec(raw);
+  if (timedOut) {
+    return truncate(
+      `the resume timed out after ${timedOut[1]}ms (COGENT_TIMEOUT_MS) \u2014 the agent was still working, not idle.`
+    );
+  }
+  if (firstLine) {
+    const code = exitCode === null || exitCode === void 0 ? "?" : exitCode;
+    return truncate(`claude exited ${code}: ${firstLine}`);
+  }
+  if (exitCode === 0) {
+    return truncate(`the resume completed successfully but returned no text.`);
+  }
+  return "";
+}
+function truncate(s) {
+  const flat = s.replace(/\s+/g, " ").trim();
+  return flat.length > DIAGNOSTIC_MAX ? `${flat.slice(0, DIAGNOSTIC_MAX - 1)}\u2026` : flat;
+}
+var RELAY_STATUS, STATUS_MARKER_RE, DIAGNOSTIC_MAX, AutoRelayService, autoRelay;
 var init_auto_relay = __esm({
   "src/services/auto-relay.ts"() {
     "use strict";
@@ -33225,6 +33295,7 @@ var init_auto_relay = __esm({
       FAILED: "failed"
     };
     STATUS_MARKER_RE = /^\[cogent:(queued|processing|delivered|needs-manual|failed)\]/;
+    DIAGNOSTIC_MAX = 220;
     AutoRelayService = class {
       localPeerId = null;
       localSessionId = null;
@@ -33863,7 +33934,9 @@ var init_auto_relay = __esm({
           }
           if (!replied) {
             await this._recordNoReplyFailure(msg, traceId, Date.now() - startMs, {
-              codexLiveSession: result.codexLiveSession === true
+              codexLiveSession: result.codexLiveSession === true,
+              exitCode: result.exitCode,
+              stderr: result.stderr
             });
           }
         } catch (err) {
@@ -33871,7 +33944,9 @@ var init_auto_relay = __esm({
           this._trace(traceId, "failed", { threw: true, durationMs });
           logger.error(`Auto-relay: execRemote threw after ${durationMs}ms: ${err}`);
           if (!replied) {
-            await this._recordNoReplyFailure(msg, traceId, durationMs);
+            await this._recordNoReplyFailure(msg, traceId, durationMs, {
+              stderr: `EXEC_THREW: ${err}`
+            });
           }
         }
       }
@@ -33887,7 +33962,7 @@ var init_auto_relay = __esm({
        */
       async _recordNoReplyFailure(msg, traceId, durationMs, opts) {
         const codexLive = opts?.codexLiveSession === true;
-        const message = codexLive ? `\u{1F4E8} Queued for "${this.localPeerId}": it's live in an interactive Codex session, so Cogent can't resume it in real time \u2014 it will see this at its next turn. For real-time replies, launch it via \`cogent-codex\` (COGENT_CODEX_WAKE=app-server). (trace ${traceId})` : `\u26A0\uFE0F Cogent could not capture a reply from "${this.localPeerId}" (it may have been busy, or the resume produced no output). Manual response required \u2014 the target agent must reply in its own session. (trace ${traceId})`;
+        const message = codexLive ? `\u{1F4E8} Queued for "${this.localPeerId}": it's live in an interactive Codex session, so Cogent can't resume it in real time \u2014 it will see this at its next turn. For real-time replies, launch it via \`cogent-codex\` (COGENT_CODEX_WAKE=app-server). (trace ${traceId})` : `\u26A0\uFE0F Cogent could not capture a reply from "${this.localPeerId}". ${describeWakeFailure(opts?.exitCode, opts?.stderr) || "It may have been busy, or the resume produced no output."} Manual response required \u2014 the target agent must reply in its own session. (trace ${traceId})`;
         try {
           await getBackend().recordMessage({
             fromPeerId: this.localPeerId,
