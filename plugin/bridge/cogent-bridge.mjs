@@ -26389,8 +26389,8 @@ var init_stdio2 = __esm({
 // src/constants.ts
 import { createRequire } from "node:module";
 function resolveVersion() {
-  if ("3.21.6") {
-    return "3.21.6";
+  if ("3.21.7") {
+    return "3.21.7";
   }
   try {
     const require2 = createRequire(import.meta.url);
@@ -32626,10 +32626,18 @@ var init_codex_cli = __esm({
 
 // src/services/codex-app-server.ts
 import path13 from "node:path";
+import { statSync } from "node:fs";
 import fs12 from "node:fs/promises";
 import { spawn as spawn3, spawnSync } from "node:child_process";
 function appServerSocketPath(codexHome = codexHomeDir()) {
   return path13.join(codexHome, "app-server-control", "app-server-control.sock");
+}
+function appServerDaemonRunning(codexHome = codexHomeDir()) {
+  try {
+    return statSync(appServerSocketPath(codexHome)).isSocket();
+  } catch {
+    return false;
+  }
 }
 function rpcUrl(sock) {
   return `ws+unix://${sock}:/rpc`;
@@ -32959,7 +32967,7 @@ var init_codex_app_server = __esm({
 // src/services/exec-remote.ts
 async function execCodexWake(sessionId, message, cwd, timeoutMs, idempotencyKey) {
   const wake = getConfig().COGENT_CODEX_WAKE;
-  const useAppServer = wake === "app-server" || wake === "auto" && runningUnderAppServerDaemon();
+  const useAppServer = wake === "app-server" || wake === "auto" && (runningUnderAppServerDaemon() || appServerDaemonRunning());
   if (useAppServer) {
     try {
       const sock = await ensureDaemon();
