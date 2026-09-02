@@ -26389,8 +26389,8 @@ var init_stdio2 = __esm({
 // src/constants.ts
 import { createRequire } from "node:module";
 function resolveVersion() {
-  if ("3.21.5") {
-    return "3.21.5";
+  if ("3.21.6") {
+    return "3.21.6";
   }
   try {
     const require2 = createRequire(import.meta.url);
@@ -33248,9 +33248,9 @@ ${message}${formatAttachmentsBlock(attachments)}
 ---
 FYI ONLY \u2014 another agent addressed the whole channel. Take note for context, but do NOT reply and do NOT call any cogent_* tool in response. A human will drive any reply.`;
 }
-function describeWakeFailure(exitCode, stderr) {
+function describeWakeFailure(exitCode, stderr, stdout) {
   const raw = (stderr ?? "").trim();
-  if (!raw && exitCode !== 0) return "";
+  if (!raw && exitCode !== 0 && !stdout) return "";
   const firstLine = raw.split("\n").map((l) => l.trim()).find(Boolean) ?? "";
   const missing = /No conversation found with session ID:?\s*(\S+)/i.exec(raw);
   if (missing) {
@@ -33269,6 +33269,25 @@ function describeWakeFailure(exitCode, stderr) {
       `the resume timed out after ${timedOut[1]}ms (COGENT_TIMEOUT_MS) \u2014 the agent was still working, not idle.`
     );
   }
+  const childStderr = /\. stderr:\s*([\s\S]*)$/.exec(raw)?.[1]?.trim() ?? raw;
+  if (!childStderr) {
+    const code = exitCode === null || exitCode === void 0 ? "?" : exitCode;
+    const env = parseResultEnvelope(stdout);
+    if (env) {
+      const bits = [];
+      if (env.terminalReason) {
+        bits.push(
+          env.terminalReason === "api_error" ? `the CLI could not complete an API call (terminal_reason "api_error") \u2014 check that agent's Claude credentials / API access` : `terminal_reason "${env.terminalReason}"`
+        );
+      }
+      if (env.result) bits.push(env.result);
+      if (!bits.length && env.isError) bits.push("the run reported is_error with no detail");
+      if (bits.length) return truncate(`claude exited ${code}: ${bits.join(" \u2014 ")}`);
+    }
+    return truncate(
+      stdout?.trim() ? `claude exited ${code} with nothing on stderr; its stdout was not a readable result envelope` : `claude exited ${code} with no output at all on stdout or stderr`
+    );
+  }
   if (firstLine) {
     const code = exitCode === null || exitCode === void 0 ? "?" : exitCode;
     return truncate(`claude exited ${code}: ${firstLine}`);
@@ -33277,6 +33296,19 @@ function describeWakeFailure(exitCode, stderr) {
     return truncate(`the resume completed successfully but returned no text.`);
   }
   return "";
+}
+function parseResultEnvelope(stdout) {
+  const text = (stdout ?? "").trim();
+  if (!text.startsWith("{")) return null;
+  try {
+    const o = JSON.parse(text);
+    const result = typeof o.result === "string" && o.result.trim() ? o.result.trim() : null;
+    const terminalReason = typeof o.terminal_reason === "string" && o.terminal_reason.trim() ? o.terminal_reason.trim() : null;
+    if (o.is_error === void 0 && !terminalReason && !result) return null;
+    return { isError: o.is_error === true, terminalReason, result };
+  } catch {
+    return null;
+  }
 }
 function truncate(s) {
   const flat = s.replace(/\s+/g, " ").trim();
@@ -33942,7 +33974,8 @@ var init_auto_relay = __esm({
             await this._recordNoReplyFailure(msg, traceId, Date.now() - startMs, {
               codexLiveSession: result.codexLiveSession === true,
               exitCode: result.exitCode,
-              stderr: result.stderr
+              stderr: result.stderr,
+              stdout: result.stdout
             });
           }
         } catch (err) {
@@ -33968,7 +34001,7 @@ var init_auto_relay = __esm({
        */
       async _recordNoReplyFailure(msg, traceId, durationMs, opts) {
         const codexLive = opts?.codexLiveSession === true;
-        const message = codexLive ? `\u{1F4E8} Queued for "${this.localPeerId}": it's live in an interactive Codex session, so Cogent can't resume it in real time \u2014 it will see this at its next turn. For real-time replies, launch it via \`cogent-codex\` (COGENT_CODEX_WAKE=app-server). (trace ${traceId})` : `\u26A0\uFE0F Cogent could not capture a reply from "${this.localPeerId}". ${describeWakeFailure(opts?.exitCode, opts?.stderr) || "It may have been busy, or the resume produced no output."} Manual response required \u2014 the target agent must reply in its own session. (trace ${traceId})`;
+        const message = codexLive ? `\u{1F4E8} Queued for "${this.localPeerId}": it's live in an interactive Codex session, so Cogent can't resume it in real time \u2014 it will see this at its next turn. For real-time replies, launch it via \`cogent-codex\` (COGENT_CODEX_WAKE=app-server). (trace ${traceId})` : `\u26A0\uFE0F Cogent could not capture a reply from "${this.localPeerId}". ${describeWakeFailure(opts?.exitCode, opts?.stderr, opts?.stdout) || "It may have been busy, or the resume produced no output."} Manual response required \u2014 the target agent must reply in its own session. (trace ${traceId})`;
         try {
           await getBackend().recordMessage({
             fromPeerId: this.localPeerId,
