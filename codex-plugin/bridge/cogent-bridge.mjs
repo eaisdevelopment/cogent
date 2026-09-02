@@ -26389,8 +26389,8 @@ var init_stdio2 = __esm({
 // src/constants.ts
 import { createRequire } from "node:module";
 function resolveVersion() {
-  if ("3.21.8") {
-    return "3.21.8";
+  if ("3.21.9") {
+    return "3.21.9";
   }
   try {
     const require2 = createRequire(import.meta.url);
@@ -26499,7 +26499,25 @@ function isNewer(current, latest) {
   return false;
 }
 function setLastNudge(nudge) {
+  if (nudge !== lastNudge) shownNudge = null;
   lastNudge = nudge;
+}
+function consumeNudgeOnce() {
+  if (!lastNudge || lastNudge === shownNudge) return null;
+  shownNudge = lastNudge;
+  return lastNudge;
+}
+function startUpdateCheckLoop(current, opts = {}) {
+  const { intervalMs = 6 * 60 * 60 * 1e3, ...checkOpts } = opts;
+  const run = () => {
+    void checkForUpdate(current, checkOpts).then((nudge) => {
+      if (nudge) setLastNudge(nudge);
+    });
+  };
+  run();
+  const timer = setInterval(run, intervalMs);
+  timer.unref?.();
+  return () => clearInterval(timer);
 }
 function getLastNudge() {
   return lastNudge;
@@ -26524,13 +26542,14 @@ async function checkForUpdate(current, opts = {}) {
     clearTimeout(timer);
   }
 }
-var NPM_LATEST_URL, lastNudge;
+var NPM_LATEST_URL, lastNudge, shownNudge;
 var init_npm_update_check = __esm({
   "src/backend/npm-update-check.ts"() {
     "use strict";
     init_logger();
     NPM_LATEST_URL = "https://registry.npmjs.org/@essentialai/cogent-bridge/latest";
     lastNudge = null;
+    shownNudge = null;
   }
 });
 
@@ -33238,7 +33257,15 @@ function formatRelayMessage(fromLabel, fromPeerId, message, attachments) {
 ${message}${formatAttachmentsBlock(attachments)}
 
 ---
-Respond directly to the message above. Your entire response is delivered automatically to whoever should receive it \u2014 a broadcast question (to the whole channel) is answered to everyone; a direct message, to the sender. You do NOT need to \u2014 and should NOT \u2014 call cogent_send_message or any bridge tool to deliver it; just answer normally.`;
+Respond directly to the message above. Your entire response is delivered automatically to whoever should receive it \u2014 a broadcast question (to the whole channel) is answered to everyone; a direct message, to the sender. You do NOT need to \u2014 and should NOT \u2014 call cogent_send_message or any bridge tool to deliver it; just answer normally.` + updateNoticeFooter();
+}
+function updateNoticeFooter() {
+  const nudge = consumeNudgeOnce();
+  if (!nudge) return "";
+  return `
+
+---
+[Cogent FYI \u2014 not part of the message above, and not a task for you] ${nudge} You cannot apply this yourself; mention it to your operator when convenient, then carry on. Do not reply about it and do not call any cogent_* tool for it.`;
 }
 function formatInjectOnlyMessage(fromLabel, fromPeerId, message, attachments) {
   return `[Cogent Bridge: Response from ${fromLabel} (${fromPeerId})]
@@ -33334,6 +33361,7 @@ var init_auto_relay = __esm({
     init_codex_cli();
     init_wake_inflight();
     init_logger();
+    init_npm_update_check();
     RELAY_STATUS = {
       QUEUED: "queued",
       PROCESSING: "processing",
@@ -37023,11 +37051,7 @@ async function main() {
       `Preflight error (non-fatal): ${err instanceof Error ? err.message : String(err)}`
     );
   });
-  void checkForUpdate(SERVER_VERSION).then((nudge) => {
-    setLastNudge(nudge);
-    if (nudge) process.stderr.write(`${nudge}
-`);
-  });
+  startUpdateCheckLoop(SERVER_VERSION);
   logger.info(
     "Server ready. Tools: cogent_register_peer, cogent_deregister_peer, cogent_send_message, cogent_list_peers, cogent_get_history, cogent_health_check, cogent_create_session, cogent_join_session"
   );
