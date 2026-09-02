@@ -26389,8 +26389,8 @@ var init_stdio2 = __esm({
 // src/constants.ts
 import { createRequire } from "node:module";
 function resolveVersion() {
-  if ("3.21.7") {
-    return "3.21.7";
+  if ("3.21.8") {
+    return "3.21.8";
   }
   try {
     const require2 = createRequire(import.meta.url);
@@ -27393,13 +27393,14 @@ async function execClaude(sessionId, message, cwd, timeoutMs) {
 function parseClaudeJsonReply(raw) {
   const trimmed = raw.trim();
   if (!trimmed) return null;
-  let env;
+  let parsed;
   try {
-    env = JSON.parse(trimmed);
+    parsed = JSON.parse(trimmed);
   } catch {
     return null;
   }
-  if (env.type !== "result") return null;
+  const env = Array.isArray(parsed) ? [...parsed].reverse().find((e) => e?.type === "result") : parsed;
+  if (!env || env.type !== "result") return null;
   const result = typeof env.result === "string" ? env.result : null;
   return { result, isError: env.is_error === true || env.subtype !== "success" };
 }
