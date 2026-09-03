@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/record-session.mjs\""
+            "command": "R=\"${CLAUDE_PLUGIN_ROOT:-$PLUGIN_ROOT}\"; [ -n \"$R\" ] || R=$(ls -d \"${CODEX_HOME:-$HOME/.codex}\"/plugins/cache/cogent/cogent/*/ 2>/dev/null | sort -V | tail -1); R=\"${R%/}\"; [ -f \"$R/hooks/record-session.mjs\" ] || exit 0; exec node \"$R/hooks/record-session.mjs\""
           }
         ]
       }
@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/check-on-stop.mjs\""
+            "command": "R=\"${CLAUDE_PLUGIN_ROOT:-$PLUGIN_ROOT}\"; [ -n \"$R\" ] || R=$(ls -d \"${CODEX_HOME:-$HOME/.codex}\"/plugins/cache/cogent/cogent/*/ 2>/dev/null | sort -V | tail -1); R=\"${R%/}\"; [ -f \"$R/hooks/check-on-stop.mjs\" ] || exit 0; exec node \"$R/hooks/check-on-stop.mjs\""
           }
         ]
       }

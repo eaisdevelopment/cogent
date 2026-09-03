@@ -26389,8 +26389,8 @@ var init_stdio2 = __esm({
 // src/constants.ts
 import { createRequire } from "node:module";
 function resolveVersion() {
-  if ("3.21.9") {
-    return "3.21.9";
+  if ("3.22.0") {
+    return "3.22.0";
   }
   try {
     const require2 = createRequire(import.meta.url);
@@ -27747,8 +27747,13 @@ async function getRelayVersion(http, nowFn = Date.now) {
   if (cached2 !== null && now - cached2.fetchedAt < TTL_MS) {
     return cached2.version;
   }
+  return (await _refresh(http, now))?.version ?? null;
+}
+async function _refresh(http, now) {
   try {
-    const resp = await http.get("/api/health");
+    const resp = await http.get(
+      "/api/health"
+    );
     const version2 = resp?.version;
     if (typeof version2 !== "string" || version2.length === 0) {
       logger.debug(
@@ -27756,13 +27761,25 @@ async function getRelayVersion(http, nowFn = Date.now) {
       );
       return null;
     }
-    cached2 = { version: version2, fetchedAt: now };
-    return version2;
+    const raw = resp?.capabilities;
+    const capabilities = Array.isArray(raw) ? raw.filter((c2) => typeof c2 === "string") : [];
+    cached2 = { version: version2, capabilities, fetchedAt: now };
+    return cached2;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     logger.debug(`relay-version-cache: /api/health fetch failed: ${msg}`);
     return null;
   }
+}
+async function getRelayCapabilities(http, nowFn = Date.now) {
+  const now = nowFn();
+  if (cached2 !== null && now - cached2.fetchedAt < TTL_MS) {
+    return cached2.capabilities;
+  }
+  return (await _refresh(http, now))?.capabilities ?? null;
+}
+async function relaySupports(http, capability, nowFn = Date.now) {
+  return (await getRelayCapabilities(http, nowFn))?.includes(capability) ?? false;
 }
 var TTL_MS, cached2;
 var init_relay_version_cache = __esm({
@@ -27779,6 +27796,8 @@ var MAILBOX_DEPROVISIONED_HEADER, PATHS, HttpBackend;
 var init_http_backend = __esm({
   "src/backend/http-backend.ts"() {
     "use strict";
+    init_relay_version_cache();
+    init_errors4();
     init_health_check();
     init_constants();
     init_config();
@@ -27806,7 +27825,7 @@ var init_http_backend = __esm({
        * The sessionId parameter from StorageBackend is the local CC sessionId;
        * in cloud mode we ignore it and use this.sessionId (the cloud session).
        */
-      async registerPeer(peerId, _sessionId, cwd, label, clientVersion, mode, _channelSessionId, capabilities, workspaceId, threadId) {
+      async registerPeer(peerId, _sessionId, cwd, label, clientVersion, mode, _channelSessionId, capabilities, workspaceId, threadId, peerSecret) {
         const path20 = PATHS.peers.replace(":sessionId", this.sessionId);
         const body = {
           peerId,
@@ -27835,6 +27854,9 @@ var init_http_backend = __esm({
             body.role = roleCap.slice("role:".length);
           }
         }
+        if (peerSecret !== void 0 && await relaySupports(this.http, "peer-ownership")) {
+          body.peerSecret = peerSecret;
+        }
         return this.http.post(path20, body);
       }
       /**
@@ -27852,8 +27874,11 @@ var init_http_backend = __esm({
           const headers = await this.http.delete(path20, {});
           const mailboxDeprovisioned = headers.get(MAILBOX_DEPROVISIONED_HEADER) === "true";
           return { removed: true, mailboxDeprovisioned };
-        } catch {
-          return { removed: false, mailboxDeprovisioned: false };
+        } catch (err) {
+          if (err instanceof BridgeError && err.code === "PEER_NOT_FOUND" /* PEER_NOT_FOUND */) {
+            return { removed: false, mailboxDeprovisioned: false };
+          }
+          throw err;
         }
       }
       /**
@@ -27899,6 +27924,17 @@ var init_http_backend = __esm({
         };
         if (record2.isRelayEcho === true) {
           body.isRelayEcho = true;
+        }
+        if (await relaySupports(this.http, "message-delivery-fields")) {
+          if (record2.success === false) {
+            body.success = false;
+          }
+          if (record2.error != null) {
+            body.error = record2.error;
+          }
+          if (record2.durationMs != null) {
+            body.durationMs = record2.durationMs;
+          }
         }
         if (record2.attachments && record2.attachments.length > 0) {
           body.attachments = record2.attachments;
@@ -33350,7 +33386,7 @@ function truncate(s) {
   const flat = s.replace(/\s+/g, " ").trim();
   return flat.length > DIAGNOSTIC_MAX ? `${flat.slice(0, DIAGNOSTIC_MAX - 1)}\u2026` : flat;
 }
-var RELAY_STATUS, STATUS_MARKER_RE, DIAGNOSTIC_MAX, AutoRelayService, autoRelay;
+var RELAY_STATUS, STATUS_MARKER_RE, DIAGNOSTIC_MAX, EARLY_ACK_TTL_MS, EARLY_ACK_MAX, AutoRelayService, autoRelay;
 var init_auto_relay = __esm({
   "src/services/auto-relay.ts"() {
     "use strict";
@@ -33371,6 +33407,8 @@ var init_auto_relay = __esm({
     };
     STATUS_MARKER_RE = /^\[cogent:(queued|processing|delivered|needs-manual|failed)\]/;
     DIAGNOSTIC_MAX = 220;
+    EARLY_ACK_TTL_MS = 12e4;
+    EARLY_ACK_MAX = 256;
     AutoRelayService = class {
       localPeerId = null;
       localSessionId = null;
@@ -33417,7 +33455,24 @@ var init_auto_relay = __esm({
       // so the first send-message tool call returned literal "Superseded by
       // newer send_message call" instead of the actual peer response.
       responseWaiters = /* @__PURE__ */ new Map();
+      /**
+       * Pending delivery-ack waiters, keyed by MESSAGE ID.
+       *
+       * 🔴 AUD-002. This used to be keyed by PEER ID, so a peer could have only one outstanding
+       * waiter and a second concurrent send displaced the first — resolving it, so the first send
+       * reported "delivered" with no acknowledgment from anyone. Delivery acknowledgment is the one
+       * claim this system must never fabricate.
+       */
       deliveryAckWaiters = /* @__PURE__ */ new Map();
+      /**
+       * Acks that arrived before their waiter existed, keyed by message id.
+       *
+       * The recipient acknowledges over WS as soon as it receives the message, which can beat our own
+       * POST response. Waiters used to be registered BEFORE the send to dodge that race, which is what
+       * forced peer-keying. Buffering the early ack instead lets registration happen after the message
+       * id is known, so correlation stays exact. Entries are consumed once and expire.
+       */
+      recentAcks = /* @__PURE__ */ new Map();
       sendDeliveryAckFn = null;
       /**
        * Set the local peer info. Called from register-peer tool after
@@ -33587,12 +33642,6 @@ var init_auto_relay = __esm({
         this._cancelWaiter(fromPeerId);
       }
       /**
-       * Cancel only the active delivery ack waiter for a peer.
-       */
-      cancelDeliveryAckWaiter(fromPeerId) {
-        this._cancelDeliveryAckWaiter(fromPeerId);
-      }
-      /**
        * Cancel ALL pending response waiters for a peer by rejecting them with
        * a clear error. Used by clearExpectation()/cancelResponseWaiter() to
        * unblock callers without lying to them. The previous behaviour resolved
@@ -33614,39 +33663,73 @@ var init_auto_relay = __esm({
        * resolves when the target peer's MCP sends a delivery_ack frame, or
        * rejects on timeout (recipient likely offline).
        */
-      waitForDeliveryAck(fromPeerId, timeoutMs) {
+      waitForDeliveryAck(fromPeerId, messageId, timeoutMs) {
+        if (this.recentAcks.delete(messageId)) {
+          logger.debug(`Auto-relay: delivery ack for ${messageId} was already buffered`);
+          return Promise.resolve();
+        }
         return new Promise((resolve, reject) => {
-          this._cancelDeliveryAckWaiter(fromPeerId);
           const timer = setTimeout(() => {
-            this.deliveryAckWaiters.delete(fromPeerId);
-            reject(new Error(`Delivery ack timeout from ${fromPeerId} after ${timeoutMs}ms`));
+            this.deliveryAckWaiters.delete(messageId);
+            reject(
+              new Error(
+                `Delivery ack timeout from ${fromPeerId} for ${messageId} after ${timeoutMs}ms`
+              )
+            );
           }, timeoutMs);
-          this.deliveryAckWaiters.set(fromPeerId, { resolve, timer });
+          this.deliveryAckWaiters.set(messageId, { peerId: fromPeerId, resolve, reject, timer });
         });
       }
       /**
-       * Resolve a pending delivery ack waiter. Called by startup.ts onDeliveryAck
-       * callback when the server routes a delivery_ack frame to us.
+       * Settle the waiter for exactly this message.
+       *
+       * 🔴 Correlation is by MESSAGE ID, and the acknowledging peer must match the peer we sent to.
+       * The frame has carried `messageId` all along (src/cloud/ws-client.ts:52); startup.ts used to
+       * drop it and resolve by peer, so any ack settled any outstanding send to that peer — and an ack
+       * naming a peer the sender never messaged could settle a waiter outright (AUD-003).
+       *
+       * An ack with no matching waiter is BUFFERED rather than discarded: the recipient can legitimately
+       * acknowledge before our POST response returns.
        */
-      resolveDeliveryAck(fromPeerId) {
-        const waiter = this.deliveryAckWaiters.get(fromPeerId);
+      resolveDeliveryAck(fromPeerId, messageId) {
+        const waiter = this.deliveryAckWaiters.get(messageId);
         if (waiter) {
+          if (waiter.peerId !== fromPeerId) {
+            logger.warn(
+              `Auto-relay: IGNORED delivery ack for ${messageId} \u2014 claimed by '${fromPeerId}' but that message was sent to '${waiter.peerId}'`
+            );
+            return;
+          }
           clearTimeout(waiter.timer);
-          this.deliveryAckWaiters.delete(fromPeerId);
+          this.deliveryAckWaiters.delete(messageId);
           waiter.resolve();
-          logger.debug(`Auto-relay: delivery ack received from ${fromPeerId}`);
+          logger.debug(`Auto-relay: delivery ack received from ${fromPeerId} for ${messageId}`);
+          return;
         }
+        this._bufferEarlyAck(messageId);
       }
-      /**
-       * Cancel a pending delivery ack waiter for a peer.
-       * Resolves the old promise so callers awaiting it don't hang forever.
-       */
+      /** Remember an ack whose waiter does not exist yet, with bounded retention. */
+      _bufferEarlyAck(messageId) {
+        const now = Date.now();
+        for (const [id, at] of this.recentAcks) {
+          if (now - at > EARLY_ACK_TTL_MS) this.recentAcks.delete(id);
+        }
+        while (this.recentAcks.size >= EARLY_ACK_MAX) {
+          const oldest = this.recentAcks.keys().next().value;
+          if (oldest === void 0) break;
+          this.recentAcks.delete(oldest);
+        }
+        this.recentAcks.set(messageId, now);
+        logger.debug(`Auto-relay: buffered early delivery ack for ${messageId}`);
+      }
       _cancelDeliveryAckWaiter(fromPeerId) {
-        const existing = this.deliveryAckWaiters.get(fromPeerId);
-        if (existing) {
-          clearTimeout(existing.timer);
-          this.deliveryAckWaiters.delete(fromPeerId);
-          existing.resolve();
+        for (const [messageId, waiter] of this.deliveryAckWaiters) {
+          if (waiter.peerId !== fromPeerId) continue;
+          clearTimeout(waiter.timer);
+          this.deliveryAckWaiters.delete(messageId);
+          waiter.reject(
+            new Error(`Delivery ack wait for ${messageId} cancelled (${fromPeerId})`)
+          );
         }
       }
       /**
@@ -34149,15 +34232,18 @@ var init_auto_relay = __esm({
         for (const [, queue] of this.responseWaiters) {
           for (const waiter of queue) {
             clearTimeout(waiter.timer);
-            waiter.resolve("");
+            waiter.reject(new Error("Auto-relay shut down while waiting for a response"));
           }
         }
         this.responseWaiters.clear();
-        for (const [, waiter] of this.deliveryAckWaiters) {
+        for (const [messageId, waiter] of this.deliveryAckWaiters) {
           clearTimeout(waiter.timer);
-          waiter.resolve();
+          waiter.reject(
+            new Error(`Auto-relay shut down while waiting for delivery ack (${messageId})`)
+          );
         }
         this.deliveryAckWaiters.clear();
+        this.recentAcks.clear();
         this.queue = [];
         this.awarenessOnly.clear();
         this.localPeerId = null;
@@ -34580,7 +34666,7 @@ function createCloudWsClient(endpoint, sessionId, token, http, inbox, pollInterv
       logger.warn(`WebSocket error frame: ${err.code}: ${err.message}`);
     },
     onDeliveryAck: (payload) => {
-      autoRelay.resolveDeliveryAck(payload.peerId);
+      autoRelay.resolveDeliveryAck(payload.peerId, payload.messageId);
     },
     onPeerEvicted: () => {
       triggerReRegistration().catch((err) => {
@@ -34872,6 +34958,10 @@ var init_mail_credential_store = __esm({
 
 // src/tools/register-peer.ts
 import crypto6 from "node:crypto";
+function unresolvedSessionReason(r) {
+  if (r.sessionId) return null;
+  return r.candidateCount === 0 ? "no-candidates" : "ambiguous";
+}
 function registerRegisterPeerTool(server) {
   server.registerTool(
     "cogent_register_peer",
@@ -34883,6 +34973,9 @@ function registerRegisterPeerTool(server) {
         sessionId: import_zod3.z.string().describe("Claude Code session ID (used with --resume)"),
         cwd: import_zod3.z.string().describe("Absolute path to the project working directory"),
         label: import_zod3.z.string().describe("Human-readable label, e.g. 'Cogent_Backend' or 'Cogent_Frontend'"),
+        peerSecret: import_zod3.z.string().optional().describe(
+          "AUD-003 ownership proof. Only needed to RECLAIM a peerId whose registration was made from a different connection \u2014 e.g. this agent re-joined the channel and was issued a new token. Normally omitted: the stored credential is replayed automatically."
+        ),
         mode: import_zod3.z.enum(["observer", "agent"]).optional().default("agent").describe(
           'Peer participation mode. "agent" (default) auto-responds via execClaude on inbound directed messages. "observer" registers a passive watcher that receives WS frames and remains targetable but never spawns a subprocess. Useful for operators using their MCP client to monitor a channel without polluting transcript with phantom replies.'
         ),
@@ -34897,7 +34990,7 @@ function registerRegisterPeerTool(server) {
         openWorldHint: false
       }
     },
-    async ({ peerId, sessionId, cwd, label, mode, role }) => {
+    async ({ peerId, sessionId, cwd, label, mode, role, peerSecret: argPeerSecret }) => {
       try {
         const config2 = getConfig();
         const hasExplicitCloudSession = !!config2.COGENT_SESSION_ID || process.env.COGENT_TRUST_PERSISTED_CREDENTIALS === "1";
@@ -34990,6 +35083,14 @@ function registerRegisterPeerTool(server) {
         }
         const workspaceId = deriveWorkspaceId(cwd);
         const threadId = sessionId;
+        let storedPeerSecret = argPeerSecret;
+        if (storedPeerSecret === void 0 && isCloudMode()) {
+          try {
+            storedPeerSecret = (await loadCredentials())?.peerSecret;
+          } catch {
+            storedPeerSecret = void 0;
+          }
+        }
         const peer = await backend.registerPeer(
           peerId,
           sessionId,
@@ -35000,15 +35101,18 @@ function registerRegisterPeerTool(server) {
           channelSessionId,
           capabilities,
           workspaceId,
-          threadId
+          threadId,
+          storedPeerSecret
         );
         if (isCloudMode()) {
           try {
             const creds = await loadCredentials();
-            if (creds && creds.peerId !== peerId) {
+            const issuedSecret = peer?.peerSecret;
+            if (creds && (creds.peerId !== peerId || issuedSecret && creds.peerSecret !== issuedSecret)) {
               await saveCredentials({
                 ...creds,
                 peerId,
+                ...issuedSecret ? { peerSecret: issuedSecret } : {},
                 savedAt: (/* @__PURE__ */ new Date()).toISOString()
               });
             }
@@ -35036,16 +35140,17 @@ function registerRegisterPeerTool(server) {
         logger.info(
           `Register: session resolved ${resolution.decision}/${resolution.confidence} (${resolution.candidateCount} candidate[s]) -> ${localSessionId}`
         );
-        const noLocalSession = resolution.candidateCount === 0;
-        if (noLocalSession) {
+        const unresolved = unresolvedSessionReason(resolution);
+        if (unresolved) {
           try {
             const base = getConfig().COGENT_PLATFORM === "cc" ? await transcriptBaseSummary() : "(codex: scans CODEX_HOME/sessions)";
+            const cause = unresolved === "ambiguous" ? `${resolution.candidateCount} candidate sessions matched and NONE could be chosen, so the id you supplied was pinned UNCHECKED \u2014 if that is a channel UUID rather than a local session id, every wake will fail in ~2s` : `NO local ${getConfig().COGENT_PLATFORM} session was found for this cwd`;
             logger.warn(
-              `Register: NO local ${getConfig().COGENT_PLATFORM} session found for cwd \u2014 auto-wake WILL be refused. cwd=${cwd}; scanned ${(resolution.probedPaths ?? []).join(", ") || "(unknown)"}; base ${base}. If the base is missing or empty, this agent's config dir is elsewhere \u2014 set CLAUDE_CONFIG_DIR / CODEX_HOME so the BRIDGE process sees it too. If the base has project dirs but none match, the registered cwd is not where this agent runs.`
+              `Register: ${cause} \u2014 auto-wake WILL be refused. cwd=${cwd}; scanned ${(resolution.probedPaths ?? []).join(", ") || "(unknown)"}; base ${base}. If the base is missing or empty, this agent's config dir is elsewhere \u2014 set CLAUDE_CONFIG_DIR / CODEX_HOME so the BRIDGE process sees it too. If the base has project dirs but none match, the registered cwd is not where this agent runs.`
             );
           } catch (err) {
             logger.warn(
-              `Register: NO local session found for cwd=${cwd} (auto-wake WILL be refused); could not describe the transcript base: ${err.message}`
+              `Register: unresolved session (${unresolved}) for cwd=${cwd} (auto-wake WILL be refused); could not describe the transcript base: ${err.message}`
             );
           }
         }
@@ -35059,8 +35164,8 @@ function registerRegisterPeerTool(server) {
             confidence: resolution.confidence,
             candidateCount: resolution.candidateCount,
             // Only on the broken path — keeps the happy-path result terse.
-            ...noLocalSession ? {
-              warning: "No local session transcript found for this cwd \u2014 auto-wake will be REFUSED. Verify the cwd is where this agent actually runs and that CLAUDE_CONFIG_DIR / CODEX_HOME are visible to the bridge process.",
+            ...unresolved ? {
+              warning: (unresolved === "ambiguous" ? `${resolution.candidateCount} local session transcripts matched this cwd and none could be chosen, so the sessionId you supplied was pinned UNCHECKED \u2014 if it is a channel UUID rather than a local session id, auto-wake will be REFUSED. ` : "No local session transcript found for this cwd \u2014 auto-wake will be REFUSED. ") + "Verify the cwd is where this agent actually runs and that CLAUDE_CONFIG_DIR / CODEX_HOME are visible to the bridge process.",
               scannedPaths: resolution.probedPaths ?? []
             } : {}
           }
@@ -35276,8 +35381,9 @@ function registerSendMessageTool(server) {
           if (isCloud && success2) {
             const effectiveAckTimeout = Math.min(ACK_TIMEOUT_MS, config2.COGENT_TIMEOUT_MS);
             const fastPathMs = Math.min(config2.COGENT_FASTPATH_MS, config2.COGENT_TIMEOUT_MS);
-            const ackPromise = autoRelay.waitForDeliveryAck(toPeerId, effectiveAckTimeout);
             const responsePromise = autoRelay.waitForResponse(toPeerId, fastPathMs);
+            responsePromise.catch(() => {
+            });
             let outboundRecord;
             try {
               outboundRecord = await backend.recordMessage({
@@ -35293,6 +35399,11 @@ function registerSendMessageTool(server) {
               autoRelay.clearExpectation(toPeerId);
               throw recordErr;
             }
+            const ackPromise = autoRelay.waitForDeliveryAck(
+              toPeerId,
+              outboundRecord.id,
+              effectiveAckTimeout
+            );
             let ackReceived = false;
             try {
               await ackPromise;
@@ -35473,6 +35584,7 @@ var init_message = __esm({
       timestamp: import_zod6.z.string().datetime().describe("ISO 8601 message timestamp"),
       durationMs: import_zod6.z.number().nullable().describe("Round-trip duration in ms"),
       success: import_zod6.z.boolean().describe("Whether delivery succeeded"),
+      pending: import_zod6.z.boolean().optional().describe("Delivered+acked; the reply is still expected"),
       error: import_zod6.z.string().nullable().describe("Error message if delivery failed"),
       originPlatform: import_zod6.z.enum(["cc", "codex", "slack", "gchat", "web", "gemini", "whatsapp", "telegram", "discord"]).optional().describe("Platform that originated this message"),
       attachments: import_zod6.z.array(AttachmentSchema).optional().describe("Cogent Mail M2.5 \u2014 file references (byte transport = email)")
@@ -35562,15 +35674,31 @@ var init_errors5 = __esm({
 });
 
 // cogent/dist/schemas/api-requests.js
-var import_zod10, CreateSessionRequestSchema, JoinSessionRequestSchema, ResolveSessionRequestSchema, RegisterPeerRequestSchema, DeregisterPeerRequestSchema, SendMessageRequestSchema, GetHistoryQuerySchema, PollQuerySchema;
+var import_zod10, FIELD_LIMITS, CreateSessionRequestSchema, JoinSessionRequestSchema, ResolveSessionRequestSchema, RegisterPeerRequestSchema, DeregisterPeerRequestSchema, SendMessageRequestSchema, GetHistoryQuerySchema, PollQuerySchema;
 var init_api_requests = __esm({
   "cogent/dist/schemas/api-requests.js"() {
     "use strict";
     import_zod10 = __toESM(require_zod(), 1);
+    FIELD_LIMITS = {
+      /** A shared channel secret. Long passphrases are fine; novels are not. */
+      SECRET_MAX: 1024,
+      /** Org_ID. */
+      ORG_ID_MAX: 256,
+      /** Peer identifier. */
+      PEER_ID_MAX: 128,
+      /** Human-readable peer label. */
+      PEER_LABEL_MAX: 256,
+      /** Working directory — comfortably above PATH_MAX (4096) on every platform we support. */
+      CWD_MAX: 8192,
+      /** A single message body. */
+      MESSAGE_MAX: 1048576,
+      /** One platform-identity value (e.g. a Slack user id). */
+      PLATFORM_IDENTITY_VALUE_MAX: 512
+    };
     CreateSessionRequestSchema = import_zod10.z.object({
       label: import_zod10.z.string().regex(/^[a-z0-9][a-z0-9-]{1,30}[a-z0-9]$/).optional().describe("Optional human-readable session label (3-32 lowercase alphanumeric + hyphens)"),
-      secret: import_zod10.z.string().min(8).describe("Shared secret for joining the session (min 8 chars)"),
-      orgId: import_zod10.z.string().min(1).optional().describe("Optional Org_ID -- gates the channel to Business Edition orgs (multi-tenant relay only)")
+      secret: import_zod10.z.string().min(8).max(FIELD_LIMITS.SECRET_MAX).describe("Shared secret for joining the session (min 8 chars)"),
+      orgId: import_zod10.z.string().min(1).max(FIELD_LIMITS.ORG_ID_MAX).optional().describe("Optional Org_ID -- gates the channel to Business Edition orgs (multi-tenant relay only)")
     }).strict();
     JoinSessionRequestSchema = import_zod10.z.object({
       secret: import_zod10.z.string().min(1).describe("Shared secret for the session"),
@@ -35581,13 +35709,14 @@ var init_api_requests = __esm({
       orgId: import_zod10.z.string().min(1).optional().describe("Optional Org_ID -- required to resolve an Org_ID-gated business channel")
     }).strict();
     RegisterPeerRequestSchema = import_zod10.z.object({
-      peerId: import_zod10.z.string().min(1).describe("Unique peer identifier"),
-      cwd: import_zod10.z.string().describe("Peer working directory path"),
-      label: import_zod10.z.string().describe("Human-readable peer label"),
+      peerId: import_zod10.z.string().min(1).max(FIELD_LIMITS.PEER_ID_MAX).describe("Unique peer identifier"),
+      peerSecret: import_zod10.z.string().min(1).max(256).optional().describe("AUD-003: proof of ownership when reclaiming a peer from a different token"),
+      cwd: import_zod10.z.string().max(FIELD_LIMITS.CWD_MAX).describe("Peer working directory path"),
+      label: import_zod10.z.string().max(FIELD_LIMITS.PEER_LABEL_MAX).describe("Human-readable peer label"),
       platform: import_zod10.z.enum(["cc", "codex", "slack", "gchat", "web", "gemini"]).optional().describe("Platform this peer belongs to"),
       type: import_zod10.z.enum(["agent", "human"]).optional().describe("Peer type"),
       transport: import_zod10.z.enum(["ws", "slack-bot", "gchat-bot", "websocket"]).optional().describe("Transport mechanism"),
-      platformIdentity: import_zod10.z.record(import_zod10.z.string(), import_zod10.z.string()).optional().describe("Platform-specific identity fields"),
+      platformIdentity: import_zod10.z.record(import_zod10.z.string().max(64), import_zod10.z.string().max(FIELD_LIMITS.PLATFORM_IDENTITY_VALUE_MAX)).optional().describe("Platform-specific identity fields"),
       role: import_zod10.z.string().max(64).optional().describe("A2A role advertised by this peer (Agent Card)"),
       capabilities: import_zod10.z.array(import_zod10.z.string().max(64)).max(16).optional().describe("Capability strings \u2192 A2A Agent Card skills[]")
     }).strict();
@@ -35595,8 +35724,11 @@ var init_api_requests = __esm({
     SendMessageRequestSchema = import_zod10.z.object({
       fromPeerId: import_zod10.z.string().min(1).describe("Sender peer ID"),
       toPeerId: import_zod10.z.string().min(1).describe("Recipient peer ID (use '*' for broadcast)"),
-      message: import_zod10.z.string().min(1).describe("Message content"),
-      originPlatform: import_zod10.z.enum(["cc", "codex", "slack", "gchat", "web", "gemini"]).optional().describe("Platform originating this message")
+      message: import_zod10.z.string().min(1).max(FIELD_LIMITS.MESSAGE_MAX).describe("Message content"),
+      originPlatform: import_zod10.z.enum(["cc", "codex", "slack", "gchat", "web", "gemini"]).optional().describe("Platform originating this message"),
+      success: import_zod10.z.boolean().optional().describe("Delivery outcome as reported by the sender"),
+      error: import_zod10.z.string().nullable().optional().describe("Failure code as reported by the sender"),
+      durationMs: import_zod10.z.number().int().nonnegative().nullable().optional().describe("Sender-measured duration")
     }).strict();
     GetHistoryQuerySchema = import_zod10.z.object({
       peerId: import_zod10.z.string().optional().describe("Filter messages by peer ID"),

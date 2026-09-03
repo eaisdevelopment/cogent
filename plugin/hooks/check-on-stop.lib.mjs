@@ -171,6 +171,9 @@ export function selectUnanswered({ messages, me, scope }) {
       // is explicitly a failure is never an answer — check that first, it is stronger than any
       // string match.
       if (m.success === false || m.error) continue;
+      // ...but in CLOUD mode those two fields are fabricated by the relay (always true/null),
+      // so the guard above never fires and the notice must be recognised by its own text.
+      if (isBridgeFailureNotice(m.message)) continue;
       if (isMetaNonAnswer(m.message)) continue;
       if (m.toPeerId === "*") dequeueOldestBroadcast();
       else dequeueFrom(m.toPeerId);
@@ -185,6 +188,38 @@ export function selectUnanswered({ messages, me, scope }) {
   for (const s of order) for (const m of pending.get(s)) items.push(m);
   items.sort((a, b) => a._i - b._i);
   return { items: items.map(({ _i, ...m }) => m) };
+}
+
+/**
+ * Is this outbound of mine one of the BRIDGE's own "I could not wake that agent" notices, rather
+ * than an answer I wrote?
+ *
+ * 🔴 WHY A STRING MATCH, WHEN THE LINE ABOVE SAYS success IS STRONGER. It is stronger — in LOCAL
+ * mode. In CLOUD mode `success`/`error` do not survive the wire at all: HttpBackend.recordMessage
+ * posts only {fromPeerId, toPeerId, message} (+isRelayEcho/attachments) because the relay's POST
+ * body schema is .strict() and rejects anything else (server/src/routes/messages.ts:57-80), and
+ * the relay then FABRICATES `success: true, error: null` on every stored record (:193-195) —
+ * hardcoded since 2026-02-13. So `m.success === false || m.error` is unreachable for every cloud
+ * agent, which is all of them by default since 3.14.0.
+ *
+ * The effect was that rail B's own failure notice — "⚠️ Cogent could not capture a reply…" — read
+ * as an answer and DEQUEUED the pending message, so rail C went silent on precisely the wakes
+ * that failed: blind to the miss it exists to catch. Reproduced by three tests in
+ * check-on-stop.lib.test.mjs before this existed.
+ *
+ * Anchored at the start and restricted to strings the bridge itself generates (auto-relay.ts:1082,
+ * :1165, :1245, :1248 and buildStatusNotice's `[cogent:*]` markers), so a genuine answer that
+ * merely mentions Cogent is unaffected. Kept in sync with isBridgeNotice() in
+ * scripts/wake-matrix-lib.mjs — the hooks are zero-dependency standalone .mjs shipped to users and
+ * cannot import from src/, so this predicate is deliberately duplicated rather than shared.
+ */
+export function isBridgeFailureNotice(text) {
+  const t = String(text ?? "").trimStart();
+  return (
+    /^\[cogent:(queued|processing|needs-manual|failed)\]/.test(t) ||
+    /^\u26a0\ufe0f\s*Cogent could not /.test(t) ||
+    /^\ud83d\udce8\s*Queued for /.test(t)
+  );
 }
 
 /**
