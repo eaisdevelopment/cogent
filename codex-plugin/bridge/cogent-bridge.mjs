@@ -1259,8 +1259,8 @@ var init_parseUtil = __esm({
     init_errors();
     init_en();
     makeIssue = (params) => {
-      const { data, path: path20, errorMaps, issueData } = params;
-      const fullPath = [...path20, ...issueData.path || []];
+      const { data, path: path21, errorMaps, issueData } = params;
+      const fullPath = [...path21, ...issueData.path || []];
       const fullIssue = {
         ...issueData,
         path: fullPath
@@ -1540,11 +1540,11 @@ var init_types = __esm({
     init_parseUtil();
     init_util();
     ParseInputLazyPath = class {
-      constructor(parent, value, path20, key) {
+      constructor(parent, value, path21, key) {
         this._cachedPath = [];
         this.parent = parent;
         this.data = value;
-        this._path = path20;
+        this._path = path21;
         this._key = key;
       }
       get path() {
@@ -4996,10 +4996,10 @@ function assignProp(target, prop, value) {
     configurable: true
   });
 }
-function getElementAtPath(obj, path20) {
-  if (!path20)
+function getElementAtPath(obj, path21) {
+  if (!path21)
     return obj;
-  return path20.reduce((acc, key) => acc?.[key], obj);
+  return path21.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -5248,11 +5248,11 @@ function aborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path20, issues) {
+function prefixIssues(path21, issues) {
   return issues.map((iss) => {
     var _a;
     (_a = iss).path ?? (_a.path = []);
-    iss.path.unshift(path20);
+    iss.path.unshift(path21);
     return iss;
   });
 }
@@ -17058,8 +17058,8 @@ var require_utils = __commonJS({
       }
       return ind;
     }
-    function removeDotSegments(path20) {
-      let input = path20;
+    function removeDotSegments(path21) {
+      let input = path21;
       const output = [];
       let nextSlash = -1;
       let len = 0;
@@ -17258,8 +17258,8 @@ var require_schemes = __commonJS({
         wsComponent.secure = void 0;
       }
       if (wsComponent.resourceName) {
-        const [path20, query] = wsComponent.resourceName.split("?");
-        wsComponent.path = path20 && path20 !== "/" ? path20 : void 0;
+        const [path21, query] = wsComponent.resourceName.split("?");
+        wsComponent.path = path21 && path21 !== "/" ? path21 : void 0;
         wsComponent.query = query;
         wsComponent.resourceName = void 0;
       }
@@ -20612,12 +20612,12 @@ var require_dist = __commonJS({
         throw new Error(`Unknown format "${name}"`);
       return f;
     };
-    function addFormats(ajv, list, fs18, exportName) {
+    function addFormats(ajv, list, fs19, exportName) {
       var _a;
       var _b;
       (_a = (_b = ajv.opts.code).formats) !== null && _a !== void 0 ? _a : _b.formats = (0, codegen_1._)`require("ajv-formats/dist/formats").${exportName}`;
       for (const f of list)
-        ajv.addFormat(f, fs18[f]);
+        ajv.addFormat(f, fs19[f]);
     }
     module.exports = exports = formatsPlugin;
     Object.defineProperty(exports, "__esModule", { value: true });
@@ -21729,8 +21729,8 @@ var require_parseUtil = __commonJS({
     var errors_js_1 = require_errors2();
     var en_js_1 = __importDefault(require_en());
     var makeIssue2 = (params) => {
-      const { data, path: path20, errorMaps, issueData } = params;
-      const fullPath = [...path20, ...issueData.path || []];
+      const { data, path: path21, errorMaps, issueData } = params;
+      const fullPath = [...path21, ...issueData.path || []];
       const fullIssue = {
         ...issueData,
         path: fullPath
@@ -21884,11 +21884,11 @@ var require_types2 = __commonJS({
     var parseUtil_js_1 = require_parseUtil();
     var util_js_1 = require_util2();
     var ParseInputLazyPath2 = class {
-      constructor(parent, value, path20, key) {
+      constructor(parent, value, path21, key) {
         this._cachedPath = [];
         this.parent = parent;
         this.data = value;
-        this._path = path20;
+        this._path = path21;
         this._key = key;
       }
       get path() {
@@ -25477,10 +25477,10 @@ var require_zod = __commonJS({
     };
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.z = void 0;
-    var z18 = __importStar(require_external());
-    exports.z = z18;
+    var z19 = __importStar(require_external());
+    exports.z = z19;
     __exportStar(require_external(), exports);
-    exports.default = z18;
+    exports.default = z19;
   }
 });
 
@@ -26389,8 +26389,8 @@ var init_stdio2 = __esm({
 // src/constants.ts
 import { createRequire } from "node:module";
 function resolveVersion() {
-  if ("3.22.0") {
-    return "3.22.0";
+  if ("3.23.0") {
+    return "3.23.0";
   }
   try {
     const require2 = createRequire(import.meta.url);
@@ -27826,7 +27826,7 @@ var init_http_backend = __esm({
        * in cloud mode we ignore it and use this.sessionId (the cloud session).
        */
       async registerPeer(peerId, _sessionId, cwd, label, clientVersion, mode, _channelSessionId, capabilities, workspaceId, threadId, peerSecret) {
-        const path20 = PATHS.peers.replace(":sessionId", this.sessionId);
+        const path21 = PATHS.peers.replace(":sessionId", this.sessionId);
         const body = {
           peerId,
           cwd,
@@ -27857,7 +27857,7 @@ var init_http_backend = __esm({
         if (peerSecret !== void 0 && await relaySupports(this.http, "peer-ownership")) {
           body.peerSecret = peerSecret;
         }
-        return this.http.post(path20, body);
+        return this.http.post(path21, body);
       }
       /**
        * Deregister a peer from the cloud session.
@@ -27869,9 +27869,9 @@ var init_http_backend = __esm({
        * local mail creds. A 404 (peer not found) resolves to `{ removed: false, ... }`, not a throw.
        */
       async deregisterPeer(peerId) {
-        const path20 = PATHS.peer.replace(":sessionId", this.sessionId).replace(":peerId", peerId);
+        const path21 = PATHS.peer.replace(":sessionId", this.sessionId).replace(":peerId", peerId);
         try {
-          const headers = await this.http.delete(path20, {});
+          const headers = await this.http.delete(path21, {});
           const mailboxDeprovisioned = headers.get(MAILBOX_DEPROVISIONED_HEADER) === "true";
           return { removed: true, mailboxDeprovisioned };
         } catch (err) {
@@ -27895,8 +27895,8 @@ var init_http_backend = __esm({
        * GET /api/sessions/:sessionId/peers
        */
       async listPeers() {
-        const path20 = PATHS.peers.replace(":sessionId", this.sessionId);
-        const result = await this.http.get(path20);
+        const path21 = PATHS.peers.replace(":sessionId", this.sessionId);
+        const result = await this.http.get(path21);
         return result.peers;
       }
       /**
@@ -27904,8 +27904,8 @@ var init_http_backend = __esm({
        * Calls the lightweight heartbeat endpoint on the cloud relay server.
        */
       async updateLastSeen(peerId) {
-        const path20 = PATHS.heartbeat.replace(":sessionId", this.sessionId);
-        await this.http.post(path20, { peerId });
+        const path21 = PATHS.heartbeat.replace(":sessionId", this.sessionId);
+        await this.http.post(path21, { peerId });
       }
       /**
        * Record a message in the cloud session.
@@ -27916,7 +27916,7 @@ var init_http_backend = __esm({
        * the input record to construct a full MessageRecord.
        */
       async recordMessage(record2) {
-        const path20 = PATHS.messages.replace(":sessionId", this.sessionId);
+        const path21 = PATHS.messages.replace(":sessionId", this.sessionId);
         const body = {
           fromPeerId: record2.fromPeerId,
           toPeerId: record2.toPeerId,
@@ -27939,7 +27939,7 @@ var init_http_backend = __esm({
         if (record2.attachments && record2.attachments.length > 0) {
           body.attachments = record2.attachments;
         }
-        const resp = await this.http.post(path20, body);
+        const resp = await this.http.post(path21, body);
         return {
           ...record2,
           id: resp.id,
@@ -27953,7 +27953,7 @@ var init_http_backend = __esm({
        * Supports optional peerId filter and limit (default 300).
        */
       async getHistory(peerId, limit, includeRelayEchoes, metadataOnly, dedupInferredEchoes) {
-        const path20 = PATHS.messages.replace(":sessionId", this.sessionId);
+        const path21 = PATHS.messages.replace(":sessionId", this.sessionId);
         const query = {};
         if (peerId) {
           query.peerId = peerId;
@@ -27968,7 +27968,7 @@ var init_http_backend = __esm({
         if (dedupInferredEchoes) {
           query.dedupInferredEchoes = "true";
         }
-        const result = await this.http.get(path20, query);
+        const result = await this.http.get(path21, query);
         return result.messages;
       }
       /**
@@ -27979,12 +27979,12 @@ var init_http_backend = __esm({
        * so that get-history shows the actual response (not null).
        */
       async updateMessageResponse(messageId, response, durationMs, pending) {
-        const path20 = PATHS.message.replace(":sessionId", this.sessionId).replace(":messageId", messageId);
+        const path21 = PATHS.message.replace(":sessionId", this.sessionId).replace(":messageId", messageId);
         const body = { response, durationMs };
         if (pending === true) {
           body.pending = true;
         }
-        await this.http.patch(path20, body);
+        await this.http.patch(path21, body);
       }
       /**
        * Validate a session.
@@ -28126,8 +28126,8 @@ var init_http_client = __esm({
        * Perform an authenticated GET request.
        * Appends query parameters to the URL if provided.
        */
-      async get(path20, query) {
-        const url = new URL(path20, this.baseUrl);
+      async get(path21, query) {
+        const url = new URL(path21, this.baseUrl);
         if (query) {
           for (const [k, v] of Object.entries(query)) {
             url.searchParams.set(k, v);
@@ -28142,8 +28142,8 @@ var init_http_client = __esm({
       /**
        * Perform an authenticated POST request with a JSON body.
        */
-      async post(path20, body) {
-        const url = new URL(path20, this.baseUrl);
+      async post(path21, body) {
+        const url = new URL(path21, this.baseUrl);
         const resp = await this.fetchWithTimeout(url, {
           method: "POST",
           headers: this.headers(),
@@ -28161,8 +28161,8 @@ var init_http_client = __esm({
        * Perform an authenticated PATCH request with a JSON body.
        * Used to update existing resources (e.g., message response fields).
        */
-      async patch(path20, body) {
-        const url = new URL(path20, this.baseUrl);
+      async patch(path21, body) {
+        const url = new URL(path21, this.baseUrl);
         const resp = await this.fetchWithTimeout(url, {
           method: "PATCH",
           headers: this.headers(),
@@ -28187,8 +28187,8 @@ var init_http_client = __esm({
        * "Malformed JSON in request body" 400 from cogent-server <=3.1.2 when
        * any client (including third-party tools) DELETEd a peer without a body.
        */
-      async delete(path20, body) {
-        const url = new URL(path20, this.baseUrl);
+      async delete(path21, body) {
+        const url = new URL(path21, this.baseUrl);
         const headers = {
           "Authorization": `Bearer ${this.token}`
         };
@@ -32371,14 +32371,14 @@ var init_ws_client = __esm({
         if (this.pollTimer) return;
         const poll = async () => {
           try {
-            const path20 = `/api/sessions/${this.opts.sessionId}/poll`;
+            const path21 = `/api/sessions/${this.opts.sessionId}/poll`;
             const query = {
               peerId: this.opts.peerId
             };
             if (this.lastMessageId) {
               query.lastMessageId = this.lastMessageId;
             }
-            const result = await this.opts.http.get(path20, query);
+            const result = await this.opts.http.get(path21, query);
             if (result.messages && result.messages.length > 0) {
               this.opts.onMessages(result.messages);
               this.lastMessageId = result.messages[result.messages.length - 1].id;
@@ -33097,6 +33097,112 @@ var init_exec_remote = __esm({
   }
 });
 
+// src/services/wake-log.ts
+import { execFileSync } from "node:child_process";
+import crypto4 from "node:crypto";
+import fs13 from "node:fs";
+import os9 from "node:os";
+import path14 from "node:path";
+function hashCwd2(cwd) {
+  return crypto4.createHash("sha256").update(path14.resolve(cwd)).digest("hex").slice(0, 16);
+}
+function wakeLogPath(cwd) {
+  return path14.join(os9.homedir(), ".cogent", "wake-log", `${hashCwd2(cwd)}.jsonl`);
+}
+function git(cwd, args) {
+  return execFileSync("git", ["-C", cwd, ...args], {
+    encoding: "utf-8",
+    timeout: 15e3,
+    stdio: ["ignore", "pipe", "ignore"]
+  });
+}
+function captureTreeState(cwd) {
+  try {
+    const head = git(cwd, ["rev-parse", "HEAD"]).trim();
+    const entries = {};
+    const raw = git(cwd, ["status", "--porcelain=v1", "-z", "--untracked-files=all"]);
+    const fields = raw.split("\0").filter((f) => f.length > 0);
+    for (let i = 0; i < fields.length; i++) {
+      const field = fields[i];
+      const status = field.slice(0, 2);
+      entries[field.slice(3)] = status;
+      if (status[0] === "R" || status[0] === "C") i++;
+    }
+    return { head, entries };
+  } catch {
+    return null;
+  }
+}
+function diffTreeState(before, after) {
+  if (!before || !after) return null;
+  const changed = /* @__PURE__ */ new Set();
+  if (before.head !== after.head) changed.add("HEAD");
+  for (const [file, status] of Object.entries(after.entries)) {
+    if (before.entries[file] !== status) changed.add(file);
+  }
+  for (const file of Object.keys(before.entries)) {
+    if (!(file in after.entries)) changed.add(file);
+  }
+  return [...changed].sort();
+}
+function preview(message) {
+  return message.length > PREVIEW_LIMIT ? `${message.slice(0, PREVIEW_LIMIT)}\u2026` : message;
+}
+function appendWakeRecord(record2, cwd) {
+  const target = wakeLogPath(cwd);
+  try {
+    fs13.mkdirSync(path14.dirname(target), { recursive: true });
+    const row = {
+      ts: (/* @__PURE__ */ new Date()).toISOString(),
+      ...record2,
+      messagePreview: preview(record2.messagePreview ?? "")
+    };
+    fs13.appendFileSync(target, `${JSON.stringify(row)}
+`);
+    pruneIfNeeded(target);
+  } catch {
+  }
+}
+function pruneIfNeeded(target) {
+  try {
+    const lines = fs13.readFileSync(target, "utf-8").split("\n").filter((l) => l.length > 0);
+    if (lines.length <= WAKE_LOG_MAX_RECORDS) return;
+    const kept = lines.slice(lines.length - WAKE_LOG_MAX_RECORDS);
+    const tmp = `${target}.tmp-${process.pid}`;
+    fs13.writeFileSync(tmp, `${kept.join("\n")}
+`);
+    fs13.renameSync(tmp, target);
+  } catch {
+  }
+}
+function readWakeLog(cwd, limit) {
+  let lines;
+  try {
+    lines = fs13.readFileSync(wakeLogPath(cwd), "utf-8").split("\n").filter((l) => l.length > 0);
+  } catch {
+    return [];
+  }
+  const rows = [];
+  for (const line of lines) {
+    try {
+      const parsed = JSON.parse(line);
+      if (parsed && typeof parsed === "object" && typeof parsed.messageId === "string") {
+        rows.push(parsed);
+      }
+    } catch {
+    }
+  }
+  return typeof limit === "number" && limit > 0 ? rows.slice(-limit) : rows;
+}
+var WAKE_LOG_MAX_RECORDS, PREVIEW_LIMIT;
+var init_wake_log = __esm({
+  "src/services/wake-log.ts"() {
+    "use strict";
+    WAKE_LOG_MAX_RECORDS = 500;
+    PREVIEW_LIMIT = 500;
+  }
+});
+
 // src/services/session-resolver.ts
 function decideResolution(candidates, pinnedSessionId, pinnedExists, marginMs) {
   const sorted = [...candidates].sort((a, b) => b.mtimeMs - a.mtimeMs);
@@ -33184,15 +33290,15 @@ var init_session_resolver = __esm({
 });
 
 // src/services/wake-inflight.ts
-import crypto4 from "node:crypto";
-import fs13 from "node:fs";
-import os9 from "node:os";
-import path14 from "node:path";
-function hashCwd2(cwd) {
-  return crypto4.createHash("sha256").update(path14.resolve(cwd)).digest("hex").slice(0, 16);
+import crypto5 from "node:crypto";
+import fs14 from "node:fs";
+import os10 from "node:os";
+import path15 from "node:path";
+function hashCwd3(cwd) {
+  return crypto5.createHash("sha256").update(path15.resolve(cwd)).digest("hex").slice(0, 16);
 }
 function wakeInflightPath(peerId, cwd = process.cwd()) {
-  return path14.join(os9.homedir(), ".cogent", "wake-inflight", `${hashCwd2(cwd)}.${safe(peerId)}.json`);
+  return path15.join(os10.homedir(), ".cogent", "wake-inflight", `${hashCwd3(cwd)}.${safe(peerId)}.json`);
 }
 function ttlMs() {
   let timeout = 3e5;
@@ -33205,17 +33311,17 @@ function ttlMs() {
 }
 function readFileSafe(p) {
   try {
-    const parsed = JSON.parse(fs13.readFileSync(p, "utf-8"));
+    const parsed = JSON.parse(fs14.readFileSync(p, "utf-8"));
     return parsed && typeof parsed === "object" && parsed.messages ? parsed : { messages: {} };
   } catch {
     return { messages: {} };
   }
 }
 function writeAtomic(p, data) {
-  fs13.mkdirSync(path14.dirname(p), { recursive: true });
+  fs14.mkdirSync(path15.dirname(p), { recursive: true });
   const tmp = `${p}.${process.pid}.tmp`;
-  fs13.writeFileSync(tmp, JSON.stringify(data, null, 2) + "\n", "utf-8");
-  fs13.renameSync(tmp, p);
+  fs14.writeFileSync(tmp, JSON.stringify(data, null, 2) + "\n", "utf-8");
+  fs14.renameSync(tmp, p);
 }
 function prune(f, now) {
   for (const [id, rec] of Object.entries(f.messages)) {
@@ -33233,6 +33339,15 @@ function markWakeInFlight(peerId, messageId, traceId, cwd = process.cwd()) {
     writeAtomic(p, cur);
   } catch (err) {
     logger.debug(`wake-inflight: could not mark ${messageId}: ${err}`);
+  }
+}
+function listWakeInFlight(peerId, cwd = process.cwd()) {
+  try {
+    const cur = readFileSafe(wakeInflightPath(peerId, cwd));
+    const now = Date.now();
+    return Object.entries(cur.messages).filter(([, e]) => e.expiresAt > now).map(([messageId, e]) => ({ messageId, ...e })).sort((a, b) => a.startedAt - b.startedAt);
+  } catch {
+    return [];
   }
 }
 function clearWakeInFlight(peerId, messageId, cwd = process.cwd()) {
@@ -33391,6 +33506,7 @@ var init_auto_relay = __esm({
   "src/services/auto-relay.ts"() {
     "use strict";
     init_exec_remote();
+    init_wake_log();
     init_session_resolver();
     init_config();
     init_backend();
@@ -33986,6 +34102,10 @@ var init_auto_relay = __esm({
         const traceId = msg.traceId ?? randomUUID2();
         const startMs = Date.now();
         let replied = false;
+        let treeBefore = null;
+        let wakeExitCode = null;
+        let refused = false;
+        let threw = false;
         try {
           const res = await this.refreshSessionId();
           this._trace(traceId, "resolved", {
@@ -33995,6 +34115,7 @@ var init_auto_relay = __esm({
             mtimeGapMs: res.mtimeGapMs
           });
           if (!res.sessionId) {
+            refused = true;
             this._trace(traceId, "refused", {
               decision: res.decision,
               candidateCount: res.candidateCount
@@ -34023,6 +34144,7 @@ var init_auto_relay = __esm({
             decision: res.decision,
             confidence: res.confidence
           });
+          treeBefore = captureTreeState(this.localCwd);
           const result = await execRemote(
             getConfig().COGENT_PLATFORM,
             this.localSessionId,
@@ -34035,6 +34157,7 @@ var init_auto_relay = __esm({
             { idempotencyKey: msg.id }
           );
           const durationMs = Date.now() - startMs;
+          wakeExitCode = result.exitCode;
           if (result.exitCode === 0 && result.stdout) {
             await this._relayCapturedReply(msg, result, traceId, durationMs, false);
             replied = true;
@@ -34100,6 +34223,7 @@ var init_auto_relay = __esm({
           }
         } catch (err) {
           const durationMs = Date.now() - startMs;
+          threw = true;
           this._trace(traceId, "failed", { threw: true, durationMs });
           logger.error(`Auto-relay: execRemote threw after ${durationMs}ms: ${err}`);
           if (!replied) {
@@ -34107,6 +34231,48 @@ var init_auto_relay = __esm({
               stderr: `EXEC_THREW: ${err}`
             });
           }
+        } finally {
+          this._recordWake(msg, traceId, {
+            outcome: threw ? "threw" : refused ? "refused" : replied ? "replied" : "failed",
+            exitCode: wakeExitCode,
+            durationMs: Date.now() - startMs,
+            treeBefore
+          });
+        }
+      }
+      /**
+       * Write the durable wake record. Wrapped whole: visibility must never be able to fail a
+       * wake that would otherwise have succeeded, so every error here is swallowed and logged.
+       */
+      _recordWake(msg, traceId, outcome) {
+        try {
+          const cwd = this.localCwd;
+          if (!cwd) return;
+          const filesChanged = outcome.treeBefore ? diffTreeState(outcome.treeBefore, captureTreeState(cwd)) : null;
+          appendWakeRecord(
+            {
+              traceId,
+              messageId: msg.id,
+              fromPeerId: msg.fromPeerId,
+              toPeerId: this.localPeerId ?? "",
+              cwd,
+              sessionId: this.localSessionId ?? "",
+              platform: getConfig().COGENT_PLATFORM,
+              outcome: outcome.outcome,
+              exitCode: outcome.exitCode,
+              durationMs: outcome.durationMs,
+              filesChanged,
+              messagePreview: msg.message ?? ""
+            },
+            cwd
+          );
+          if (filesChanged && filesChanged.length > 0) {
+            logger.info(
+              `Auto-relay: wake for message ${msg.id} from ${msg.fromPeerId} changed ${filesChanged.length} path(s): ${filesChanged.slice(0, 10).join(", ")}`
+            );
+          }
+        } catch (err) {
+          logger.warn(`Auto-relay: wake-log record failed (wake itself unaffected): ${err}`);
         }
       }
       /**
@@ -34499,9 +34665,9 @@ __export(startup_exports, {
   setInboxNotifier: () => setInboxNotifier,
   triggerReRegistration: () => triggerReRegistration
 });
-import os10 from "node:os";
-import path15 from "node:path";
-import fs14 from "node:fs/promises";
+import os11 from "node:os";
+import path16 from "node:path";
+import fs15 from "node:fs/promises";
 import readline2 from "node:readline";
 import { execFile as execFile5 } from "node:child_process";
 import { promisify as promisify4 } from "node:util";
@@ -34519,7 +34685,7 @@ function bindInboxNotifier() {
 }
 async function loadPersistedConfig() {
   try {
-    const raw = await fs14.readFile(PERSIST_PATH, "utf-8");
+    const raw = await fs15.readFile(PERSIST_PATH, "utf-8");
     return JSON.parse(raw);
   } catch {
     return {};
@@ -34527,7 +34693,7 @@ async function loadPersistedConfig() {
 }
 async function savePersistedConfig(config2) {
   try {
-    await fs14.writeFile(PERSIST_PATH, JSON.stringify(config2, null, 2) + "\n", "utf-8");
+    await fs15.writeFile(PERSIST_PATH, JSON.stringify(config2, null, 2) + "\n", "utf-8");
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     logger.warn(`Could not save config to ${PERSIST_PATH}: ${msg}`);
@@ -34562,11 +34728,11 @@ First run detected. Where should cogent-bridge store its data?
   });
 }
 async function validateStateDir(statePath) {
-  await fs14.mkdir(statePath, { recursive: true });
-  const testFile = path15.join(statePath, ".write-test");
+  await fs15.mkdir(statePath, { recursive: true });
+  const testFile = path16.join(statePath, ".write-test");
   try {
-    await fs14.writeFile(testFile, "test", "utf-8");
-    await fs14.unlink(testFile);
+    await fs15.writeFile(testFile, "test", "utf-8");
+    await fs15.unlink(testFile);
   } catch {
     throw new BridgeError(
       "STARTUP_FAILED" /* STARTUP_FAILED */,
@@ -34753,10 +34919,10 @@ async function runStartup() {
   if (envStatePath) {
     statePath = envStatePath;
   } else {
-    const defaultPath = path15.join(os10.homedir(), ".cogent");
+    const defaultPath = path16.join(os11.homedir(), ".cogent");
     statePath = await firstRunPrompt(defaultPath);
   }
-  if (!envStatePath && statePath !== path15.join(os10.homedir(), ".cogent")) {
+  if (!envStatePath && statePath !== path16.join(os11.homedir(), ".cogent")) {
     process.env.COGENT_STATE_PATH = statePath;
   } else if (!envStatePath) {
     process.env.COGENT_STATE_PATH = statePath;
@@ -34820,7 +34986,7 @@ async function runStartup() {
   }
   initLogger(
     config2.COGENT_LOG_LEVEL,
-    path15.join(config2.COGENT_STATE_PATH, "logs")
+    path16.join(config2.COGENT_STATE_PATH, "logs")
   );
   if (isCloud && effectiveSessionId && effectiveToken) {
     cloudInbox = new MessageInbox();
@@ -34882,7 +35048,7 @@ var init_startup = __esm({
     init_auto_relay();
     UUID_V4_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     execFileAsync3 = promisify4(execFile5);
-    PERSIST_PATH = path15.join(os10.homedir(), ".cogent-config.json");
+    PERSIST_PATH = path16.join(os11.homedir(), ".cogent-config.json");
     legacyWarnEmitted = false;
     cloudWsClient = null;
     cloudInbox = null;
@@ -34896,13 +35062,13 @@ var init_startup = __esm({
 });
 
 // src/cloud/mail-credential-store.ts
-import crypto5 from "node:crypto";
-import fs15 from "node:fs/promises";
-import path16 from "node:path";
-import os11 from "node:os";
+import crypto6 from "node:crypto";
+import fs16 from "node:fs/promises";
+import path17 from "node:path";
+import os12 from "node:os";
 function defaultMailCredentialPath(cwd = process.cwd()) {
-  const hash = crypto5.createHash("sha256").update(path16.resolve(cwd)).digest("hex").slice(0, 16);
-  return path16.join(os11.homedir(), ".cogent", "mail-credentials", `${hash}.json`);
+  const hash = crypto6.createHash("sha256").update(path17.resolve(cwd)).digest("hex").slice(0, 16);
+  return path17.join(os12.homedir(), ".cogent", "mail-credentials", `${hash}.json`);
 }
 function resolveMailCredentialPath(credentialPath) {
   if (credentialPath) return credentialPath;
@@ -34913,16 +35079,16 @@ function resolveMailCredentialPath(credentialPath) {
 async function loadMailCredentials(credentialPath) {
   const filePath = resolveMailCredentialPath(credentialPath);
   try {
-    return JSON.parse(await fs15.readFile(filePath, "utf-8"));
+    return JSON.parse(await fs16.readFile(filePath, "utf-8"));
   } catch {
     return null;
   }
 }
 async function saveMailCredentials(creds, credentialPath) {
   const filePath = resolveMailCredentialPath(credentialPath);
-  await fs15.mkdir(path16.dirname(filePath), { recursive: true, mode: 448 });
-  await fs15.writeFile(filePath, JSON.stringify(creds, null, 2) + "\n", { encoding: "utf-8", mode: 384 });
-  await fs15.chmod(filePath, 384);
+  await fs16.mkdir(path17.dirname(filePath), { recursive: true, mode: 448 });
+  await fs16.writeFile(filePath, JSON.stringify(creds, null, 2) + "\n", { encoding: "utf-8", mode: 384 });
+  await fs16.chmod(filePath, 384);
 }
 async function persistProvisionedMailbox(mailbox, credentialPath) {
   if (!mailbox?.address || !mailbox.password) return false;
@@ -34943,7 +35109,7 @@ async function persistProvisionedMailbox(mailbox, credentialPath) {
 async function clearMailCredentials(credentialPath) {
   const filePath = resolveMailCredentialPath(credentialPath);
   try {
-    await fs15.unlink(filePath);
+    await fs16.unlink(filePath);
   } catch (err) {
     if (err.code !== "ENOENT") throw err;
   }
@@ -34957,7 +35123,7 @@ var init_mail_credential_store = __esm({
 });
 
 // src/tools/register-peer.ts
-import crypto6 from "node:crypto";
+import crypto7 from "node:crypto";
 function unresolvedSessionReason(r) {
   if (r.sessionId) return null;
   return r.candidateCount === 0 ? "no-candidates" : "ambiguous";
@@ -35023,7 +35189,7 @@ function registerRegisterPeerTool(server) {
             }
           }
           if (!cloudSessionId) {
-            autoSecret = crypto6.randomBytes(16).toString("hex");
+            autoSecret = crypto7.randomBytes(16).toString("hex");
             const resp = await fetch(
               `${endpoint}/api/sessions`,
               {
@@ -36338,8 +36504,69 @@ var init_health_check2 = __esm({
   }
 });
 
+// src/tools/wake-log.ts
+function registerWakeLogTool(server) {
+  server.registerTool(
+    "cogent_wake_log",
+    {
+      title: "Wake Log",
+      description: "Show the auto-resume (wake) sessions Cogent has run in this working directory: which peer's message triggered each one, when, how long it took, the outcome, and WHICH FILES IT CHANGED. Use this when files changed with no corresponding edit in your session, when you need to establish who authored a change before committing it, or to check whether a wake is running now.",
+      inputSchema: {
+        limit: import_zod14.z.number().int().positive().optional().describe("Return only the most recent N wakes (default: all retained)."),
+        peerId: import_zod14.z.string().optional().describe(
+          "Your local peer id. Required to list wakes running RIGHT NOW \u2014 in-flight markers are keyed per peer, and two peers can share one directory."
+        ),
+        cwd: import_zod14.z.string().optional().describe("Directory to inspect (default: this bridge's working directory).")
+      },
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false
+      }
+    },
+    async ({ limit, peerId, cwd }) => {
+      try {
+        const target = cwd ?? process.cwd();
+        const wakes = readWakeLog(target, limit);
+        const mutatingWakeCount = wakes.filter(
+          (w) => Array.isArray(w.filesChanged) && w.filesChanged.length > 0
+        ).length;
+        const active = peerId ? listWakeInFlight(peerId, target) : [];
+        return successResult({
+          cwd: target,
+          count: wakes.length,
+          mutatingWakeCount,
+          wakes,
+          active,
+          ...peerId ? {} : { activeHint: "Pass peerId to see wakes running right now (markers are per-peer)." },
+          note: "filesChanged is a git snapshot diff across each wake's window. If you were editing the same tree at the same time, your edits appear here too \u2014 it is what changed while the wake ran, not proof of authorship. null means the directory is not a git worktree."
+        });
+      } catch (err) {
+        return errorResult(
+          new BridgeError(
+            "STATE_CORRUPT" /* STATE_CORRUPT */,
+            `Could not read the wake log: ${err instanceof Error ? err.message : String(err)}`,
+            "The log lives at ~/.cogent/wake-log/<sha256(cwd)[..16]>.jsonl \u2014 check it is readable."
+          )
+        );
+      }
+    }
+  );
+}
+var import_zod14;
+var init_wake_log2 = __esm({
+  "src/tools/wake-log.ts"() {
+    "use strict";
+    import_zod14 = __toESM(require_zod(), 1);
+    init_errors4();
+    init_wake_log();
+    init_wake_inflight();
+  }
+});
+
 // src/tools/create-session.ts
-import crypto7 from "node:crypto";
+import crypto8 from "node:crypto";
 function registerCreateSessionTool(server) {
   server.registerTool(
     "cogent_create_session",
@@ -36347,8 +36574,8 @@ function registerCreateSessionTool(server) {
       title: "Create Cloud Session",
       description: "Create a new cloud bridge session on the relay server. Returns session ID and secret for other peers to join. Only available when COGENT_ENDPOINT is configured.",
       inputSchema: {
-        label: import_zod14.z.string().optional().describe("Human-readable label for the session"),
-        secret: import_zod14.z.string().min(8).optional().describe(
+        label: import_zod15.z.string().optional().describe("Human-readable label for the session"),
+        secret: import_zod15.z.string().min(8).optional().describe(
           "Shared secret for session authentication (min 8 chars). Auto-generated if omitted."
         )
       },
@@ -36370,7 +36597,7 @@ function registerCreateSessionTool(server) {
             )
           );
         }
-        const sessionSecret = secret ?? crypto7.randomBytes(16).toString("hex");
+        const sessionSecret = secret ?? crypto8.randomBytes(16).toString("hex");
         const resp = await fetch(
           `${config2.COGENT_ENDPOINT}/api/sessions`,
           {
@@ -36441,11 +36668,11 @@ COGENT_PLATFORM=${config2.COGENT_PLATFORM}`,
     }
   );
 }
-var import_zod14;
+var import_zod15;
 var init_create_session = __esm({
   "src/tools/create-session.ts"() {
     "use strict";
-    import_zod14 = __toESM(require_zod(), 1);
+    import_zod15 = __toESM(require_zod(), 1);
     init_config();
     init_errors4();
     init_credential_store();
@@ -36461,11 +36688,11 @@ function registerJoinSessionTool(server) {
       title: "Join Cloud Channel",
       description: 'Join an existing cloud bridge channel by its channel name (e.g. "mt-space") and shared secret. The channel name is the human-readable label provided by the user, NOT a UUID. Do NOT pass a Claude Code session ID here \u2014 use the channel/space name the user gave you.',
       inputSchema: {
-        channel: import_zod15.z.string().describe(
+        channel: import_zod16.z.string().describe(
           'The channel name to join (e.g. "mt-space"). This is the human-readable name the user provided, NOT a UUID. Do NOT use a Claude Code session ID here.'
         ),
-        secret: import_zod15.z.string().min(1).describe("The shared secret / password for the channel"),
-        orgId: import_zod15.z.string().min(1).optional().describe(
+        secret: import_zod16.z.string().min(1).describe("The shared secret / password for the channel"),
+        orgId: import_zod16.z.string().min(1).optional().describe(
           "Org_ID \u2014 the 3rd credential for a Team (business) channel. Provide it for team channels; omit for free channels."
         )
       },
@@ -36584,11 +36811,11 @@ function registerJoinSessionTool(server) {
     }
   );
 }
-var import_zod15, UUID_V4_RE2;
+var import_zod16, UUID_V4_RE2;
 var init_join_session = __esm({
   "src/tools/join-session.ts"() {
     "use strict";
-    import_zod15 = __toESM(require_zod(), 1);
+    import_zod16 = __toESM(require_zod(), 1);
     init_config();
     init_errors4();
     init_credential_store();
@@ -36652,12 +36879,12 @@ function registerSetupMailTool(server) {
       title: "Configure this agent's mailbox",
       description: "Store the agent's mailbox address + password (from the admin Mail panel) locally so cogent_send_mail and cogent_fetch_mail can use them. Hosts default to mail.cogent.tools (IMAP 993 / SMTP 465).",
       inputSchema: {
-        address: import_zod16.z.string().describe("Full mailbox address, e.g. claude-agent-backend@mail.cogent.tools"),
-        password: import_zod16.z.string().describe("Mailbox password (shown once in the admin Mail panel on create/rotate)"),
-        imapHost: import_zod16.z.string().optional().describe(`IMAP host (default ${DEFAULT_MAIL_HOST})`),
-        imapPort: import_zod16.z.number().int().positive().optional().describe("IMAP port (default 993)"),
-        smtpHost: import_zod16.z.string().optional().describe(`SMTP host (default ${DEFAULT_MAIL_HOST})`),
-        smtpPort: import_zod16.z.number().int().positive().optional().describe("SMTP submission port (default 465)")
+        address: import_zod17.z.string().describe("Full mailbox address, e.g. claude-agent-backend@mail.cogent.tools"),
+        password: import_zod17.z.string().describe("Mailbox password (shown once in the admin Mail panel on create/rotate)"),
+        imapHost: import_zod17.z.string().optional().describe(`IMAP host (default ${DEFAULT_MAIL_HOST})`),
+        imapPort: import_zod17.z.number().int().positive().optional().describe("IMAP port (default 993)"),
+        smtpHost: import_zod17.z.string().optional().describe(`SMTP host (default ${DEFAULT_MAIL_HOST})`),
+        smtpPort: import_zod17.z.number().int().positive().optional().describe("SMTP submission port (default 465)")
       },
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false }
     },
@@ -36681,11 +36908,11 @@ function registerSetupMailTool(server) {
     }
   );
 }
-var import_zod16, DEFAULT_MAIL_HOST;
+var import_zod17, DEFAULT_MAIL_HOST;
 var init_setup_mail = __esm({
   "src/tools/setup-mail.ts"() {
     "use strict";
-    import_zod16 = __toESM(require_zod(), 1);
+    import_zod17 = __toESM(require_zod(), 1);
     init_errors4();
     init_mail_credential_store();
     init_validate();
@@ -36694,13 +36921,13 @@ var init_setup_mail = __esm({
 });
 
 // src/mail/mail-sender.ts
-import fs16 from "node:fs/promises";
-import path17 from "node:path";
+import fs17 from "node:fs/promises";
+import path18 from "node:path";
 async function buildAndSendMail(sender, creds, params) {
   const attachments = [];
   for (const p of params.attachmentPaths ?? []) {
-    const content = await fs16.readFile(p);
-    attachments.push({ filename: path17.basename(p), content });
+    const content = await fs17.readFile(p);
+    attachments.push({ filename: path18.basename(p), content });
   }
   const { messageId } = await sender.send({
     from: creds.address,
@@ -36776,10 +37003,10 @@ function registerSendMailTool(server, deps = {}) {
       title: "Send an email from this agent's mailbox",
       description: "Send an email (with optional file attachments) from this agent's Cogent mailbox to another address. Requires cogent_setup_mail to have stored the mailbox credentials first.",
       inputSchema: {
-        to: import_zod17.z.string().describe("Recipient email address, e.g. other-agent-backend@mail.cogent.tools"),
-        subject: import_zod17.z.string().describe("Email subject"),
-        body: import_zod17.z.string().describe("Plain-text email body"),
-        attachments: import_zod17.z.array(import_zod17.z.string()).optional().describe("Optional local file paths to attach (each is read and attached by basename)")
+        to: import_zod18.z.string().describe("Recipient email address, e.g. other-agent-backend@mail.cogent.tools"),
+        subject: import_zod18.z.string().describe("Email subject"),
+        body: import_zod18.z.string().describe("Plain-text email body"),
+        attachments: import_zod18.z.array(import_zod18.z.string()).optional().describe("Optional local file paths to attach (each is read and attached by basename)")
       },
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true }
     },
@@ -36814,11 +37041,11 @@ function registerSendMailTool(server, deps = {}) {
     }
   );
 }
-var import_zod17;
+var import_zod18;
 var init_send_mail = __esm({
   "src/tools/send-mail.ts"() {
     "use strict";
-    import_zod17 = __toESM(require_zod(), 1);
+    import_zod18 = __toESM(require_zod(), 1);
     init_errors4();
     init_mail_credential_store();
     init_mail_sender();
@@ -36828,16 +37055,16 @@ var init_send_mail = __esm({
 });
 
 // src/mail/mail-fetcher.ts
-import fs17 from "node:fs/promises";
-import path18 from "node:path";
+import fs18 from "node:fs/promises";
+import path19 from "node:path";
 async function saveAttachments(attachments, downloadDir) {
   if (attachments.length === 0) return [];
-  await fs17.mkdir(downloadDir, { recursive: true });
+  await fs18.mkdir(downloadDir, { recursive: true });
   const saved = [];
   for (const a of attachments) {
-    const name = path18.basename(a.filename) || "attachment";
-    const savedPath = path18.join(downloadDir, name);
-    await fs17.writeFile(savedPath, a.content);
+    const name = path19.basename(a.filename) || "attachment";
+    const savedPath = path19.join(downloadDir, name);
+    await fs18.writeFile(savedPath, a.content);
     saved.push({ filename: name, savedPath, size: a.content.length });
   }
   return saved;
@@ -36968,8 +37195,8 @@ var init_mail_fetcher = __esm({
 });
 
 // src/tools/fetch-mail.ts
-import os12 from "node:os";
-import path19 from "node:path";
+import os13 from "node:os";
+import path20 from "node:path";
 function registerFetchMailTool(server, deps = {}) {
   const makeFetcher = deps.fetcherFactory ?? ((creds) => new ImapflowMailFetcher(creds));
   server.registerTool(
@@ -36978,11 +37205,11 @@ function registerFetchMailTool(server, deps = {}) {
       title: "Read this agent's mailbox",
       description: "List messages in this agent's Cogent mailbox, or fetch one message (text + attachments saved locally) by uid. Requires cogent_setup_mail to have stored the mailbox credentials.",
       inputSchema: {
-        action: import_zod18.z.enum(["list", "fetch"]).optional().describe("'list' (default) or 'fetch' one message"),
-        uid: import_zod18.z.number().int().positive().optional().describe("Message uid to fetch (required when action='fetch')"),
-        unreadOnly: import_zod18.z.boolean().optional().describe("List only unread messages (default false)"),
-        limit: import_zod18.z.number().int().positive().optional().describe("Max messages to list (default 25)"),
-        downloadDir: import_zod18.z.string().optional().describe(`Directory to save fetched attachments (default ${DEFAULT_DOWNLOAD_DIR})`)
+        action: import_zod19.z.enum(["list", "fetch"]).optional().describe("'list' (default) or 'fetch' one message"),
+        uid: import_zod19.z.number().int().positive().optional().describe("Message uid to fetch (required when action='fetch')"),
+        unreadOnly: import_zod19.z.boolean().optional().describe("List only unread messages (default false)"),
+        limit: import_zod19.z.number().int().positive().optional().describe("Max messages to list (default 25)"),
+        downloadDir: import_zod19.z.string().optional().describe(`Directory to save fetched attachments (default ${DEFAULT_DOWNLOAD_DIR})`)
       },
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true }
     },
@@ -37021,17 +37248,17 @@ function registerFetchMailTool(server, deps = {}) {
     }
   );
 }
-var import_zod18, DEFAULT_DOWNLOAD_DIR;
+var import_zod19, DEFAULT_DOWNLOAD_DIR;
 var init_fetch_mail = __esm({
   "src/tools/fetch-mail.ts"() {
     "use strict";
-    import_zod18 = __toESM(require_zod(), 1);
+    import_zod19 = __toESM(require_zod(), 1);
     init_errors4();
     init_mail_credential_store();
     init_mail_fetcher();
     init_auth_error();
     init_validate();
-    DEFAULT_DOWNLOAD_DIR = path19.join(os12.homedir(), ".cogent", "mail-downloads");
+    DEFAULT_DOWNLOAD_DIR = path20.join(os13.homedir(), ".cogent", "mail-downloads");
   }
 });
 
@@ -37131,6 +37358,7 @@ async function main() {
   registerListPeersTool(server);
   registerGetHistoryTool(server);
   registerHealthCheckTool(server);
+  registerWakeLogTool(server);
   registerCreateSessionTool(server);
   registerJoinSessionTool(server);
   registerSetupMailTool(server);
@@ -37203,6 +37431,7 @@ var init_index = __esm({
     init_get_history();
     init_deregister_peer();
     init_health_check2();
+    init_wake_log2();
     init_create_session();
     init_join_session();
     init_setup_mail();
