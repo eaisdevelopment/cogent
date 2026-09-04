@@ -26389,8 +26389,8 @@ var init_stdio2 = __esm({
 // src/constants.ts
 import { createRequire } from "node:module";
 function resolveVersion() {
-  if ("3.23.0") {
-    return "3.23.0";
+  if ("3.23.1") {
+    return "3.23.1";
   }
   try {
     const require2 = createRequire(import.meta.url);
@@ -35114,10 +35114,11 @@ async function clearMailCredentials(credentialPath) {
     if (err.code !== "ENOENT") throw err;
   }
 }
-var MAIL_DEFAULT_HOST;
+var MAIL_NOT_CONFIGURED_HINT, MAIL_DEFAULT_HOST;
 var init_mail_credential_store = __esm({
   "src/cloud/mail-credential-store.ts"() {
     "use strict";
+    MAIL_NOT_CONFIGURED_HINT = "Cogent Mail requires a Team channel, where each agent's mailbox is provisioned AUTOMATICALLY when it registers \u2014 there is nothing to set up by hand and no password for anyone to hand over. If this IS a Team channel, restart the agent so it re-registers and retries provisioning (the relay logs the reason if it fails). Free channels do not have mailboxes. cogent_setup_mail remains available for a self-hosted or manually provisioned mailbox.";
     MAIL_DEFAULT_HOST = "mail.cogent.tools";
   }
 });
@@ -35287,6 +35288,11 @@ function registerRegisterPeerTool(server) {
               `check-on-stop: could not stamp peerId into credentials: ${err.message}`
             );
           }
+        }
+        if (peer?.mailboxError) {
+          logger.warn(
+            `Cogent Mail: mailbox provisioning FAILED (${peer.mailboxError.code}) \u2014 ${peer.mailboxError.message}`
+          );
         }
         try {
           if (await persistProvisionedMailbox(peer?.mailbox)) {
@@ -37020,7 +37026,7 @@ function registerSendMailTool(server, deps = {}) {
             new BridgeError(
               "INVALID_INPUT" /* INVALID_INPUT */,
               "No mailbox is configured for this agent",
-              "Run cogent_setup_mail with the address + password from the admin Mail panel first"
+              MAIL_NOT_CONFIGURED_HINT
             )
           );
         }
@@ -37221,7 +37227,7 @@ function registerFetchMailTool(server, deps = {}) {
             new BridgeError(
               "INVALID_INPUT" /* INVALID_INPUT */,
               "No mailbox is configured for this agent",
-              "Run cogent_setup_mail with the address + password from the admin Mail panel first"
+              MAIL_NOT_CONFIGURED_HINT
             )
           );
         }
