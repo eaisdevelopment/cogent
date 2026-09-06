@@ -1259,8 +1259,8 @@ var init_parseUtil = __esm({
     init_errors();
     init_en();
     makeIssue = (params) => {
-      const { data, path: path25, errorMaps, issueData } = params;
-      const fullPath = [...path25, ...issueData.path || []];
+      const { data, path: path26, errorMaps, issueData } = params;
+      const fullPath = [...path26, ...issueData.path || []];
       const fullIssue = {
         ...issueData,
         path: fullPath
@@ -1540,11 +1540,11 @@ var init_types = __esm({
     init_parseUtil();
     init_util();
     ParseInputLazyPath = class {
-      constructor(parent, value, path25, key) {
+      constructor(parent, value, path26, key) {
         this._cachedPath = [];
         this.parent = parent;
         this.data = value;
-        this._path = path25;
+        this._path = path26;
         this._key = key;
       }
       get path() {
@@ -4996,10 +4996,10 @@ function assignProp(target, prop, value) {
     configurable: true
   });
 }
-function getElementAtPath(obj, path25) {
-  if (!path25)
+function getElementAtPath(obj, path26) {
+  if (!path26)
     return obj;
-  return path25.reduce((acc, key) => acc?.[key], obj);
+  return path26.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -5248,11 +5248,11 @@ function aborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path25, issues) {
+function prefixIssues(path26, issues) {
   return issues.map((iss) => {
     var _a;
     (_a = iss).path ?? (_a.path = []);
-    iss.path.unshift(path25);
+    iss.path.unshift(path26);
     return iss;
   });
 }
@@ -17058,8 +17058,8 @@ var require_utils = __commonJS({
       }
       return ind;
     }
-    function removeDotSegments(path25) {
-      let input = path25;
+    function removeDotSegments(path26) {
+      let input = path26;
       const output = [];
       let nextSlash = -1;
       let len = 0;
@@ -17258,8 +17258,8 @@ var require_schemes = __commonJS({
         wsComponent.secure = void 0;
       }
       if (wsComponent.resourceName) {
-        const [path25, query] = wsComponent.resourceName.split("?");
-        wsComponent.path = path25 && path25 !== "/" ? path25 : void 0;
+        const [path26, query] = wsComponent.resourceName.split("?");
+        wsComponent.path = path26 && path26 !== "/" ? path26 : void 0;
         wsComponent.query = query;
         wsComponent.resourceName = void 0;
       }
@@ -20612,12 +20612,12 @@ var require_dist = __commonJS({
         throw new Error(`Unknown format "${name}"`);
       return f;
     };
-    function addFormats(ajv, list, fs23, exportName) {
+    function addFormats(ajv, list, fs24, exportName) {
       var _a;
       var _b;
       (_a = (_b = ajv.opts.code).formats) !== null && _a !== void 0 ? _a : _b.formats = (0, codegen_1._)`require("ajv-formats/dist/formats").${exportName}`;
       for (const f of list)
-        ajv.addFormat(f, fs23[f]);
+        ajv.addFormat(f, fs24[f]);
     }
     module.exports = exports = formatsPlugin;
     Object.defineProperty(exports, "__esModule", { value: true });
@@ -21729,8 +21729,8 @@ var require_parseUtil = __commonJS({
     var errors_js_1 = require_errors2();
     var en_js_1 = __importDefault(require_en());
     var makeIssue2 = (params) => {
-      const { data, path: path25, errorMaps, issueData } = params;
-      const fullPath = [...path25, ...issueData.path || []];
+      const { data, path: path26, errorMaps, issueData } = params;
+      const fullPath = [...path26, ...issueData.path || []];
       const fullIssue = {
         ...issueData,
         path: fullPath
@@ -21884,11 +21884,11 @@ var require_types2 = __commonJS({
     var parseUtil_js_1 = require_parseUtil();
     var util_js_1 = require_util2();
     var ParseInputLazyPath2 = class {
-      constructor(parent, value, path25, key) {
+      constructor(parent, value, path26, key) {
         this._cachedPath = [];
         this.parent = parent;
         this.data = value;
-        this._path = path25;
+        this._path = path26;
         this._key = key;
       }
       get path() {
@@ -26389,8 +26389,8 @@ var init_stdio2 = __esm({
 // src/constants.ts
 import { createRequire } from "node:module";
 function resolveVersion() {
-  if ("3.23.7") {
-    return "3.23.7";
+  if ("3.23.8") {
+    return "3.23.8";
   }
   try {
     const require2 = createRequire(import.meta.url);
@@ -27826,7 +27826,7 @@ var init_http_backend = __esm({
        * in cloud mode we ignore it and use this.sessionId (the cloud session).
        */
       async registerPeer(peerId, _sessionId, cwd, label, clientVersion, mode, _channelSessionId, capabilities, workspaceId, threadId, peerSecret) {
-        const path25 = PATHS.peers.replace(":sessionId", this.sessionId);
+        const path26 = PATHS.peers.replace(":sessionId", this.sessionId);
         const body = {
           peerId,
           cwd,
@@ -27857,7 +27857,7 @@ var init_http_backend = __esm({
         if (peerSecret !== void 0 && await relaySupports(this.http, "peer-ownership")) {
           body.peerSecret = peerSecret;
         }
-        return this.http.post(path25, body);
+        return this.http.post(path26, body);
       }
       /**
        * Deregister a peer from the cloud session.
@@ -27869,9 +27869,9 @@ var init_http_backend = __esm({
        * local mail creds. A 404 (peer not found) resolves to `{ removed: false, ... }`, not a throw.
        */
       async deregisterPeer(peerId) {
-        const path25 = PATHS.peer.replace(":sessionId", this.sessionId).replace(":peerId", peerId);
+        const path26 = PATHS.peer.replace(":sessionId", this.sessionId).replace(":peerId", peerId);
         try {
-          const headers = await this.http.delete(path25, {});
+          const headers = await this.http.delete(path26, {});
           const mailboxDeprovisioned = headers.get(MAILBOX_DEPROVISIONED_HEADER) === "true";
           return { removed: true, mailboxDeprovisioned };
         } catch (err) {
@@ -27895,8 +27895,8 @@ var init_http_backend = __esm({
        * GET /api/sessions/:sessionId/peers
        */
       async listPeers() {
-        const path25 = PATHS.peers.replace(":sessionId", this.sessionId);
-        const result = await this.http.get(path25);
+        const path26 = PATHS.peers.replace(":sessionId", this.sessionId);
+        const result = await this.http.get(path26);
         return result.peers;
       }
       /**
@@ -27904,8 +27904,8 @@ var init_http_backend = __esm({
        * Calls the lightweight heartbeat endpoint on the cloud relay server.
        */
       async updateLastSeen(peerId) {
-        const path25 = PATHS.heartbeat.replace(":sessionId", this.sessionId);
-        await this.http.post(path25, { peerId });
+        const path26 = PATHS.heartbeat.replace(":sessionId", this.sessionId);
+        await this.http.post(path26, { peerId });
       }
       /**
        * Record a message in the cloud session.
@@ -27916,7 +27916,7 @@ var init_http_backend = __esm({
        * the input record to construct a full MessageRecord.
        */
       async recordMessage(record2) {
-        const path25 = PATHS.messages.replace(":sessionId", this.sessionId);
+        const path26 = PATHS.messages.replace(":sessionId", this.sessionId);
         const body = {
           fromPeerId: record2.fromPeerId,
           toPeerId: record2.toPeerId,
@@ -27939,7 +27939,7 @@ var init_http_backend = __esm({
         if (record2.attachments && record2.attachments.length > 0) {
           body.attachments = record2.attachments;
         }
-        const resp = await this.http.post(path25, body);
+        const resp = await this.http.post(path26, body);
         return {
           ...record2,
           id: resp.id,
@@ -27953,7 +27953,7 @@ var init_http_backend = __esm({
        * Supports optional peerId filter and limit (default 300).
        */
       async getHistory(peerId, limit, includeRelayEchoes, metadataOnly, dedupInferredEchoes) {
-        const path25 = PATHS.messages.replace(":sessionId", this.sessionId);
+        const path26 = PATHS.messages.replace(":sessionId", this.sessionId);
         const query = {};
         if (peerId) {
           query.peerId = peerId;
@@ -27968,7 +27968,7 @@ var init_http_backend = __esm({
         if (dedupInferredEchoes) {
           query.dedupInferredEchoes = "true";
         }
-        const result = await this.http.get(path25, query);
+        const result = await this.http.get(path26, query);
         return result.messages;
       }
       /**
@@ -27979,12 +27979,12 @@ var init_http_backend = __esm({
        * so that get-history shows the actual response (not null).
        */
       async updateMessageResponse(messageId, response, durationMs, pending) {
-        const path25 = PATHS.message.replace(":sessionId", this.sessionId).replace(":messageId", messageId);
+        const path26 = PATHS.message.replace(":sessionId", this.sessionId).replace(":messageId", messageId);
         const body = { response, durationMs };
         if (pending === true) {
           body.pending = true;
         }
-        await this.http.patch(path25, body);
+        await this.http.patch(path26, body);
       }
       /**
        * Validate a session.
@@ -28126,8 +28126,8 @@ var init_http_client = __esm({
        * Perform an authenticated GET request.
        * Appends query parameters to the URL if provided.
        */
-      async get(path25, query) {
-        const url = new URL(path25, this.baseUrl);
+      async get(path26, query) {
+        const url = new URL(path26, this.baseUrl);
         if (query) {
           for (const [k, v] of Object.entries(query)) {
             url.searchParams.set(k, v);
@@ -28142,8 +28142,8 @@ var init_http_client = __esm({
       /**
        * Perform an authenticated POST request with a JSON body.
        */
-      async post(path25, body) {
-        const url = new URL(path25, this.baseUrl);
+      async post(path26, body) {
+        const url = new URL(path26, this.baseUrl);
         const resp = await this.fetchWithTimeout(url, {
           method: "POST",
           headers: this.headers(),
@@ -28161,8 +28161,8 @@ var init_http_client = __esm({
        * Perform an authenticated PATCH request with a JSON body.
        * Used to update existing resources (e.g., message response fields).
        */
-      async patch(path25, body) {
-        const url = new URL(path25, this.baseUrl);
+      async patch(path26, body) {
+        const url = new URL(path26, this.baseUrl);
         const resp = await this.fetchWithTimeout(url, {
           method: "PATCH",
           headers: this.headers(),
@@ -28187,8 +28187,8 @@ var init_http_client = __esm({
        * "Malformed JSON in request body" 400 from cogent-server <=3.1.2 when
        * any client (including third-party tools) DELETEd a peer without a body.
        */
-      async delete(path25, body) {
-        const url = new URL(path25, this.baseUrl);
+      async delete(path26, body) {
+        const url = new URL(path26, this.baseUrl);
         const headers = {
           "Authorization": `Bearer ${this.token}`
         };
@@ -32087,6 +32087,44 @@ var init_wrapper = __esm({
   }
 });
 
+// src/cloud/poll-cursor.ts
+import fs11 from "node:fs";
+import os8 from "node:os";
+import path12 from "node:path";
+function pollCursorPath(sessionId, peerId) {
+  return path12.join(os8.homedir(), ".cogent", "poll-cursors", `${safe(sessionId)}.${safe(peerId)}.json`);
+}
+function loadPollCursor(sessionId, peerId) {
+  if (!sessionId || !peerId) return null;
+  try {
+    const raw = JSON.parse(fs11.readFileSync(pollCursorPath(sessionId, peerId), "utf-8"));
+    return typeof raw?.lastMessageId === "string" && raw.lastMessageId ? raw.lastMessageId : null;
+  } catch {
+    return null;
+  }
+}
+function savePollCursor(sessionId, peerId, lastMessageId) {
+  if (!sessionId || !peerId || !lastMessageId) return;
+  const p = pollCursorPath(sessionId, peerId);
+  try {
+    fs11.mkdirSync(path12.dirname(p), { recursive: true });
+    fs11.writeFileSync(
+      p,
+      JSON.stringify({ lastMessageId, updatedAt: (/* @__PURE__ */ new Date()).toISOString() })
+    );
+  } catch (err) {
+    logger.debug(`poll-cursor: could not persist (${err.message})`);
+  }
+}
+var safe;
+var init_poll_cursor = __esm({
+  "src/cloud/poll-cursor.ts"() {
+    "use strict";
+    init_logger();
+    safe = (s) => String(s).replace(/[^A-Za-z0-9._-]/g, "_");
+  }
+});
+
 // src/cloud/ws-client.ts
 var CloudWsClient;
 var init_ws_client = __esm({
@@ -32096,6 +32134,7 @@ var init_ws_client = __esm({
     init_backoff();
     init_ws_frames();
     init_logger();
+    init_poll_cursor();
     CloudWsClient = class {
       ws = null;
       state = "disconnected";
@@ -32104,6 +32143,34 @@ var init_ws_client = __esm({
       pollTimer = null;
       pingTimer = null;
       lastMessageId = null;
+      /**
+       * Advance the poll cursor AND persist it.
+       *
+       * Every assignment must go through here. `lastMessageId` was in-memory only, so a restart sent
+       * no cursor and the relay replayed the whole channel ("If lastMessageId is not provided (first
+       * poll), returns all messages") — re-injecting days-old broadcasts on every restart.
+       */
+      advanceCursor(id) {
+        if (!id) return;
+        this.lastMessageId = id;
+        savePollCursor(this.opts.sessionId, this.opts.peerId, id);
+      }
+      /**
+       * Seed the cursor from disk when this process has not consumed anything yet.
+       *
+       * Only ever fills a NULL cursor: a live in-memory position is always newer than the stored one,
+       * so it must never be overwritten by a restore.
+       */
+      restoreCursor() {
+        if (this.lastMessageId) return;
+        const stored = loadPollCursor(this.opts.sessionId, this.opts.peerId);
+        if (stored) {
+          this.lastMessageId = stored;
+          logger.info(
+            `CloudWsClient: resuming from stored poll cursor (${stored.slice(0, 8)}\u2026) \u2014 the channel backlog before it has already been consumed and will not be replayed.`
+          );
+        }
+      }
       lastWsError = null;
       connectionGeneration = 0;
       opts;
@@ -32126,6 +32193,7 @@ var init_ws_client = __esm({
        * Guards against empty peerId -- call setPeerId() first.
        */
       connect() {
+        this.restoreCursor();
         if (!this.opts.peerId) {
           logger.warn(
             "CloudWsClient: Cannot connect WebSocket without peerId. Call setPeerId() first."
@@ -32277,7 +32345,7 @@ var init_ws_client = __esm({
        * Update the last seen message ID (e.g., from HttpBackend operations).
        */
       updateLastMessageId(id) {
-        this.lastMessageId = id;
+        this.advanceCursor(id);
       }
       /**
        * Update the auth token for reconnection.
@@ -32355,13 +32423,13 @@ var init_ws_client = __esm({
         switch (frame.type) {
           case "message":
             this.opts.onMessage(frame.payload);
-            this.lastMessageId = frame.payload.id;
+            this.advanceCursor(frame.payload.id);
             break;
           case "queued_messages": {
             const msgs = frame.payload.messages;
             this.opts.onMessages(msgs);
             if (msgs.length > 0) {
-              this.lastMessageId = msgs[msgs.length - 1].id;
+              this.advanceCursor(msgs[msgs.length - 1].id);
             }
             break;
           }
@@ -32391,19 +32459,20 @@ var init_ws_client = __esm({
       }
       startPolling() {
         if (this.pollTimer) return;
+        this.restoreCursor();
         const poll = async () => {
           try {
-            const path25 = `/api/sessions/${this.opts.sessionId}/poll`;
+            const path26 = `/api/sessions/${this.opts.sessionId}/poll`;
             const query = {
               peerId: this.opts.peerId
             };
             if (this.lastMessageId) {
               query.lastMessageId = this.lastMessageId;
             }
-            const result = await this.opts.http.get(path25, query);
+            const result = await this.opts.http.get(path26, query);
             if (result.messages && result.messages.length > 0) {
               this.opts.onMessages(result.messages);
-              this.lastMessageId = result.messages[result.messages.length - 1].id;
+              this.advanceCursor(result.messages[result.messages.length - 1].id);
             }
           } catch (err) {
             logger.warn(
@@ -32457,9 +32526,9 @@ var init_cloud = __esm({
 
 // src/services/codex-cli.ts
 import { spawn as spawn2 } from "node:child_process";
-import fs11 from "node:fs/promises";
-import os8 from "node:os";
-import path12 from "node:path";
+import fs12 from "node:fs/promises";
+import os9 from "node:os";
+import path13 from "node:path";
 import { randomUUID } from "node:crypto";
 import { createReadStream } from "node:fs";
 import { createInterface as createInterface2 } from "node:readline";
@@ -32487,7 +32556,7 @@ function execCodex(sessionId, message, cwd, timeoutMs) {
     const config2 = getConfig();
     const effectiveTimeout = timeoutMs ?? config2.COGENT_TIMEOUT_MS;
     const truncated = config2.COGENT_CHAR_LIMIT > 0 && message.length > config2.COGENT_CHAR_LIMIT ? message.slice(0, config2.COGENT_CHAR_LIMIT) + "\n...[truncated]" : message;
-    const lastMsgFile = path12.join(os8.tmpdir(), `cogent-codex-${randomUUID()}.txt`);
+    const lastMsgFile = path13.join(os9.tmpdir(), `cogent-codex-${randomUUID()}.txt`);
     const args = [
       "exec",
       "resume",
@@ -32515,7 +32584,7 @@ function execCodex(sessionId, message, cwd, timeoutMs) {
         resolve(result);
       }
     };
-    const cleanupFile = () => fs11.rm(lastMsgFile, { force: true }).catch(() => {
+    const cleanupFile = () => fs12.rm(lastMsgFile, { force: true }).catch(() => {
     });
     const timer = setTimeout(async () => {
       killed = true;
@@ -32566,7 +32635,7 @@ function execCodex(sessionId, message, cwd, timeoutMs) {
       }
       let fileMessage = "";
       try {
-        fileMessage = await fs11.readFile(lastMsgFile, "utf8");
+        fileMessage = await fs12.readFile(lastMsgFile, "utf8");
       } catch {
         fileMessage = "";
       }
@@ -32587,12 +32656,12 @@ async function listRolloutFiles(root) {
   async function walk(dir) {
     let entries;
     try {
-      entries = await fs11.readdir(dir, { withFileTypes: true });
+      entries = await fs12.readdir(dir, { withFileTypes: true });
     } catch {
       return;
     }
     for (const e of entries) {
-      const full = path12.join(dir, e.name);
+      const full = path13.join(dir, e.name);
       if (e.isDirectory()) await walk(full);
       else if (e.isFile() && e.name.endsWith(".jsonl")) out.push(full);
     }
@@ -32624,19 +32693,19 @@ async function readSessionMeta(file) {
   }
 }
 function codexSessionsRoot() {
-  return path12.join(codexHomeDir(), "sessions");
+  return path13.join(codexHomeDir(), "sessions");
 }
 async function cwdCanonicals(cwd) {
-  const resolved = path12.resolve(cwd);
+  const resolved = path13.resolve(cwd);
   const forms = /* @__PURE__ */ new Set([resolved]);
   try {
-    forms.add(await fs11.realpath(resolved));
+    forms.add(await fs12.realpath(resolved));
   } catch {
   }
   return forms;
 }
 function metaCwdMatches(metaCwd, forms) {
-  return forms.has(path12.resolve(metaCwd));
+  return forms.has(path13.resolve(metaCwd));
 }
 async function detectCurrentCodexSession(cwd) {
   try {
@@ -32644,7 +32713,7 @@ async function detectCurrentCodexSession(cwd) {
     const files = await listRolloutFiles(codexSessionsRoot());
     const withStats = await Promise.all(
       files.map(async (f) => {
-        const stat = await fs11.stat(f);
+        const stat = await fs12.stat(f);
         return { file: f, mtimeMs: stat.mtimeMs };
       })
     );
@@ -32663,7 +32732,7 @@ async function listCodexCandidates(cwd) {
     const forms = await cwdCanonicals(cwd);
     const files = await listRolloutFiles(codexSessionsRoot());
     const withStats = await Promise.all(
-      files.map(async (f) => ({ file: f, mtimeMs: (await fs11.stat(f)).mtimeMs }))
+      files.map(async (f) => ({ file: f, mtimeMs: (await fs12.stat(f)).mtimeMs }))
     );
     const bySession = /* @__PURE__ */ new Map();
     for (const { file, mtimeMs } of withStats) {
@@ -32703,12 +32772,12 @@ var init_codex_cli = __esm({
 });
 
 // src/services/codex-app-server.ts
-import path13 from "node:path";
+import path14 from "node:path";
 import { statSync } from "node:fs";
-import fs12 from "node:fs/promises";
+import fs13 from "node:fs/promises";
 import { spawn as spawn3, spawnSync } from "node:child_process";
 function appServerSocketPath(codexHome = codexHomeDir()) {
-  return path13.join(codexHome, "app-server-control", "app-server-control.sock");
+  return path14.join(codexHome, "app-server-control", "app-server-control.sock");
 }
 function appServerDaemonRunning(codexHome = codexHomeDir()) {
   try {
@@ -32956,7 +33025,7 @@ var init_codex_app_server = __esm({
     });
     defaultSocketExists = async (p) => {
       try {
-        await fs12.stat(p);
+        await fs13.stat(p);
         return true;
       } catch {
         return false;
@@ -33122,14 +33191,14 @@ var init_exec_remote = __esm({
 // src/services/wake-log.ts
 import { execFileSync } from "node:child_process";
 import crypto4 from "node:crypto";
-import fs13 from "node:fs";
-import os9 from "node:os";
-import path14 from "node:path";
+import fs14 from "node:fs";
+import os10 from "node:os";
+import path15 from "node:path";
 function hashCwd2(cwd) {
-  return crypto4.createHash("sha256").update(path14.resolve(cwd)).digest("hex").slice(0, 16);
+  return crypto4.createHash("sha256").update(path15.resolve(cwd)).digest("hex").slice(0, 16);
 }
 function wakeLogPath(cwd) {
-  return path14.join(os9.homedir(), ".cogent", "wake-log", `${hashCwd2(cwd)}.jsonl`);
+  return path15.join(os10.homedir(), ".cogent", "wake-log", `${hashCwd2(cwd)}.jsonl`);
 }
 function git(cwd, args) {
   return execFileSync("git", ["-C", cwd, ...args], {
@@ -33173,13 +33242,13 @@ function preview(message) {
 function appendWakeRecord(record2, cwd) {
   const target = wakeLogPath(cwd);
   try {
-    fs13.mkdirSync(path14.dirname(target), { recursive: true });
+    fs14.mkdirSync(path15.dirname(target), { recursive: true });
     const row = {
       ts: (/* @__PURE__ */ new Date()).toISOString(),
       ...record2,
       messagePreview: preview(record2.messagePreview ?? "")
     };
-    fs13.appendFileSync(target, `${JSON.stringify(row)}
+    fs14.appendFileSync(target, `${JSON.stringify(row)}
 `);
     pruneIfNeeded(target);
   } catch {
@@ -33187,20 +33256,20 @@ function appendWakeRecord(record2, cwd) {
 }
 function pruneIfNeeded(target) {
   try {
-    const lines = fs13.readFileSync(target, "utf-8").split("\n").filter((l) => l.length > 0);
+    const lines = fs14.readFileSync(target, "utf-8").split("\n").filter((l) => l.length > 0);
     if (lines.length <= WAKE_LOG_MAX_RECORDS) return;
     const kept = lines.slice(lines.length - WAKE_LOG_MAX_RECORDS);
     const tmp = `${target}.tmp-${process.pid}`;
-    fs13.writeFileSync(tmp, `${kept.join("\n")}
+    fs14.writeFileSync(tmp, `${kept.join("\n")}
 `);
-    fs13.renameSync(tmp, target);
+    fs14.renameSync(tmp, target);
   } catch {
   }
 }
 function readWakeLog(cwd, limit) {
   let lines;
   try {
-    lines = fs13.readFileSync(wakeLogPath(cwd), "utf-8").split("\n").filter((l) => l.length > 0);
+    lines = fs14.readFileSync(wakeLogPath(cwd), "utf-8").split("\n").filter((l) => l.length > 0);
   } catch {
     return [];
   }
@@ -33313,14 +33382,14 @@ var init_session_resolver = __esm({
 
 // src/services/wake-inflight.ts
 import crypto5 from "node:crypto";
-import fs14 from "node:fs";
-import os10 from "node:os";
-import path15 from "node:path";
+import fs15 from "node:fs";
+import os11 from "node:os";
+import path16 from "node:path";
 function hashCwd3(cwd) {
-  return crypto5.createHash("sha256").update(path15.resolve(cwd)).digest("hex").slice(0, 16);
+  return crypto5.createHash("sha256").update(path16.resolve(cwd)).digest("hex").slice(0, 16);
 }
 function wakeInflightPath(peerId, cwd = process.cwd()) {
-  return path15.join(os10.homedir(), ".cogent", "wake-inflight", `${hashCwd3(cwd)}.${safe(peerId)}.json`);
+  return path16.join(os11.homedir(), ".cogent", "wake-inflight", `${hashCwd3(cwd)}.${safe2(peerId)}.json`);
 }
 function ttlMs() {
   let timeout = 3e5;
@@ -33333,17 +33402,17 @@ function ttlMs() {
 }
 function readFileSafe(p) {
   try {
-    const parsed = JSON.parse(fs14.readFileSync(p, "utf-8"));
+    const parsed = JSON.parse(fs15.readFileSync(p, "utf-8"));
     return parsed && typeof parsed === "object" && parsed.messages ? parsed : { messages: {} };
   } catch {
     return { messages: {} };
   }
 }
 function writeAtomic(p, data) {
-  fs14.mkdirSync(path15.dirname(p), { recursive: true });
+  fs15.mkdirSync(path16.dirname(p), { recursive: true });
   const tmp = `${p}.${process.pid}.tmp`;
-  fs14.writeFileSync(tmp, JSON.stringify(data, null, 2) + "\n", "utf-8");
-  fs14.renameSync(tmp, p);
+  fs15.writeFileSync(tmp, JSON.stringify(data, null, 2) + "\n", "utf-8");
+  fs15.renameSync(tmp, p);
 }
 function prune(f, now) {
   for (const [id, rec] of Object.entries(f.messages)) {
@@ -33383,7 +33452,7 @@ function clearWakeInFlight(peerId, messageId, cwd = process.cwd()) {
     logger.debug(`wake-inflight: could not clear ${messageId}: ${err}`);
   }
 }
-var INFLIGHT_MAX_MS, INFLIGHT_TIMEOUT_FACTOR, safe;
+var INFLIGHT_MAX_MS, INFLIGHT_TIMEOUT_FACTOR, safe2;
 var init_wake_inflight = __esm({
   "src/services/wake-inflight.ts"() {
     "use strict";
@@ -33391,24 +33460,24 @@ var init_wake_inflight = __esm({
     init_logger();
     INFLIGHT_MAX_MS = 18e5;
     INFLIGHT_TIMEOUT_FACTOR = 3;
-    safe = (s) => String(s).replace(/[^A-Za-z0-9._-]/g, "_");
+    safe2 = (s) => String(s).replace(/[^A-Za-z0-9._-]/g, "_");
   }
 });
 
 // src/services/wake-claim.ts
 import crypto6 from "node:crypto";
-import fs15 from "node:fs";
-import os11 from "node:os";
-import path16 from "node:path";
+import fs16 from "node:fs";
+import os12 from "node:os";
+import path17 from "node:path";
 function hashCwd4(cwd) {
-  return crypto6.createHash("sha256").update(path16.resolve(cwd)).digest("hex").slice(0, 16);
+  return crypto6.createHash("sha256").update(path17.resolve(cwd)).digest("hex").slice(0, 16);
 }
 function wakeClaimPath(peerId, messageId, cwd = process.cwd()) {
-  return path16.join(
-    os11.homedir(),
+  return path17.join(
+    os12.homedir(),
     ".cogent",
     "wake-claims",
-    `${hashCwd4(cwd)}.${safe2(peerId)}.${safe2(messageId)}.json`
+    `${hashCwd4(cwd)}.${safe3(peerId)}.${safe3(messageId)}.json`
   );
 }
 function ttlMs2() {
@@ -33435,22 +33504,22 @@ function claimWake(peerId, messageId, cwd = process.cwd()) {
   const now = Date.now();
   const body = () => JSON.stringify({ pid: process.pid, startedAt: now, expiresAt: now + ttlMs2() });
   try {
-    fs15.mkdirSync(path16.dirname(p), { recursive: true });
+    fs16.mkdirSync(path17.dirname(p), { recursive: true });
     try {
-      fs15.writeFileSync(p, body(), { flag: "wx" });
+      fs16.writeFileSync(p, body(), { flag: "wx" });
       return true;
     } catch (err) {
       if (err?.code !== "EEXIST") throw err;
     }
     let held = null;
     try {
-      held = JSON.parse(fs15.readFileSync(p, "utf-8"));
+      held = JSON.parse(fs16.readFileSync(p, "utf-8"));
     } catch {
       held = null;
     }
     const expired = !held || typeof held.expiresAt !== "number" || held.expiresAt <= now;
     if (!held || expired || !holderAlive(held.pid)) {
-      fs15.writeFileSync(p, body());
+      fs16.writeFileSync(p, body());
       logger.debug(`wake-claim: took over an abandoned claim for ${messageId}`);
       return true;
     }
@@ -33465,11 +33534,11 @@ function claimWake(peerId, messageId, cwd = process.cwd()) {
 }
 function releaseWake(peerId, messageId, cwd = process.cwd()) {
   try {
-    fs15.unlinkSync(wakeClaimPath(peerId, messageId, cwd));
+    fs16.unlinkSync(wakeClaimPath(peerId, messageId, cwd));
   } catch {
   }
 }
-var CLAIM_MAX_MS, CLAIM_TIMEOUT_FACTOR, safe2;
+var CLAIM_MAX_MS, CLAIM_TIMEOUT_FACTOR, safe3;
 var init_wake_claim = __esm({
   "src/services/wake-claim.ts"() {
     "use strict";
@@ -33477,20 +33546,20 @@ var init_wake_claim = __esm({
     init_logger();
     CLAIM_MAX_MS = 18e5;
     CLAIM_TIMEOUT_FACTOR = 3;
-    safe2 = (s) => String(s).replace(/[^A-Za-z0-9._-]/g, "_");
+    safe3 = (s) => String(s).replace(/[^A-Za-z0-9._-]/g, "_");
   }
 });
 
 // src/services/wake-lock.ts
 import crypto7 from "node:crypto";
-import fs16 from "node:fs";
-import os12 from "node:os";
-import path17 from "node:path";
+import fs17 from "node:fs";
+import os13 from "node:os";
+import path18 from "node:path";
 function hashCwd5(cwd) {
-  return crypto7.createHash("sha256").update(path17.resolve(cwd)).digest("hex").slice(0, 16);
+  return crypto7.createHash("sha256").update(path18.resolve(cwd)).digest("hex").slice(0, 16);
 }
 function wakeLockPath(cwd = process.cwd()) {
-  return path17.join(os12.homedir(), ".cogent", "wake-locks", `${hashCwd5(cwd)}.json`);
+  return path18.join(os13.homedir(), ".cogent", "wake-locks", `${hashCwd5(cwd)}.json`);
 }
 function leaseTtlMs() {
   let timeout = 3e5;
@@ -33521,7 +33590,7 @@ function holderAlive2(pid) {
 }
 function readHolder(p) {
   try {
-    const held = JSON.parse(fs16.readFileSync(p, "utf-8"));
+    const held = JSON.parse(fs17.readFileSync(p, "utf-8"));
     if (!held || typeof held.expiresAt !== "number") return null;
     return held;
   } catch {
@@ -33568,7 +33637,7 @@ async function acquireWakeLock(cwd = process.cwd(), sessionId = "unknown", opts 
     } };
   };
   try {
-    fs16.mkdirSync(path17.dirname(p), { recursive: true });
+    fs17.mkdirSync(path18.dirname(p), { recursive: true });
   } catch (err) {
     return failOpen(`cannot create lock dir (${err.message})`);
   }
@@ -33581,7 +33650,7 @@ async function acquireWakeLock(cwd = process.cwd(), sessionId = "unknown", opts 
       expiresAt: now + leaseTtlMs()
     });
     try {
-      fs16.writeFileSync(p, body, { flag: "wx" });
+      fs17.writeFileSync(p, body, { flag: "wx" });
       if (contended) {
         logger.info(
           `Auto-relay: waited ${Date.now() - started}ms for another bridge process to finish its turn in this checkout before resuming \u2014 turns are serialised, not overlapping.`
@@ -33596,7 +33665,7 @@ async function acquireWakeLock(cwd = process.cwd(), sessionId = "unknown", opts 
     const held = readHolder(p);
     if (!held || held.expiresAt <= now || !holderAlive2(held.pid)) {
       try {
-        fs16.writeFileSync(p, body);
+        fs17.writeFileSync(p, body);
       } catch (err) {
         return failOpen(`cannot steal abandoned lock (${err.message})`);
       }
@@ -33619,7 +33688,7 @@ async function acquireWakeLock(cwd = process.cwd(), sessionId = "unknown", opts 
 }
 function releaseWakeLock(cwd = process.cwd()) {
   try {
-    fs16.unlinkSync(wakeLockPath(cwd));
+    fs17.unlinkSync(wakeLockPath(cwd));
   } catch {
   }
 }
@@ -33639,14 +33708,14 @@ var init_wake_lock = __esm({
 
 // src/services/wake-ownership.ts
 import crypto8 from "node:crypto";
-import fs17 from "node:fs";
-import os13 from "node:os";
-import path18 from "node:path";
+import fs18 from "node:fs";
+import os14 from "node:os";
+import path19 from "node:path";
 function hashCwd6(cwd) {
-  return crypto8.createHash("sha256").update(path18.resolve(cwd)).digest("hex").slice(0, 16);
+  return crypto8.createHash("sha256").update(path19.resolve(cwd)).digest("hex").slice(0, 16);
 }
 function bridgeDirFor(cwd, peerId) {
-  return path18.join(os13.homedir(), ".cogent", "bridges", `${hashCwd6(cwd)}.${safe3(peerId)}`);
+  return path19.join(os14.homedir(), ".cogent", "bridges", `${hashCwd6(cwd)}.${safe4(peerId)}`);
 }
 function pidAlive(pid) {
   if (typeof pid !== "number" || !Number.isInteger(pid) || pid <= 0) return false;
@@ -33661,23 +33730,23 @@ function pidAlive(pid) {
 function announceBridge(cwd, peerId, version2, endpoint) {
   const dir = bridgeDirFor(cwd, peerId);
   try {
-    fs17.mkdirSync(dir, { recursive: true });
+    fs18.mkdirSync(dir, { recursive: true });
     const entry = {
       pid: process.pid,
       startedAt: PROCESS_STARTED_AT,
       version: version2,
       peerId,
       endpoint,
-      cwd: path18.resolve(cwd)
+      cwd: path19.resolve(cwd)
     };
-    fs17.writeFileSync(path18.join(dir, `${process.pid}.json`), JSON.stringify(entry));
+    fs18.writeFileSync(path19.join(dir, `${process.pid}.json`), JSON.stringify(entry));
   } catch (err) {
     logger.debug(`wake-ownership: could not announce this bridge (${err.message})`);
   }
 }
 function withdrawBridge(cwd, peerId) {
   try {
-    fs17.unlinkSync(path18.join(bridgeDirFor(cwd, peerId), `${process.pid}.json`));
+    fs18.unlinkSync(path19.join(bridgeDirFor(cwd, peerId), `${process.pid}.json`));
   } catch {
   }
 }
@@ -33685,23 +33754,23 @@ function listLiveBridges(cwd, peerId) {
   const dir = bridgeDirFor(cwd, peerId);
   let names;
   try {
-    names = fs17.readdirSync(dir);
+    names = fs18.readdirSync(dir);
   } catch {
     return [];
   }
   const live = [];
   for (const name of names) {
     if (!name.endsWith(".json")) continue;
-    const p = path18.join(dir, name);
+    const p = path19.join(dir, name);
     let entry = null;
     try {
-      entry = JSON.parse(fs17.readFileSync(p, "utf-8"));
+      entry = JSON.parse(fs18.readFileSync(p, "utf-8"));
     } catch {
       entry = null;
     }
     if (!entry || !pidAlive(entry.pid) || typeof entry.startedAt !== "number") {
       try {
-        fs17.unlinkSync(p);
+        fs18.unlinkSync(p);
       } catch {
       }
       continue;
@@ -33731,20 +33800,20 @@ function checkWakeOwnership(cwd, peerId) {
   }
   return { isOwner: true, liveCount: live.length + 1 };
 }
-var PROCESS_STARTED_AT, safe3;
+var PROCESS_STARTED_AT, safe4;
 var init_wake_ownership = __esm({
   "src/services/wake-ownership.ts"() {
     "use strict";
     init_logger();
     PROCESS_STARTED_AT = Date.now() - Math.floor(process.uptime() * 1e3);
-    safe3 = (s) => String(s).replace(/[^A-Za-z0-9._-]/g, "_");
+    safe4 = (s) => String(s).replace(/[^A-Za-z0-9._-]/g, "_");
   }
 });
 
 // src/services/stale-bridge-reaper.ts
 import { execFileSync as execFileSync2 } from "node:child_process";
-import fs18 from "node:fs";
-import path19 from "node:path";
+import fs19 from "node:fs";
+import path20 from "node:path";
 function isBridgeCommand(argv) {
   if (!argv) return false;
   if (/\.test\.|-test\.mjs|scripts\//.test(argv)) return false;
@@ -33785,7 +33854,7 @@ function listProcesses() {
 function processCwd(pid) {
   try {
     if (process.platform === "linux") {
-      return path19.resolve(fs18.readlinkSync(`/proc/${pid}/cwd`));
+      return path20.resolve(fs19.readlinkSync(`/proc/${pid}/cwd`));
     }
     if (process.platform === "darwin") {
       const out = execFileSync2("lsof", ["-a", "-d", "cwd", "-p", String(pid), "-Fn"], {
@@ -33794,7 +33863,7 @@ function processCwd(pid) {
         stdio: ["ignore", "pipe", "ignore"]
       });
       const line = out.split("\n").find((l) => l.startsWith("n"));
-      return line ? path19.resolve(line.slice(1)) : null;
+      return line ? path20.resolve(line.slice(1)) : null;
     }
   } catch {
   }
@@ -33802,9 +33871,9 @@ function processCwd(pid) {
 }
 function canonicalPath(p) {
   try {
-    return fs18.realpathSync(path19.resolve(p));
+    return fs19.realpathSync(path20.resolve(p));
   } catch {
-    return path19.resolve(p);
+    return path20.resolve(p);
   }
 }
 function ancestorsOf(pid, procs) {
@@ -33820,9 +33889,9 @@ function ancestorsOf(pid, procs) {
 function announcedPidsFor(cwd) {
   const pids = /* @__PURE__ */ new Set();
   try {
-    const base = path19.dirname(bridgeDirFor(cwd, "x"));
-    const prefix = path19.basename(bridgeDirFor(cwd, "x")).split(".")[0];
-    for (const dir of fs18.readdirSync(base)) {
+    const base = path20.dirname(bridgeDirFor(cwd, "x"));
+    const prefix = path20.basename(bridgeDirFor(cwd, "x")).split(".")[0];
+    for (const dir of fs19.readdirSync(base)) {
       if (!dir.startsWith(`${prefix}.`)) continue;
       const peerId = dir.slice(prefix.length + 1);
       for (const e of listLiveBridges(cwd, peerId)) pids.add(e.pid);
@@ -35267,9 +35336,9 @@ __export(startup_exports, {
   setInboxNotifier: () => setInboxNotifier,
   triggerReRegistration: () => triggerReRegistration
 });
-import os14 from "node:os";
-import path20 from "node:path";
-import fs19 from "node:fs/promises";
+import os15 from "node:os";
+import path21 from "node:path";
+import fs20 from "node:fs/promises";
 import readline2 from "node:readline";
 import { execFile as execFile5 } from "node:child_process";
 import { promisify as promisify4 } from "node:util";
@@ -35287,7 +35356,7 @@ function bindInboxNotifier() {
 }
 async function loadPersistedConfig() {
   try {
-    const raw = await fs19.readFile(PERSIST_PATH, "utf-8");
+    const raw = await fs20.readFile(PERSIST_PATH, "utf-8");
     return JSON.parse(raw);
   } catch {
     return {};
@@ -35295,7 +35364,7 @@ async function loadPersistedConfig() {
 }
 async function savePersistedConfig(config2) {
   try {
-    await fs19.writeFile(PERSIST_PATH, JSON.stringify(config2, null, 2) + "\n", "utf-8");
+    await fs20.writeFile(PERSIST_PATH, JSON.stringify(config2, null, 2) + "\n", "utf-8");
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     logger.warn(`Could not save config to ${PERSIST_PATH}: ${msg}`);
@@ -35330,11 +35399,11 @@ First run detected. Where should cogent-bridge store its data?
   });
 }
 async function validateStateDir(statePath) {
-  await fs19.mkdir(statePath, { recursive: true });
-  const testFile = path20.join(statePath, ".write-test");
+  await fs20.mkdir(statePath, { recursive: true });
+  const testFile = path21.join(statePath, ".write-test");
   try {
-    await fs19.writeFile(testFile, "test", "utf-8");
-    await fs19.unlink(testFile);
+    await fs20.writeFile(testFile, "test", "utf-8");
+    await fs20.unlink(testFile);
   } catch {
     throw new BridgeError(
       "STARTUP_FAILED" /* STARTUP_FAILED */,
@@ -35522,10 +35591,10 @@ async function runStartup() {
   if (envStatePath) {
     statePath = envStatePath;
   } else {
-    const defaultPath = path20.join(os14.homedir(), ".cogent");
+    const defaultPath = path21.join(os15.homedir(), ".cogent");
     statePath = await firstRunPrompt(defaultPath);
   }
-  if (!envStatePath && statePath !== path20.join(os14.homedir(), ".cogent")) {
+  if (!envStatePath && statePath !== path21.join(os15.homedir(), ".cogent")) {
     process.env.COGENT_STATE_PATH = statePath;
   } else if (!envStatePath) {
     process.env.COGENT_STATE_PATH = statePath;
@@ -35589,7 +35658,7 @@ async function runStartup() {
   }
   initLogger(
     config2.COGENT_LOG_LEVEL,
-    path20.join(config2.COGENT_STATE_PATH, "logs")
+    path21.join(config2.COGENT_STATE_PATH, "logs")
   );
   if (isCloud && effectiveSessionId && effectiveToken) {
     cloudInbox = new MessageInbox();
@@ -35651,7 +35720,7 @@ var init_startup = __esm({
     init_auto_relay();
     UUID_V4_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     execFileAsync3 = promisify4(execFile5);
-    PERSIST_PATH = path20.join(os14.homedir(), ".cogent-config.json");
+    PERSIST_PATH = path21.join(os15.homedir(), ".cogent-config.json");
     legacyWarnEmitted = false;
     cloudWsClient = null;
     cloudInbox = null;
@@ -35666,12 +35735,12 @@ var init_startup = __esm({
 
 // src/cloud/mail-credential-store.ts
 import crypto9 from "node:crypto";
-import fs20 from "node:fs/promises";
-import path21 from "node:path";
-import os15 from "node:os";
+import fs21 from "node:fs/promises";
+import path22 from "node:path";
+import os16 from "node:os";
 function defaultMailCredentialPath(cwd = process.cwd()) {
-  const hash = crypto9.createHash("sha256").update(path21.resolve(cwd)).digest("hex").slice(0, 16);
-  return path21.join(os15.homedir(), ".cogent", "mail-credentials", `${hash}.json`);
+  const hash = crypto9.createHash("sha256").update(path22.resolve(cwd)).digest("hex").slice(0, 16);
+  return path22.join(os16.homedir(), ".cogent", "mail-credentials", `${hash}.json`);
 }
 function resolveMailCredentialPath(credentialPath) {
   if (credentialPath) return credentialPath;
@@ -35682,16 +35751,16 @@ function resolveMailCredentialPath(credentialPath) {
 async function loadMailCredentials(credentialPath) {
   const filePath = resolveMailCredentialPath(credentialPath);
   try {
-    return JSON.parse(await fs20.readFile(filePath, "utf-8"));
+    return JSON.parse(await fs21.readFile(filePath, "utf-8"));
   } catch {
     return null;
   }
 }
 async function saveMailCredentials(creds, credentialPath) {
   const filePath = resolveMailCredentialPath(credentialPath);
-  await fs20.mkdir(path21.dirname(filePath), { recursive: true, mode: 448 });
-  await fs20.writeFile(filePath, JSON.stringify(creds, null, 2) + "\n", { encoding: "utf-8", mode: 384 });
-  await fs20.chmod(filePath, 384);
+  await fs21.mkdir(path22.dirname(filePath), { recursive: true, mode: 448 });
+  await fs21.writeFile(filePath, JSON.stringify(creds, null, 2) + "\n", { encoding: "utf-8", mode: 384 });
+  await fs21.chmod(filePath, 384);
 }
 async function persistProvisionedMailbox(mailbox, credentialPath) {
   if (!mailbox?.address || !mailbox.password) return false;
@@ -35712,7 +35781,7 @@ async function persistProvisionedMailbox(mailbox, credentialPath) {
 async function clearMailCredentials(credentialPath) {
   const filePath = resolveMailCredentialPath(credentialPath);
   try {
-    await fs20.unlink(filePath);
+    await fs21.unlink(filePath);
   } catch (err) {
     if (err.code !== "ENOENT") throw err;
   }
@@ -37723,8 +37792,8 @@ var require_cookies = __commonJS({
         if (urlparts.hostname !== cookie.domain && (cookie.domain.charAt(0) !== "." || ("." + urlparts.hostname).substr(-cookie.domain.length) !== cookie.domain)) {
           return false;
         }
-        let path25 = this.getPath(urlparts.pathname);
-        if (path25.substr(0, cookie.path.length) !== cookie.path) {
+        let path26 = this.getPath(urlparts.pathname);
+        if (path26.substr(0, cookie.path.length) !== cookie.path) {
           return false;
         }
         if (cookie.secure && urlparts.protocol !== "https:") {
@@ -37784,16 +37853,16 @@ var require_cookies = __commonJS({
        * @returns {String} Normalized path
        */
       getPath(pathname) {
-        let path25 = (pathname || "/").split("/");
-        path25.pop();
-        path25 = path25.join("/").trim();
-        if (path25.charAt(0) !== "/") {
-          path25 = "/" + path25;
+        let path26 = (pathname || "/").split("/");
+        path26.pop();
+        path26 = path26.join("/").trim();
+        if (path26.charAt(0) !== "/") {
+          path26 = "/" + path26;
         }
-        if (path25.substr(-1) !== "/") {
-          path25 += "/";
+        if (path26.substr(-1) !== "/") {
+          path26 += "/";
         }
-        return path25;
+        return path26;
       }
     };
     module.exports = Cookies;
@@ -38094,15 +38163,15 @@ var require_shared = __commonJS({
     "use strict";
     var urllib = __require("url");
     var util2 = __require("util");
-    var fs23 = __require("fs");
+    var fs24 = __require("fs");
     var nmfetch = require_fetch();
     var dns = __require("dns");
     var net = __require("net");
-    var os17 = __require("os");
+    var os18 = __require("os");
     var DNS_TTL = 5 * 60 * 1e3;
     var networkInterfaces;
     try {
-      networkInterfaces = os17.networkInterfaces();
+      networkInterfaces = os18.networkInterfaces();
     } catch (err) {
     }
     module.exports.networkInterfaces = networkInterfaces;
@@ -38480,7 +38549,7 @@ var require_shared = __commonJS({
           }
           return callback(null, parsedDataUri.data);
         } else if (content.path) {
-          return resolveStream(fs23.createReadStream(content.path), callback);
+          return resolveStream(fs24.createReadStream(content.path), callback);
         }
       }
       if (typeof data[key].content === "string" && !["utf8", "usascii", "ascii"].includes(encoding)) {
@@ -38604,7 +38673,7 @@ var require_shared = __commonJS({
 var require_mime_types = __commonJS({
   "node_modules/nodemailer/lib/mime-funcs/mime-types.js"(exports, module) {
     "use strict";
-    var path25 = __require("path");
+    var path26 = __require("path");
     var defaultMimeType = "application/octet-stream";
     var defaultExtension = "bin";
     var mimeTypes = /* @__PURE__ */ new Map([
@@ -40662,7 +40731,7 @@ var require_mime_types = __commonJS({
         if (!filename) {
           return defaultMimeType;
         }
-        let parsed = path25.parse(filename);
+        let parsed = path26.parse(filename);
         let extension = (parsed.ext.substr(1) || parsed.name || "").split("?").shift().trim().toLowerCase();
         let value = defaultMimeType;
         if (extensions.has(extension)) {
@@ -42064,7 +42133,7 @@ var require_mime_node = __commonJS({
   "node_modules/nodemailer/lib/mime-node/index.js"(exports, module) {
     "use strict";
     var crypto12 = __require("crypto");
-    var fs23 = __require("fs");
+    var fs24 = __require("fs");
     var punycode = require_punycode();
     var PassThrough = __require("stream").PassThrough;
     var shared = require_shared();
@@ -42779,7 +42848,7 @@ var require_mime_node = __commonJS({
             setImmediate(() => contentStream.emit("error", new Error("File access rejected for " + content.path)));
             return contentStream;
           }
-          return fs23.createReadStream(content.path);
+          return fs24.createReadStream(content.path);
         } else if (content && typeof content.href === "string") {
           if (this.disableUrlAccess) {
             contentStream = new PassThrough();
@@ -43800,8 +43869,8 @@ var require_dkim = __commonJS({
     var RelaxedBody = require_relaxed_body();
     var sign = require_sign();
     var PassThrough = __require("stream").PassThrough;
-    var fs23 = __require("fs");
-    var path25 = __require("path");
+    var fs24 = __require("fs");
+    var path26 = __require("path");
     var crypto12 = __require("crypto");
     var DKIM_ALGO = "sha256";
     var MAX_MESSAGE_SIZE = 128 * 1024;
@@ -43815,7 +43884,7 @@ var require_dkim = __commonJS({
         this.chunks = [];
         this.chunklen = 0;
         this.readPos = 0;
-        this.cachePath = this.cacheDir ? path25.join(this.cacheDir, "message." + Date.now() + "-" + crypto12.randomBytes(14).toString("hex")) : false;
+        this.cachePath = this.cacheDir ? path26.join(this.cacheDir, "message." + Date.now() + "-" + crypto12.randomBytes(14).toString("hex")) : false;
         this.cache = false;
         this.headers = false;
         this.bodyHash = false;
@@ -43835,10 +43904,10 @@ var require_dkim = __commonJS({
         if (!this.cache || !this.cachePath) {
           return;
         }
-        fs23.unlink(this.cachePath, () => false);
+        fs24.unlink(this.cachePath, () => false);
       }
       createReadCache() {
-        this.cache = fs23.createReadStream(this.cachePath);
+        this.cache = fs24.createReadStream(this.cachePath);
         this.cache.once("error", (err) => {
           this.cleanup();
           this.output.emit("error", err);
@@ -43894,7 +43963,7 @@ var require_dkim = __commonJS({
       }
       createWriteCache() {
         this.output.usingCache = true;
-        this.cache = fs23.createWriteStream(this.cachePath);
+        this.cache = fs24.createWriteStream(this.cachePath);
         this.cache.once("error", (err) => {
           this.cleanup();
           this.relaxedBody.unpipe(this.cache);
@@ -44821,7 +44890,7 @@ var require_smtp_connection = __commonJS({
     var EventEmitter = __require("events").EventEmitter;
     var net = __require("net");
     var tls = __require("tls");
-    var os17 = __require("os");
+    var os18 = __require("os");
     var crypto12 = __require("crypto");
     var DataStream = require_data_stream();
     var PassThrough = __require("stream").PassThrough;
@@ -46214,7 +46283,7 @@ var require_smtp_connection = __commonJS({
       _getHostname() {
         let defaultHostname;
         try {
-          defaultHostname = os17.hostname() || "";
+          defaultHostname = os18.hostname() || "";
         } catch (err) {
           defaultHostname = "localhost";
         }
@@ -48783,13 +48852,13 @@ var require_nodemailer = __commonJS({
 });
 
 // src/mail/mail-sender.ts
-import fs21 from "node:fs/promises";
-import path22 from "node:path";
+import fs22 from "node:fs/promises";
+import path23 from "node:path";
 async function buildAndSendMail(sender, creds, params) {
   const attachments = [];
   for (const p of params.attachmentPaths ?? []) {
-    const content = await fs21.readFile(p);
-    attachments.push({ filename: path22.basename(p), content });
+    const content = await fs22.readFile(p);
+    attachments.push({ filename: path23.basename(p), content });
   }
   const { messageId } = await sender.send({
     from: creds.address,
@@ -49178,8 +49247,8 @@ var require_req = __commonJS({
       if (req.originalUrl) {
         _req.url = req.originalUrl;
       } else {
-        const path25 = req.path;
-        _req.url = typeof path25 === "string" ? path25 : req.url ? req.url.path || req.url : void 0;
+        const path26 = req.path;
+        _req.url = typeof path26 === "string" ? path26 : req.url ? req.url.path || req.url : void 0;
       }
       if (req.query) {
         _req.query = req.query;
@@ -49344,14 +49413,14 @@ var require_redact = __commonJS({
       }
       return obj;
     }
-    function parsePath(path25) {
+    function parsePath(path26) {
       const parts = [];
       let current = "";
       let inBrackets = false;
       let inQuotes = false;
       let quoteChar = "";
-      for (let i = 0; i < path25.length; i++) {
-        const char = path25[i];
+      for (let i = 0; i < path26.length; i++) {
+        const char = path26[i];
         if (!inBrackets && char === ".") {
           if (current) {
             parts.push(current);
@@ -49482,10 +49551,10 @@ var require_redact = __commonJS({
       return current;
     }
     function redactPaths(obj, paths, censor, remove = false) {
-      for (const path25 of paths) {
-        const parts = parsePath(path25);
+      for (const path26 of paths) {
+        const parts = parsePath(path26);
         if (parts.includes("*")) {
-          redactWildcardPath(obj, parts, censor, path25, remove);
+          redactWildcardPath(obj, parts, censor, path26, remove);
         } else {
           if (remove) {
             removeKey(obj, parts);
@@ -49570,8 +49639,8 @@ var require_redact = __commonJS({
           }
         } else {
           if (afterWildcard.includes("*")) {
-            const wrappedCensor = typeof censor === "function" ? (value, path25) => {
-              const fullPath = [...pathArray.slice(0, pathLength), ...path25];
+            const wrappedCensor = typeof censor === "function" ? (value, path26) => {
+              const fullPath = [...pathArray.slice(0, pathLength), ...path26];
               return censor(value, fullPath);
             } : censor;
             redactWildcardPath(current, afterWildcard, wrappedCensor, originalPath, remove);
@@ -49606,8 +49675,8 @@ var require_redact = __commonJS({
         return null;
       }
       const pathStructure = /* @__PURE__ */ new Map();
-      for (const path25 of pathsToClone) {
-        const parts = parsePath(path25);
+      for (const path26 of pathsToClone) {
+        const parts = parsePath(path26);
         let current = pathStructure;
         for (let i = 0; i < parts.length; i++) {
           const part = parts[i];
@@ -49659,24 +49728,24 @@ var require_redact = __commonJS({
       }
       return cloneSelectively(obj, pathStructure);
     }
-    function validatePath(path25) {
-      if (typeof path25 !== "string") {
+    function validatePath(path26) {
+      if (typeof path26 !== "string") {
         throw new Error("Paths must be (non-empty) strings");
       }
-      if (path25 === "") {
+      if (path26 === "") {
         throw new Error("Invalid redaction path ()");
       }
-      if (path25.includes("..")) {
-        throw new Error(`Invalid redaction path (${path25})`);
+      if (path26.includes("..")) {
+        throw new Error(`Invalid redaction path (${path26})`);
       }
-      if (path25.includes(",")) {
-        throw new Error(`Invalid redaction path (${path25})`);
+      if (path26.includes(",")) {
+        throw new Error(`Invalid redaction path (${path26})`);
       }
       let bracketCount = 0;
       let inQuotes = false;
       let quoteChar = "";
-      for (let i = 0; i < path25.length; i++) {
-        const char = path25[i];
+      for (let i = 0; i < path26.length; i++) {
+        const char = path26[i];
         if ((char === '"' || char === "'") && bracketCount > 0) {
           if (!inQuotes) {
             inQuotes = true;
@@ -49690,20 +49759,20 @@ var require_redact = __commonJS({
         } else if (char === "]" && !inQuotes) {
           bracketCount--;
           if (bracketCount < 0) {
-            throw new Error(`Invalid redaction path (${path25})`);
+            throw new Error(`Invalid redaction path (${path26})`);
           }
         }
       }
       if (bracketCount !== 0) {
-        throw new Error(`Invalid redaction path (${path25})`);
+        throw new Error(`Invalid redaction path (${path26})`);
       }
     }
     function validatePaths(paths) {
       if (!Array.isArray(paths)) {
         throw new TypeError("paths must be an array");
       }
-      for (const path25 of paths) {
-        validatePath(path25);
+      for (const path26 of paths) {
+        validatePath(path26);
       }
     }
     function slowRedact(options = {}) {
@@ -49871,8 +49940,8 @@ var require_redaction = __commonJS({
         if (shape[k] === null) {
           o[k] = (value) => topCensor(value, [k]);
         } else {
-          const wrappedCensor = typeof censor === "function" ? (value, path25) => {
-            return censor(value, [k, ...path25]);
+          const wrappedCensor = typeof censor === "function" ? (value, path26) => {
+            return censor(value, [k, ...path26]);
           } : censor;
           o[k] = Redact({
             paths: shape[k],
@@ -50090,10 +50159,10 @@ var require_atomic_sleep = __commonJS({
 var require_sonic_boom = __commonJS({
   "node_modules/sonic-boom/index.js"(exports, module) {
     "use strict";
-    var fs23 = __require("fs");
+    var fs24 = __require("fs");
     var EventEmitter = __require("events");
     var inherits = __require("util").inherits;
-    var path25 = __require("path");
+    var path26 = __require("path");
     var sleep4 = require_atomic_sleep();
     var assert2 = __require("assert");
     var BUSY_WRITE_TIMEOUT = 100;
@@ -50147,20 +50216,20 @@ var require_sonic_boom = __commonJS({
       const mode = sonic.mode;
       if (sonic.sync) {
         try {
-          if (sonic.mkdir) fs23.mkdirSync(path25.dirname(file), { recursive: true });
-          const fd = fs23.openSync(file, flags, mode);
+          if (sonic.mkdir) fs24.mkdirSync(path26.dirname(file), { recursive: true });
+          const fd = fs24.openSync(file, flags, mode);
           fileOpened(null, fd);
         } catch (err) {
           fileOpened(err);
           throw err;
         }
       } else if (sonic.mkdir) {
-        fs23.mkdir(path25.dirname(file), { recursive: true }, (err) => {
+        fs24.mkdir(path26.dirname(file), { recursive: true }, (err) => {
           if (err) return fileOpened(err);
-          fs23.open(file, flags, mode, fileOpened);
+          fs24.open(file, flags, mode, fileOpened);
         });
       } else {
-        fs23.open(file, flags, mode, fileOpened);
+        fs24.open(file, flags, mode, fileOpened);
       }
     }
     function SonicBoom(opts) {
@@ -50201,8 +50270,8 @@ var require_sonic_boom = __commonJS({
         this.flush = flushBuffer;
         this.flushSync = flushBufferSync;
         this._actualWrite = actualWriteBuffer;
-        fsWriteSync = () => fs23.writeSync(this.fd, this._writingBuf);
-        fsWrite = () => fs23.write(this.fd, this._writingBuf, this.release);
+        fsWriteSync = () => fs24.writeSync(this.fd, this._writingBuf);
+        fsWrite = () => fs24.write(this.fd, this._writingBuf, this.release);
       } else if (contentMode === void 0 || contentMode === kContentModeUtf8) {
         this._writingBuf = "";
         this.write = write;
@@ -50211,15 +50280,15 @@ var require_sonic_boom = __commonJS({
         this._actualWrite = actualWrite;
         fsWriteSync = () => {
           if (Buffer.isBuffer(this._writingBuf)) {
-            return fs23.writeSync(this.fd, this._writingBuf);
+            return fs24.writeSync(this.fd, this._writingBuf);
           }
-          return fs23.writeSync(this.fd, this._writingBuf, "utf8");
+          return fs24.writeSync(this.fd, this._writingBuf, "utf8");
         };
         fsWrite = () => {
           if (Buffer.isBuffer(this._writingBuf)) {
-            return fs23.write(this.fd, this._writingBuf, this.release);
+            return fs24.write(this.fd, this._writingBuf, this.release);
           }
-          return fs23.write(this.fd, this._writingBuf, "utf8", this.release);
+          return fs24.write(this.fd, this._writingBuf, "utf8", this.release);
         };
       } else {
         throw new Error(`SonicBoom supports "${kContentModeUtf8}" and "${kContentModeBuffer}", but passed ${contentMode}`);
@@ -50276,7 +50345,7 @@ var require_sonic_boom = __commonJS({
           }
         }
         if (this._fsync) {
-          fs23.fsyncSync(this.fd);
+          fs24.fsyncSync(this.fd);
         }
         const len = this._len;
         if (this._reopening) {
@@ -50390,7 +50459,7 @@ var require_sonic_boom = __commonJS({
       const onDrain = () => {
         if (!this._fsync) {
           try {
-            fs23.fsync(this.fd, (err) => {
+            fs24.fsync(this.fd, (err) => {
               this._flushPending = false;
               cb(err);
             });
@@ -50492,7 +50561,7 @@ var require_sonic_boom = __commonJS({
       const fd = this.fd;
       this.once("ready", () => {
         if (fd !== this.fd) {
-          fs23.close(fd, (err) => {
+          fs24.close(fd, (err) => {
             if (err) {
               return this.emit("error", err);
             }
@@ -50541,7 +50610,7 @@ var require_sonic_boom = __commonJS({
           buf = this._bufs[0];
         }
         try {
-          const n = Buffer.isBuffer(buf) ? fs23.writeSync(this.fd, buf) : fs23.writeSync(this.fd, buf, "utf8");
+          const n = Buffer.isBuffer(buf) ? fs24.writeSync(this.fd, buf) : fs24.writeSync(this.fd, buf, "utf8");
           const releasedBufObj = releaseWritingBuf(buf, this._len, n);
           buf = releasedBufObj.writingBuf;
           this._len = releasedBufObj.len;
@@ -50557,7 +50626,7 @@ var require_sonic_boom = __commonJS({
         }
       }
       try {
-        fs23.fsyncSync(this.fd);
+        fs24.fsyncSync(this.fd);
       } catch {
       }
     }
@@ -50578,7 +50647,7 @@ var require_sonic_boom = __commonJS({
           buf = mergeBuf(this._bufs[0], this._lens[0]);
         }
         try {
-          const n = fs23.writeSync(this.fd, buf);
+          const n = fs24.writeSync(this.fd, buf);
           buf = buf.subarray(n);
           this._len = Math.max(this._len - n, 0);
           if (buf.length <= 0) {
@@ -50606,13 +50675,13 @@ var require_sonic_boom = __commonJS({
       this._writingBuf = this._writingBuf.length ? this._writingBuf : this._bufs.shift() || "";
       if (this.sync) {
         try {
-          const written = Buffer.isBuffer(this._writingBuf) ? fs23.writeSync(this.fd, this._writingBuf) : fs23.writeSync(this.fd, this._writingBuf, "utf8");
+          const written = Buffer.isBuffer(this._writingBuf) ? fs24.writeSync(this.fd, this._writingBuf) : fs24.writeSync(this.fd, this._writingBuf, "utf8");
           release(null, written);
         } catch (err) {
           release(err);
         }
       } else {
-        fs23.write(this.fd, this._writingBuf, release);
+        fs24.write(this.fd, this._writingBuf, release);
       }
     }
     function actualWriteBuffer() {
@@ -50621,7 +50690,7 @@ var require_sonic_boom = __commonJS({
       this._writingBuf = this._writingBuf.length ? this._writingBuf : mergeBuf(this._bufs.shift(), this._lens.shift());
       if (this.sync) {
         try {
-          const written = fs23.writeSync(this.fd, this._writingBuf);
+          const written = fs24.writeSync(this.fd, this._writingBuf);
           release(null, written);
         } catch (err) {
           release(err);
@@ -50630,7 +50699,7 @@ var require_sonic_boom = __commonJS({
         if (kCopyBuffer) {
           this._writingBuf = Buffer.from(this._writingBuf);
         }
-        fs23.write(this.fd, this._writingBuf, release);
+        fs24.write(this.fd, this._writingBuf, release);
       }
     }
     function actualClose(sonic) {
@@ -50646,12 +50715,12 @@ var require_sonic_boom = __commonJS({
       sonic._lens = [];
       assert2(typeof sonic.fd === "number", `sonic.fd must be a number, got ${typeof sonic.fd}`);
       try {
-        fs23.fsync(sonic.fd, closeWrapped);
+        fs24.fsync(sonic.fd, closeWrapped);
       } catch {
       }
       function closeWrapped() {
         if (sonic.fd !== 1 && sonic.fd !== 2) {
-          fs23.close(sonic.fd, done);
+          fs24.close(sonic.fd, done);
         } else {
           done();
         }
@@ -51487,15 +51556,15 @@ var require_transport = __commonJS({
       if (!unquoted) {
         return false;
       }
-      let path25 = unquoted;
-      if (path25.startsWith("file://")) {
+      let path26 = unquoted;
+      if (path26.startsWith("file://")) {
         try {
-          path25 = fileURLToPath(path25);
+          path26 = fileURLToPath(path26);
         } catch {
           return false;
         }
       }
-      return isAbsolute(path25) && !existsSync(path25);
+      return isAbsolute(path26) && !existsSync(path26);
     }
     function stripQuotes(value) {
       const first = value[0];
@@ -53189,7 +53258,7 @@ var require_multistream = __commonJS({
 var require_pino = __commonJS({
   "node_modules/pino/pino.js"(exports, module) {
     "use strict";
-    var os17 = __require("node:os");
+    var os18 = __require("node:os");
     var stdSerializers = require_pino_std_serializers();
     var caller = require_caller();
     var redaction = require_redaction();
@@ -53236,7 +53305,7 @@ var require_pino = __commonJS({
     } = symbols;
     var { epochTime, nullTime } = time3;
     var { pid } = process;
-    var hostname2 = os17.hostname();
+    var hostname2 = os18.hostname();
     var defaultErrorSerializer = stdSerializers.err;
     var defaultOptions2 = {
       level: "info",
@@ -85562,15 +85631,15 @@ var require_tools2 = __commonJS({
        * @param {String} path - Mailbox path to encode
        * @returns {String} Encoded mailbox path
        */
-      encodePath(connection, path25) {
-        path25 = (path25 || "").toString();
-        if (!connection.enabled.has("UTF8=ACCEPT") && !tools.isRev2Active(connection) && /[&\x00-\x08\x0b-\x0c\x0e-\x1f\u0080-\uffff]/.test(path25)) {
+      encodePath(connection, path26) {
+        path26 = (path26 || "").toString();
+        if (!connection.enabled.has("UTF8=ACCEPT") && !tools.isRev2Active(connection) && /[&\x00-\x08\x0b-\x0c\x0e-\x1f\u0080-\uffff]/.test(path26)) {
           try {
-            path25 = iconv.encode(path25, "utf-7-imap").toString();
+            path26 = iconv.encode(path26, "utf-7-imap").toString();
           } catch {
           }
         }
-        return path25;
+        return path26;
       },
       /**
        * Decodes a mailbox path from modified UTF-7 if the server does not support UTF8=ACCEPT.
@@ -85579,15 +85648,15 @@ var require_tools2 = __commonJS({
        * @param {String} path - Mailbox path to decode
        * @returns {String} Decoded mailbox path
        */
-      decodePath(connection, path25) {
-        path25 = (path25 || "").toString();
-        if (!connection.enabled.has("UTF8=ACCEPT") && !tools.isRev2Active(connection) && /[&]/.test(path25)) {
+      decodePath(connection, path26) {
+        path26 = (path26 || "").toString();
+        if (!connection.enabled.has("UTF8=ACCEPT") && !tools.isRev2Active(connection) && /[&]/.test(path26)) {
           try {
-            path25 = iconv.decode(Buffer.from(path25), "utf-7-imap").toString();
+            path26 = iconv.decode(Buffer.from(path26), "utf-7-imap").toString();
           } catch {
           }
         }
-        return path25;
+        return path26;
       },
       /**
        * Normalizes a mailbox path by joining array segments with the namespace delimiter,
@@ -85598,17 +85667,17 @@ var require_tools2 = __commonJS({
        * @param {Boolean} [skipNamespace] - If true, skips prepending the namespace prefix
        * @returns {String} Normalized mailbox path
        */
-      normalizePath(connection, path25, skipNamespace) {
-        if (Array.isArray(path25)) {
-          path25 = path25.join(connection.namespace && connection.namespace.delimiter || "");
+      normalizePath(connection, path26, skipNamespace) {
+        if (Array.isArray(path26)) {
+          path26 = path26.join(connection.namespace && connection.namespace.delimiter || "");
         }
-        if (path25.toUpperCase() === "INBOX") {
+        if (path26.toUpperCase() === "INBOX") {
           return "INBOX";
         }
-        if (!skipNamespace && connection.namespace && connection.namespace.prefix && !path25.startsWith(connection.namespace.prefix)) {
-          path25 = connection.namespace.prefix + path25;
+        if (!skipNamespace && connection.namespace && connection.namespace.prefix && !path26.startsWith(connection.namespace.prefix)) {
+          path26 = connection.namespace.prefix + path26;
         }
-        return path25;
+        return path26;
       },
       /**
        * Compares two mailbox paths for equality after normalization.
@@ -85939,14 +86008,14 @@ var require_tools2 = __commonJS({
           }
         }
         if (map.emailId || map.uid) {
-          let path25 = mailbox.path;
-          if (/[\u0080-\uffff]/.test(path25)) {
+          let path26 = mailbox.path;
+          if (/[\u0080-\uffff]/.test(path26)) {
             try {
-              path25 = iconv.encode(path25, "utf-7-imap").toString();
+              path26 = iconv.encode(path26, "utf-7-imap").toString();
             } catch {
             }
           }
-          map.id = map.emailId || createHash2("md5").update([path25, mailbox.uidValidity?.toString() || "", map.uid.toString()].join(":")).digest("hex");
+          map.id = map.emailId || createHash2("md5").update([path26, mailbox.uidValidity?.toString() || "", map.uid.toString()].join(":")).digest("hex");
         }
         if (map.flags) {
           let flagColor = tools.getFlagColor(map.flags);
@@ -86121,16 +86190,16 @@ var require_tools2 = __commonJS({
        * @returns {Object} Parsed body structure tree with part numbers, types, parameters, and child nodes
        */
       parseBodystructure(entry) {
-        let walk = (node, path25) => {
-          path25 = path25 || [];
+        let walk = (node, path26) => {
+          path26 = path26 || [];
           let curNode = {}, i = 0, part = 0;
-          if (path25.length) {
-            curNode.part = path25.join(".");
+          if (path26.length) {
+            curNode.part = path26.join(".");
           }
           if (Array.isArray(node[0])) {
             curNode.childNodes = [];
             while (Array.isArray(node[i])) {
-              curNode.childNodes.push(walk(node[i], path25.concat(++part)));
+              curNode.childNodes.push(walk(node[i], path26.concat(++part)));
               i++;
             }
             curNode.type = "multipart/" + ((node[i++] || {}).value || "").toString().toLowerCase();
@@ -86173,7 +86242,7 @@ var require_tools2 = __commonJS({
                   // the encapsulated message shares the part number with its wrapper.
                   // Distinction is via suffixes: path.MIME = wrapper headers,
                   // path.HEADER = encapsulated message headers.
-                  walk(node[i], path25)
+                  walk(node[i], path26)
                 ];
               }
               i++;
@@ -88135,14 +88204,14 @@ var require_select = __commonJS({
       // update into a silent no-op for the rest of the session.
       permanentflags: { key: "permanentFlags", parse: (value) => Array.isArray(value) && new Set(value) }
     });
-    module.exports = async (connection, path25, options) => {
+    module.exports = async (connection, path26, options) => {
       if (![connection.states.AUTHENTICATED, connection.states.SELECTED].includes(connection.state)) {
         return;
       }
       options = options || {};
-      path25 = normalizePath(connection, path25);
-      if (!connection.folders.has(path25)) {
-        let folders = await connection.run("LIST", "", path25);
+      path26 = normalizePath(connection, path26);
+      if (!connection.folders.has(path26)) {
+        let folders = await connection.run("LIST", "", path26);
         if (!folders) {
           throw new Error("Failed to fetch folders");
         }
@@ -88150,10 +88219,10 @@ var require_select = __commonJS({
           connection.folders.set(folder.path, folder);
         });
       }
-      let folderListData = connection.folders.has(path25) ? connection.folders.get(path25) : false;
+      let folderListData = connection.folders.has(path26) ? connection.folders.get(path26) : false;
       let response;
       try {
-        let map = { path: path25 };
+        let map = { path: path26 };
         if (folderListData) {
           ["delimiter", "specialUse", "subscribed", "listed"].forEach((key) => {
             if (folderListData[key]) {
@@ -88172,7 +88241,7 @@ var require_select = __commonJS({
           ]);
           map.qresync = true;
         }
-        let encodedPath = encodePath(connection, path25);
+        let encodedPath = encodePath(connection, path26);
         let selectCommand = {
           command: !options.readOnly ? "SELECT" : "EXAMINE",
           /* c8 ignore next */
@@ -88232,12 +88301,12 @@ var require_select = __commonJS({
             // since the client's last known state. Only received when QRESYNC was requested.
             // A dummy mailbox object is passed because the mailbox isn't officially open yet.
             VANISHED: async (untagged) => {
-              await connection.untaggedVanished(untagged, { path: path25, uidNext: false, uidValidity: false });
+              await connection.untaggedVanished(untagged, { path: path26, uidNext: false, uidValidity: false });
             },
             // Untagged FETCH during SELECT/EXAMINE: only occurs with QRESYNC, delivering
             // updated flags for messages that changed since the client's last modseq.
             FETCH: async (untagged) => {
-              await connection.untaggedFetch(untagged, { path: path25, uidNext: false, uidValidity: false });
+              await connection.untaggedFetch(untagged, { path: path26, uidNext: false, uidValidity: false });
             }
           }
         });
@@ -88251,13 +88320,13 @@ var require_select = __commonJS({
         }
         let currentMailbox = connection.mailbox;
         connection.mailbox = false;
-        if (currentMailbox && currentMailbox.path !== path25) {
+        if (currentMailbox && currentMailbox.path !== path26) {
           connection.emit("mailboxClose", currentMailbox);
         }
         connection.mailbox = map;
         connection.currentSelectCommand = selectCommand;
         connection.state = connection.states.SELECTED;
-        if (!currentMailbox || currentMailbox.path !== path25) {
+        if (!currentMailbox || currentMailbox.path !== path26) {
           connection.emit("mailboxOpen", connection.mailbox);
         }
         response.next();
@@ -88472,17 +88541,17 @@ var require_create = __commonJS({
   "node_modules/imapflow/lib/commands/create.js"(exports, module) {
     "use strict";
     var { encodePath, normalizePath, getStatusCode, enhanceCommandError } = require_tools2();
-    module.exports = async (connection, path25) => {
+    module.exports = async (connection, path26) => {
       if (![connection.states.AUTHENTICATED, connection.states.SELECTED].includes(connection.state)) {
         return;
       }
-      path25 = normalizePath(connection, path25);
+      path26 = normalizePath(connection, path26);
       let response;
       try {
         let map = {
-          path: path25
+          path: path26
         };
-        response = await connection.exec("CREATE", [{ type: "ATOM", value: encodePath(connection, path25) }]);
+        response = await connection.exec("CREATE", [{ type: "ATOM", value: encodePath(connection, path26) }]);
         let section = response.response.attributes && response.response.attributes[0] && response.response.attributes[0].section && response.response.attributes[0].section.length ? response.response.attributes[0].section : false;
         if (section) {
           let key;
@@ -88508,13 +88577,13 @@ var require_create = __commonJS({
         }
         map.created = true;
         response.next();
-        await connection.run("SUBSCRIBE", path25);
+        await connection.run("SUBSCRIBE", path26);
         return map;
       } catch (err) {
         let errorCode = getStatusCode(err.response);
         if (errorCode === "ALREADYEXISTS") {
           return {
-            path: path25,
+            path: path26,
             created: false
           };
         }
@@ -88531,20 +88600,20 @@ var require_delete = __commonJS({
   "node_modules/imapflow/lib/commands/delete.js"(exports, module) {
     "use strict";
     var { encodePath, normalizePath, enhanceCommandError } = require_tools2();
-    module.exports = async (connection, path25) => {
+    module.exports = async (connection, path26) => {
       if (![connection.states.AUTHENTICATED, connection.states.SELECTED].includes(connection.state)) {
         return;
       }
-      path25 = normalizePath(connection, path25);
-      if (connection.state === connection.states.SELECTED && connection.mailbox.path === path25) {
+      path26 = normalizePath(connection, path26);
+      if (connection.state === connection.states.SELECTED && connection.mailbox.path === path26) {
         await connection.run("CLOSE");
       }
       let response;
       try {
         let map = {
-          path: path25
+          path: path26
         };
-        response = await connection.exec("DELETE", [{ type: "ATOM", value: encodePath(connection, path25) }]);
+        response = await connection.exec("DELETE", [{ type: "ATOM", value: encodePath(connection, path26) }]);
         response.next();
         return map;
       } catch (err) {
@@ -88561,23 +88630,23 @@ var require_rename = __commonJS({
   "node_modules/imapflow/lib/commands/rename.js"(exports, module) {
     "use strict";
     var { encodePath, normalizePath, enhanceCommandError } = require_tools2();
-    module.exports = async (connection, path25, newPath) => {
+    module.exports = async (connection, path26, newPath) => {
       if (![connection.states.AUTHENTICATED, connection.states.SELECTED].includes(connection.state)) {
         return;
       }
-      path25 = normalizePath(connection, path25);
+      path26 = normalizePath(connection, path26);
       newPath = normalizePath(connection, newPath);
-      if (connection.state === connection.states.SELECTED && connection.mailbox.path === path25) {
+      if (connection.state === connection.states.SELECTED && connection.mailbox.path === path26) {
         await connection.run("CLOSE");
       }
       let response;
       try {
         let map = {
-          path: path25,
+          path: path26,
           newPath
         };
         response = await connection.exec("RENAME", [
-          { type: "ATOM", value: encodePath(connection, path25) },
+          { type: "ATOM", value: encodePath(connection, path26) },
           { type: "ATOM", value: encodePath(connection, newPath) }
         ]);
         response.next();
@@ -88624,14 +88693,14 @@ var require_subscribe = __commonJS({
   "node_modules/imapflow/lib/commands/subscribe.js"(exports, module) {
     "use strict";
     var { encodePath, normalizePath, enhanceCommandError } = require_tools2();
-    module.exports = async (connection, path25) => {
+    module.exports = async (connection, path26) => {
       if (![connection.states.AUTHENTICATED, connection.states.SELECTED].includes(connection.state)) {
         return;
       }
-      path25 = normalizePath(connection, path25);
+      path26 = normalizePath(connection, path26);
       let response;
       try {
-        response = await connection.exec("SUBSCRIBE", [{ type: "ATOM", value: encodePath(connection, path25) }]);
+        response = await connection.exec("SUBSCRIBE", [{ type: "ATOM", value: encodePath(connection, path26) }]);
         response.next();
         return true;
       } catch (err) {
@@ -88648,14 +88717,14 @@ var require_unsubscribe = __commonJS({
   "node_modules/imapflow/lib/commands/unsubscribe.js"(exports, module) {
     "use strict";
     var { encodePath, normalizePath, enhanceCommandError } = require_tools2();
-    module.exports = async (connection, path25) => {
+    module.exports = async (connection, path26) => {
       if (![connection.states.AUTHENTICATED, connection.states.SELECTED].includes(connection.state)) {
         return;
       }
-      path25 = normalizePath(connection, path25);
+      path26 = normalizePath(connection, path26);
       let response;
       try {
-        response = await connection.exec("UNSUBSCRIBE", [{ type: "ATOM", value: encodePath(connection, path25) }]);
+        response = await connection.exec("UNSUBSCRIBE", [{ type: "ATOM", value: encodePath(connection, path26) }]);
         response.next();
         return true;
       } catch (err) {
@@ -89461,11 +89530,11 @@ var require_status = __commonJS({
     var { encodePath, normalizePath, buildStatusQueryAttributes, isRev2Active } = require_tools2();
     var { parseStatusList } = require_status_fields();
     var MAILBOX_UPDATERS = {
-      messages: (value, connection, path25) => {
+      messages: (value, connection, path26) => {
         let prevCount = connection.mailbox.exists;
         if (prevCount !== value) {
           connection.mailbox.exists = value;
-          connection.emit("exists", { path: path25, count: value, prevCount });
+          connection.emit("exists", { path: path26, count: value, prevCount });
         }
       },
       uidNext: (value, connection) => {
@@ -89475,28 +89544,28 @@ var require_status = __commonJS({
         connection.mailbox.highestModseq = value;
       }
     };
-    module.exports = async (connection, path25, query) => {
-      if (![connection.states.AUTHENTICATED, connection.states.SELECTED].includes(connection.state) || !path25) {
+    module.exports = async (connection, path26, query) => {
+      if (![connection.states.AUTHENTICATED, connection.states.SELECTED].includes(connection.state) || !path26) {
         return false;
       }
-      path25 = normalizePath(connection, path25);
-      let encodedPath = encodePath(connection, path25);
+      path26 = normalizePath(connection, path26);
+      let encodedPath = encodePath(connection, path26);
       let attributes = [{ type: encodedPath.indexOf("&") >= 0 ? "STRING" : "ATOM", value: encodedPath }];
       let queryAttributes = buildStatusQueryAttributes(connection, query);
       let syntheticRecent = query && query.recent && isRev2Active(connection);
       if (!queryAttributes.length) {
-        return syntheticRecent ? { path: path25, recent: 0 } : false;
+        return syntheticRecent ? { path: path26, recent: 0 } : false;
       }
       attributes.push(queryAttributes);
       let response;
       try {
-        let map = { path: path25 };
+        let map = { path: path26 };
         response = await connection.exec("STATUS", attributes, {
           untagged: {
             // STATUS response: * STATUS <mailbox> (<key> <value> <key> <value> ...)
             // Parsed as alternating key-value pairs (i % 2 pattern).
             STATUS: async (untagged) => {
-              let updateCurrent = connection.state === connection.states.SELECTED && path25 === connection.mailbox.path;
+              let updateCurrent = connection.state === connection.states.SELECTED && path26 === connection.mailbox.path;
               let list = untagged.attributes && Array.isArray(untagged.attributes[1]) ? untagged.attributes[1] : false;
               if (!list) {
                 return;
@@ -89504,7 +89573,7 @@ var require_status = __commonJS({
               parseStatusList(list, (key, value) => {
                 map[key] = value;
                 if (updateCurrent && MAILBOX_UPDATERS[key]) {
-                  MAILBOX_UPDATERS[key](value, connection, path25);
+                  MAILBOX_UPDATERS[key](value, connection, path26);
                 }
               });
             }
@@ -89517,9 +89586,9 @@ var require_status = __commonJS({
         return map;
       } catch (err) {
         if (err.responseStatus === "NO") {
-          let folders = await connection.run("LIST", "", path25, { listOnly: true });
+          let folders = await connection.run("LIST", "", path26, { listOnly: true });
           if (folders && !folders.length) {
-            let error2 = new Error(`Mailbox doesn't exist: ${path25}`);
+            let error2 = new Error(`Mailbox doesn't exist: ${path26}`);
             error2.code = "NotFound";
             error2.response = err;
             throw error2;
@@ -89666,15 +89735,15 @@ var require_quota = __commonJS({
   "node_modules/imapflow/lib/commands/quota.js"(exports, module) {
     "use strict";
     var { encodePath, normalizePath, enhanceCommandError, parseUintValue, isUnsafeKey } = require_tools2();
-    module.exports = async (connection, path25) => {
-      if (![connection.states.AUTHENTICATED, connection.states.SELECTED].includes(connection.state) || !path25) {
+    module.exports = async (connection, path26) => {
+      if (![connection.states.AUTHENTICATED, connection.states.SELECTED].includes(connection.state) || !path26) {
         return;
       }
       if (!connection.capabilities.has("QUOTA")) {
         return false;
       }
-      path25 = normalizePath(connection, path25);
-      let map = { path: path25 };
+      path26 = normalizePath(connection, path26);
+      let map = { path: path26 };
       let processQuotaResponse = (untagged) => {
         let attributes = untagged.attributes && untagged.attributes[1];
         if (!attributes || !attributes.length) {
@@ -89714,7 +89783,7 @@ var require_quota = __commonJS({
       let quotaFound = false;
       let response;
       try {
-        response = await connection.exec("GETQUOTAROOT", [{ type: "ATOM", value: encodePath(connection, path25) }], {
+        response = await connection.exec("GETQUOTAROOT", [{ type: "ATOM", value: encodePath(connection, path26) }], {
           untagged: {
             // QUOTAROOT response tells us which quota root applies to this mailbox.
             // A mailbox may have zero or one quota root.
@@ -89857,15 +89926,15 @@ var require_idle = __commonJS({
       }
     }
     async function pollOnce2(connection, session) {
-      let path25 = connection.mailbox && connection.mailbox.path;
+      let path26 = connection.mailbox && connection.mailbox.path;
       switch (connection.missingIdleCommand) {
         case "SELECT":
           connection.log.debug({ src: "c", msg: `Running SELECT to detect changes in folder`, cid: connection.id });
-          await connection.runInternal("SELECT", path25, { readOnly: session.selectCommand.command === "EXAMINE" });
+          await connection.runInternal("SELECT", path26, { readOnly: session.selectCommand.command === "EXAMINE" });
           break;
         case "STATUS": {
           connection.log.debug({ src: "c", msg: `Running STATUS to detect changes in folder`, cid: connection.id });
-          let status = await connection.runInternal("STATUS", path25, {
+          let status = await connection.runInternal("STATUS", path26, {
             messages: true,
             uidNext: true,
             uidValidity: true,
@@ -91552,12 +91621,12 @@ var require_imap_flow = __commonJS({
           this.emit("flags", updateEvent);
         }
       }
-      async ensureSelectedMailbox(path25) {
-        if (!path25) {
+      async ensureSelectedMailbox(path26) {
+        if (!path26) {
           return false;
         }
-        if (!this.mailbox || !comparePaths(this, this.mailbox.path, path25)) {
-          return await this.mailboxOpen(path25);
+        if (!this.mailbox || !comparePaths(this, this.mailbox.path, path26)) {
+          return await this.mailboxOpen(path26);
         }
         return true;
       }
@@ -91972,9 +92041,9 @@ var require_imap_flow = __commonJS({
        * let quota = await client.getQuota();
        * console.log(quota.storage.used, quota.storage.limit)
        */
-      async getQuota(path25) {
-        path25 = path25 || "INBOX";
-        return await this.run("QUOTA", path25);
+      async getQuota(path26) {
+        path26 = path26 || "INBOX";
+        return await this.run("QUOTA", path26);
       }
       /**
        * @typedef {Object} ListResponse
@@ -92084,8 +92153,8 @@ var require_imap_flow = __commonJS({
        * console.log(info.path);
        * // "INBOX.parent.child" // assumes "INBOX." as namespace prefix and "." as delimiter
        */
-      async mailboxCreate(path25) {
-        return await this.run("CREATE", path25);
+      async mailboxCreate(path26) {
+        return await this.run("CREATE", path26);
       }
       /**
        * @typedef {Object} MailboxRenameResponse
@@ -92106,8 +92175,8 @@ var require_imap_flow = __commonJS({
        * console.log(info.newPath);
        * // "INBOX.Important stuff ❗️" // assumes "INBOX." as namespace prefix
        */
-      async mailboxRename(path25, newPath) {
-        return await this.run("RENAME", path25, newPath);
+      async mailboxRename(path26, newPath) {
+        return await this.run("RENAME", path26, newPath);
       }
       /**
        * @typedef {Object} MailboxDeleteResponse
@@ -92126,8 +92195,8 @@ var require_imap_flow = __commonJS({
        * console.log(info.path);
        * // "INBOX.Important stuff ❗️" // assumes "INBOX." as namespace prefix
        */
-      async mailboxDelete(path25) {
-        return await this.run("DELETE", path25);
+      async mailboxDelete(path26) {
+        return await this.run("DELETE", path26);
       }
       /**
        * Subscribes to a mailbox
@@ -92138,8 +92207,8 @@ var require_imap_flow = __commonJS({
        * @example
        * await client.mailboxSubscribe('Important stuff ❗️');
        */
-      async mailboxSubscribe(path25) {
-        return await this.run("SUBSCRIBE", path25);
+      async mailboxSubscribe(path26) {
+        return await this.run("SUBSCRIBE", path26);
       }
       /**
        * Unsubscribes from a mailbox
@@ -92150,8 +92219,8 @@ var require_imap_flow = __commonJS({
        * @example
        * await client.mailboxUnsubscribe('Important stuff ❗️');
        */
-      async mailboxUnsubscribe(path25) {
-        return await this.run("UNSUBSCRIBE", path25);
+      async mailboxUnsubscribe(path26) {
+        return await this.run("UNSUBSCRIBE", path26);
       }
       /**
        * Opens a mailbox to access messages. You can perform message operations only against an opened mailbox.
@@ -92169,8 +92238,8 @@ var require_imap_flow = __commonJS({
        * console.log(mailbox.exists);
        * // 125
        */
-      async mailboxOpen(path25, options) {
-        return await this.run("SELECT", path25, options);
+      async mailboxOpen(path26, options) {
+        return await this.run("SELECT", path26, options);
       }
       /**
        * Closes a previously opened mailbox
@@ -92217,8 +92286,8 @@ var require_imap_flow = __commonJS({
        * console.log(status.unseen);
        * // 123
        */
-      async status(path25, query) {
-        return await this.run("STATUS", path25, query);
+      async status(path26, query) {
+        return await this.run("STATUS", path26, query);
       }
       /**
        * Starts listening for new or deleted messages from the currently opened mailbox. Only required if {@link ImapFlow#disableAutoIdle} is set to `true`
@@ -92472,8 +92541,8 @@ var require_imap_flow = __commonJS({
        * @example
        * await client.append('INBOX', rawMessageBuffer, ['\\Seen'], new Date(2000, 1, 1));
        */
-      async append(path25, content, flags, idate) {
-        return await this.run("APPEND", path25, content, flags, idate) || false;
+      async append(path26, content, flags, idate) {
+        return await this.run("APPEND", path26, content, flags, idate) || false;
       }
       /**
        * @typedef {Object} CopyResponseObject
@@ -93317,7 +93386,7 @@ var require_imap_flow = __commonJS({
               await new Promise((resolve2) => setImmediate(resolve2));
             }
             const lock = this.locks.shift();
-            const { resolve, reject, path: path25, options, lockId } = lock;
+            const { resolve, reject, path: path26, options, lockId } = lock;
             if (lock.acquireTimer) {
               clearTimeout(lock.acquireTimer);
               lock.acquireTimer = null;
@@ -93333,7 +93402,7 @@ var require_imap_flow = __commonJS({
                 this.log.warn({
                   msg: "Mailbox lock held for a long time",
                   lockId: lock.lockId,
-                  path: path25,
+                  path: path26,
                   heldFor: Date.now() - lock.heldAt,
                   /* c8 ignore next */
                   // the held-lock-warning diagnostic with a description set is a timing-dependent log detail
@@ -93369,52 +93438,52 @@ var require_imap_flow = __commonJS({
               }
             };
             if (!this.usable || !this.socket || this.socket.destroyed) {
-              this.log.trace({ msg: "Failed to acquire mailbox lock", path: path25, lockId, idling: this.idling });
+              this.log.trace({ msg: "Failed to acquire mailbox lock", path: path26, lockId, idling: this.idling });
               let error2 = new Error("Connection not available");
               error2.code = "NoConnection";
               reject(error2);
               continue;
             }
-            if (this.mailbox && this.mailbox.path === path25 && !!this.mailbox.readOnly === !!options.readOnly) {
+            if (this.mailbox && this.mailbox.path === path26 && !!this.mailbox.readOnly === !!options.readOnly) {
               this.log.trace({
                 msg: "Mailbox lock acquired [existing]",
-                path: path25,
+                path: path26,
                 lockId,
                 idling: this.idling,
                 ...options.description && { description: options.description }
               });
               this.currentLock = lock;
               armHeldTimer();
-              resolve({ path: path25, release });
+              resolve({ path: path26, release });
               break;
             }
             try {
-              await this.mailboxOpen(path25, options);
+              await this.mailboxOpen(path26, options);
               this.log.trace({
                 msg: "Mailbox lock acquired [selected]",
-                path: path25,
+                path: path26,
                 lockId,
                 idling: this.idling,
                 ...options.description && { description: options.description }
               });
               this.currentLock = lock;
               armHeldTimer();
-              resolve({ path: path25, release });
+              resolve({ path: path26, release });
               break;
             } catch (err) {
               if (err.responseStatus === "NO") {
                 try {
-                  let folders = await this.run("LIST", "", path25, { listOnly: true });
+                  let folders = await this.run("LIST", "", path26, { listOnly: true });
                   if (!folders || !folders.length) {
                     err.mailboxMissing = true;
                   }
                 } catch (E) {
-                  this.log.trace({ msg: "Failed to verify failed mailbox", path: path25, err: E });
+                  this.log.trace({ msg: "Failed to verify failed mailbox", path: path26, err: E });
                 }
               }
               this.log.trace({
                 msg: "Failed to acquire mailbox lock",
-                path: path25,
+                path: path26,
                 lockId,
                 idling: this.idling,
                 ...options.description && { description: options.description },
@@ -93453,13 +93522,13 @@ var require_imap_flow = __commonJS({
        *   lock.release();
        * }
        */
-      getMailboxLock(path25, options) {
+      getMailboxLock(path26, options) {
         options = options || {};
-        path25 = normalizePath(this, path25);
+        path26 = normalizePath(this, path26);
         let lockId = ++this.lockCounter;
         this.log.trace({
           msg: "Requesting lock",
-          path: path25,
+          path: path26,
           lockId,
           ...options.description && { description: options.description },
           activeLock: this.currentLock ? {
@@ -93468,7 +93537,7 @@ var require_imap_flow = __commonJS({
           } : null
         });
         let lockPromise = new Promise((resolve, reject) => {
-          let lockEntry = { resolve, reject, path: path25, options, lockId };
+          let lockEntry = { resolve, reject, path: path26, options, lockId };
           this.locks.push(lockEntry);
           if (Number(options.acquireTimeout) > 0) {
             lockEntry.acquireTimer = setTimeout(() => {
@@ -93557,16 +93626,16 @@ var require_imap_flow = __commonJS({
 });
 
 // src/mail/mail-fetcher.ts
-import fs22 from "node:fs/promises";
-import path23 from "node:path";
+import fs23 from "node:fs/promises";
+import path24 from "node:path";
 async function saveAttachments(attachments, downloadDir) {
   if (attachments.length === 0) return [];
-  await fs22.mkdir(downloadDir, { recursive: true });
+  await fs23.mkdir(downloadDir, { recursive: true });
   const saved = [];
   for (const a of attachments) {
-    const name = path23.basename(a.filename) || "attachment";
-    const savedPath = path23.join(downloadDir, name);
-    await fs22.writeFile(savedPath, a.content);
+    const name = path24.basename(a.filename) || "attachment";
+    const savedPath = path24.join(downloadDir, name);
+    await fs23.writeFile(savedPath, a.content);
     saved.push({ filename: name, savedPath, size: a.content.length });
   }
   return saved;
@@ -93696,8 +93765,8 @@ var init_mail_fetcher = __esm({
 });
 
 // src/tools/fetch-mail.ts
-import os16 from "node:os";
-import path24 from "node:path";
+import os17 from "node:os";
+import path25 from "node:path";
 function registerFetchMailTool(server, deps = {}) {
   const makeFetcher = deps.fetcherFactory ?? ((creds) => new ImapflowMailFetcher(creds));
   server.registerTool(
@@ -93759,7 +93828,7 @@ var init_fetch_mail = __esm({
     init_mail_fetcher();
     init_auth_error();
     init_validate();
-    DEFAULT_DOWNLOAD_DIR = path24.join(os16.homedir(), ".cogent", "mail-downloads");
+    DEFAULT_DOWNLOAD_DIR = path25.join(os17.homedir(), ".cogent", "mail-downloads");
   }
 });
 
