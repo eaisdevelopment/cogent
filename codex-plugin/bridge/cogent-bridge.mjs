@@ -26389,8 +26389,8 @@ var init_stdio2 = __esm({
 // src/constants.ts
 import { createRequire } from "node:module";
 function resolveVersion() {
-  if ("3.23.6") {
-    return "3.23.6";
+  if ("3.23.7") {
+    return "3.23.7";
   }
   try {
     const require2 = createRequire(import.meta.url);
@@ -35861,19 +35861,60 @@ function registerRegisterPeerTool(server) {
             storedPeerSecret = void 0;
           }
         }
-        const peer = await backend.registerPeer(
-          peerId,
-          sessionId,
-          cwd,
-          label,
-          CLIENT_VERSION,
-          mode,
-          channelSessionId,
-          capabilities,
-          workspaceId,
-          threadId,
-          storedPeerSecret
-        );
+        let peer;
+        try {
+          peer = await backend.registerPeer(
+            peerId,
+            sessionId,
+            cwd,
+            label,
+            CLIENT_VERSION,
+            mode,
+            channelSessionId,
+            capabilities,
+            workspaceId,
+            threadId,
+            storedPeerSecret
+          );
+        } catch (regErr) {
+          const msg = regErr instanceof Error ? regErr.message : String(regErr);
+          let recovered;
+          if (/PEER_NOT_YOURS/.test(msg) && isCloudMode()) {
+            try {
+              const creds = await loadCredentials();
+              if (creds?.ownerToken && creds.ownerToken !== creds.token && creds.endpoint && creds.sessionId) {
+                logger.warn(
+                  `register_peer: '${peerId}' is owned by an earlier token (its peerSecret was lost by a pre-3.23.5 re-join). Re-proving ownership with the stored owner token.`
+                );
+                const res = await fetch(`${creds.endpoint}/api/sessions/${creds.sessionId}/peers`, {
+                  method: "POST",
+                  headers: { "content-type": "application/json", authorization: `Bearer ${creds.ownerToken}` },
+                  body: JSON.stringify({
+                    peerId,
+                    cwd,
+                    label,
+                    type: "agent",
+                    clientVersion: CLIENT_VERSION,
+                    ...mode ? { mode } : {},
+                    ...capabilities ? { capabilities } : {}
+                  })
+                });
+                if (res.ok) {
+                  recovered = await res.json();
+                  const secret = recovered?.peerSecret;
+                  if (secret) {
+                    await saveCredentials({ ...creds, peerId, peerSecret: secret, savedAt: (/* @__PURE__ */ new Date()).toISOString() });
+                    logger.info(`register_peer: ownership reclaimed for '${peerId}'; a fresh peerSecret is stored.`);
+                  }
+                }
+              }
+            } catch (recoverErr) {
+              logger.debug(`register_peer: ownership recovery failed: ${recoverErr.message}`);
+            }
+          }
+          if (!recovered) throw regErr;
+          peer = recovered;
+        }
         if (isCloudMode()) {
           try {
             const creds = await loadCredentials();
@@ -37390,7 +37431,12 @@ function registerJoinSessionTool(server) {
           if (prior && prior.endpoint === endpoint && prior.sessionId === data.sessionId) {
             carried = {
               ...prior.peerId ? { peerId: prior.peerId } : {},
-              ...prior.peerSecret ? { peerSecret: prior.peerSecret } : {}
+              ...prior.peerSecret ? { peerSecret: prior.peerSecret } : {},
+              // Keep the token that owns the peer. A re-join mints a NEW one, and ownership is
+              // proven by the CREATING token (or its secret) — so overwriting this field is what
+              // turned a lost peerSecret into a permanent lockout. Prefer an ownerToken we are
+              // already carrying; only fall back to `prior.token` the first time.
+              ...prior.ownerToken || prior.token ? { ownerToken: prior.ownerToken ?? prior.token } : {}
             };
           }
         } catch (err) {
