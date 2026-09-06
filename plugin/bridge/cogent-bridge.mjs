@@ -26389,8 +26389,8 @@ var init_stdio2 = __esm({
 // src/constants.ts
 import { createRequire } from "node:module";
 function resolveVersion() {
-  if ("3.23.8") {
-    return "3.23.8";
+  if ("3.23.9") {
+    return "3.23.9";
   }
   try {
     const require2 = createRequire(import.meta.url);
@@ -32141,6 +32141,15 @@ var init_ws_client = __esm({
       backoff;
       reconnectTimer = null;
       pollTimer = null;
+      /**
+       * DELIVERY-PATH EVIDENCE. Before 3.23.9 a poll failure was caught and only logger.warn'd, so the
+       * bridge had no idea whether its FALLBACK delivery path worked — and `healthy` could not be
+       * computed honestly because the data did not exist. Captured evidence that nothing reads is the
+       * defect shape this codebase keeps hitting.
+       */
+      lastPollOkAt = null;
+      lastPollError = null;
+      lastWsErrorSticky = null;
       pingTimer = null;
       lastMessageId = null;
       /**
@@ -32219,6 +32228,7 @@ var init_ws_client = __esm({
         this.ws = ws;
         ws.on("open", () => {
           if (generation !== this.connectionGeneration || this.ws !== ws) return;
+          this.lastWsErrorSticky = null;
           this.setState("connected");
           this.backoff.reset();
           this.stopPolling();
@@ -32275,6 +32285,7 @@ var init_ws_client = __esm({
         ws.on("error", (err) => {
           if (generation !== this.connectionGeneration || this.ws !== ws) return;
           this.lastWsError = err.message;
+          this.lastWsErrorSticky = err.message;
           logger.error(`CloudWsClient: WebSocket error: ${err.message}`);
         });
       }
@@ -32338,6 +32349,18 @@ var init_ws_client = __esm({
        * ISO string. Survives reconnects, same as `getLastFrameAt()`.
        * Audit L2.
        */
+      /**
+       * What this bridge's DELIVERY situation actually is — the input `healthy` needs in order to
+       * describe THIS BRIDGE rather than the relay's uptime.
+       */
+      getDeliveryDiagnostics() {
+        return {
+          pollActive: this.pollTimer !== null,
+          lastPollOkAt: this.lastPollOkAt,
+          lastPollError: this.lastPollError,
+          lastWsError: this.lastWsErrorSticky
+        };
+      }
       getLastFrameAtMs() {
         return this.lastFrameAt;
       }
@@ -32474,10 +32497,11 @@ var init_ws_client = __esm({
               this.opts.onMessages(result.messages);
               this.advanceCursor(result.messages[result.messages.length - 1].id);
             }
+            this.lastPollOkAt = Date.now();
+            this.lastPollError = null;
           } catch (err) {
-            logger.warn(
-              `CloudWsClient: Poll failed: ${err instanceof Error ? err.message : String(err)}`
-            );
+            this.lastPollError = err instanceof Error ? err.message : String(err);
+            logger.warn(`CloudWsClient: Poll failed: ${this.lastPollError}`);
           }
         };
         void poll();
@@ -37134,12 +37158,14 @@ function registerHealthCheckTool(server) {
         const backend = getBackend();
         const result = await backend.checkHealth();
         let wsConnected = false;
+        let delivery = null;
         let wsLastFrameAt = null;
         let wsLastFrameAtMs = null;
         try {
           const startup = await Promise.resolve().then(() => (init_startup(), startup_exports));
           if (startup.cloudWsClient) {
             wsConnected = startup.cloudWsClient.isConnected();
+            delivery = startup.cloudWsClient.getDeliveryDiagnostics?.() ?? null;
             wsLastFrameAt = startup.cloudWsClient.getLastFrameAt();
             wsLastFrameAtMs = startup.cloudWsClient.getLastFrameAtMs();
           }
@@ -37177,8 +37203,20 @@ function registerHealthCheckTool(server) {
           }
         }
         const updateAvailable = getLastNudge();
+        const relayHealthy = result.healthy !== false;
+        let deliveryPath = "unknown";
+        if (cloud && delivery) {
+          deliveryPath = wsConnected ? "websocket" : delivery.pollActive && !delivery.lastPollError ? "poll" : "none";
+        } else if (cloud && wsConnected) {
+          deliveryPath = "websocket";
+        }
+        const registered = autoRelay.getDiagnostics().registered;
+        const deliveryBroken = cloud && registered && deliveryPath === "none";
+        const unhealthyReason = deliveryBroken ? `registered as a cloud peer but NO delivery path is working (websocket down${delivery?.lastWsError ? `: ${delivery.lastWsError}` : ""}; poll ${delivery?.lastPollError ? `failing: ${delivery.lastPollError}` : "inactive"}) \u2014 messages addressed to this peer cannot reach it` : null;
         const enriched = {
           ...JSON.parse(JSON.stringify(result)),
+          healthy: relayHealthy && !deliveryBroken,
+          ...unhealthyReason ? { unhealthyReason } : {},
           clientVersion: SERVER_VERSION,
           ...updateAvailable ? { updateAvailable } : {},
           runtimeMode: cloud ? "cloud" : "local",
@@ -37198,7 +37236,7 @@ function registerHealthCheckTool(server) {
             // on HttpBackend; null when the /api/health fetch fails. Keep the
             // key cloud-gated for shape consistency with wsHealth (local mode
             // never has an upstream relay version to report).
-            ...cloud ? { wsHealth, relayVersion } : {}
+            ...cloud ? { wsHealth, relayVersion, deliveryPath, lastWsError: delivery?.lastWsError ?? null } : {}
           },
           autoRelay: autoRelay.getDiagnostics()
         };
