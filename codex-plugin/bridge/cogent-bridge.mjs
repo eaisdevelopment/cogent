@@ -26389,8 +26389,8 @@ var init_stdio2 = __esm({
 // src/constants.ts
 import { createRequire } from "node:module";
 function resolveVersion() {
-  if ("3.23.4") {
-    return "3.23.4";
+  if ("3.23.5") {
+    return "3.23.5";
   }
   try {
     const require2 = createRequire(import.meta.url);
@@ -37217,11 +37217,24 @@ function registerJoinSessionTool(server) {
           );
         }
         const data = await resp.json();
+        let carried = {};
+        try {
+          const prior = await loadCredentials();
+          if (prior && prior.endpoint === endpoint && prior.sessionId === data.sessionId) {
+            carried = {
+              ...prior.peerId ? { peerId: prior.peerId } : {},
+              ...prior.peerSecret ? { peerSecret: prior.peerSecret } : {}
+            };
+          }
+        } catch (err) {
+          logger.debug(`join-session: could not read prior credentials: ${err.message}`);
+        }
         await saveCredentials({
           endpoint,
           sessionId: data.sessionId,
           token: data.token,
           label: resolvedLabel ?? data.label,
+          ...carried,
           savedAt: (/* @__PURE__ */ new Date()).toISOString()
         });
         markJoinedInProcess();
