@@ -26389,8 +26389,8 @@ var init_stdio2 = __esm({
 // src/constants.ts
 import { createRequire } from "node:module";
 function resolveVersion() {
-  if ("3.23.9") {
-    return "3.23.9";
+  if ("3.24.0") {
+    return "3.24.0";
   }
   try {
     const require2 = createRequire(import.meta.url);
@@ -35122,6 +35122,113 @@ var init_auto_relay = __esm({
   }
 });
 
+// src/services/peer-presence.ts
+function autoPresenceEnabled(env = process.env) {
+  const v = env.COGENT_AUTO_PRESENCE;
+  if (v === void 0 || v === "") return true;
+  return !/^(0|false|no|off)$/i.test(v.trim());
+}
+async function restorePresence(deps) {
+  try {
+    if (!deps.isCloudConfigured()) {
+      return { state: "local", restored: false, detail: "local mode \u2014 presence does not apply" };
+    }
+    if (deps.alreadyRegisteredInProcess()) {
+      return { state: "online", restored: false, detail: "registered by this process" };
+    }
+    const creds = await deps.loadCredentials();
+    if (!creds || !creds.endpoint || !creds.sessionId || !creds.token) {
+      return {
+        state: "deferred",
+        restored: false,
+        detail: "no stored channel credentials for this working directory \u2014 join a channel first"
+      };
+    }
+    if (!creds.peerId) {
+      return {
+        state: "deferred",
+        restored: false,
+        detail: "channel credentials exist but name no peer \u2014 nothing was registered here"
+      };
+    }
+    const peerId = creds.peerId;
+    if (deps.peerAlreadyServed(peerId)) {
+      return {
+        state: "online",
+        restored: false,
+        detail: `peer '${peerId}' is already served by a live bridge for this working directory`
+      };
+    }
+    if (!autoPresenceEnabled(deps.env ?? process.env)) {
+      return {
+        state: "offline",
+        restored: false,
+        detail: `peer '${peerId}' is not registered and COGENT_AUTO_PRESENCE is off \u2014 this agent is absent from its channel`
+      };
+    }
+    await deps.goOnline({
+      peerId,
+      endpoint: creds.endpoint,
+      sessionId: creds.sessionId,
+      token: creds.token,
+      cwd: deps.cwd(),
+      // 🔴 THE PEER'S DISPLAY LABEL IS NOT PERSISTED ANYWHERE — only the CHANNEL's is,
+      // in credentials.label (create-session.ts writes `label: data.label`; join-session
+      // writes the resolved channel label). Using that would label the agent after the
+      // channel: a restore once put "paymentorchestrator" beside a sibling called "POFE".
+      // peerId is the one identifier we hold that genuinely names this agent. The
+      // operator's chosen label returns on the next cogent_register_peer, which carries it.
+      label: peerId,
+      // 🔴 WITHOUT THIS THE RESTORE CANNOT RECLAIM ITS OWN PEER. A re-join issues a NEW
+      // token, and AUD-003 ownership is proven by the token that CREATED the peer or by
+      // the secret issued with it. Omitting it means an entry owned by an earlier token
+      // answers PEER_NOT_YOURS and the agent stays offline — precisely the state this
+      // module exists to leave. The secret is in the credential file; send it.
+      peerSecret: creds.peerSecret
+    });
+    return {
+      state: "online",
+      restored: true,
+      peerId,
+      // Says what THIS process did. Whether the relay now lists the peer is the relay's
+      // state, and asserting it from here would be a success nobody measured.
+      detail: `re-registered peer '${peerId}' from stored credentials`
+    };
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : String(err);
+    return {
+      state: "offline",
+      restored: false,
+      detail: `presence restore failed: ${reason}`
+    };
+  }
+}
+function setPresence(outcome) {
+  lastPresence = outcome;
+}
+function getPresence() {
+  return lastPresence;
+}
+function logPresence(outcome) {
+  if (outcome.state === "online" && outcome.restored) {
+    logger.info(
+      `Presence: offline -> online \u2014 ${outcome.detail}. This agent is addressable on its channel again, and leftover bridges for this checkout are now reapable.`
+    );
+  } else if (outcome.state === "offline") {
+    logger.warn(`Presence: OFFLINE \u2014 ${outcome.detail}.`);
+  } else {
+    logger.debug(`Presence: ${outcome.state} \u2014 ${outcome.detail}.`);
+  }
+}
+var lastPresence;
+var init_peer_presence = __esm({
+  "src/services/peer-presence.ts"() {
+    "use strict";
+    init_logger();
+    lastPresence = null;
+  }
+});
+
 // src/services/heartbeat.ts
 var HeartbeatService, heartbeat;
 var init_heartbeat = __esm({
@@ -35353,8 +35460,10 @@ __export(startup_exports, {
   cloudWsClient: () => cloudWsClient,
   hasPendingLabelResolve: () => hasPendingLabelResolve,
   isCloudMode: () => isCloudMode2,
+  presenceRegisterArgs: () => presenceRegisterArgs,
   reinitCloudBackend: () => reinitCloudBackend,
   resolvePendingLabel: () => resolvePendingLabel,
+  restorePeerPresence: () => restorePeerPresence,
   runPreflights: () => runPreflights,
   runStartup: () => runStartup,
   setInboxNotifier: () => setInboxNotifier,
@@ -35484,6 +35593,58 @@ async function triggerReRegistration() {
   } finally {
     reRegistrationInProgress = false;
   }
+}
+function presenceRegisterArgs(p) {
+  return [
+    p.peerId,
+    p.sessionId,
+    p.cwd,
+    p.label,
+    CLIENT_VERSION,
+    "agent",
+    void 0,
+    // channelSessionId — not tracked on a presence restore
+    void 0,
+    // capabilities — likewise
+    deriveWorkspaceId(p.cwd),
+    p.sessionId,
+    // threadId
+    p.peerSecret
+    // AUD-003 ownership proof — reclaims a peer owned by an earlier token
+  ];
+}
+async function restorePeerPresence() {
+  const outcome = await restorePresence({
+    // The endpoint being a relay URL is what makes presence meaningful. We deliberately do
+    // NOT gate on the active backend being the cloud one: at startup it is still the
+    // deferred FileBackend placeholder, and gating on it made this whole path inert
+    // (measured: "skipped: not-cloud-mode" with valid credentials on disk).
+    isCloudConfigured: () => {
+      const ep = getConfig().COGENT_ENDPOINT;
+      return !!ep && isCloudEndpoint(ep);
+    },
+    alreadyRegisteredInProcess: () => autoRelay.getDiagnostics().registered,
+    peerAlreadyServed: (peerId) => {
+      try {
+        return listLiveBridges(process.cwd(), peerId).some((b) => b.pid !== process.pid);
+      } catch {
+        return false;
+      }
+    },
+    loadCredentials: () => loadCredentials(),
+    cwd: () => process.cwd(),
+    goOnline: async ({ peerId, endpoint, sessionId, token, cwd, label, peerSecret }) => {
+      await reinitCloudBackend(endpoint, sessionId, token);
+      const backend = getBackend();
+      await backend.registerPeer(...presenceRegisterArgs({ peerId, sessionId, cwd, label, peerSecret }));
+      autoRelay.setLocalPeer(peerId, sessionId, cwd, "agent", label, sessionId);
+      if (cloudWsClient) cloudWsClient.setPeerId(peerId);
+      heartbeat.restart();
+    }
+  });
+  setPresence(outcome);
+  logPresence(outcome);
+  return outcome;
 }
 function createCloudWsClient(endpoint, sessionId, token, http, inbox, pollIntervalMs) {
   const client = new CloudWsClient({
@@ -35736,6 +35897,8 @@ var init_startup = __esm({
     init_cloud();
     init_http_client();
     init_auto_relay();
+    init_peer_presence();
+    init_wake_ownership();
     init_heartbeat();
     init_codex_preflight();
     init_codex_cli();
@@ -37113,6 +37276,18 @@ function registerDeregisterPeerTool(server) {
             logger.warn("failed to clear local mail credentials after deprovision", { error: err });
           }
         }
+        if (removed) {
+          try {
+            const creds = await loadCredentials();
+            if (creds?.peerId === peerId) {
+              const { peerId: _dropped, peerSecret: _secret, ...rest } = creds;
+              await saveCredentials({ ...rest, savedAt: (/* @__PURE__ */ new Date()).toISOString() });
+              logger.info("cleared stored peerId after deregister", { peerId });
+            }
+          } catch (err) {
+            logger.warn("failed to clear stored peerId after deregister", { error: err });
+          }
+        }
         return successResult({
           success: removed,
           message: removed ? `Peer '${peerId}' deregistered` : `Peer '${peerId}' was not registered`
@@ -37135,6 +37310,7 @@ var init_deregister_peer = __esm({
     init_logger();
     init_heartbeat();
     init_mail_credential_store();
+    init_credential_store();
   }
 });
 
@@ -37238,7 +37414,24 @@ function registerHealthCheckTool(server) {
             // never has an upstream relay version to report).
             ...cloud ? { wsHealth, relayVersion, deliveryPath, lastWsError: delivery?.lastWsError ?? null } : {}
           },
-          autoRelay: autoRelay.getDiagnostics()
+          autoRelay: autoRelay.getDiagnostics(),
+          // PRESENCE — the agent's own view of whether it is IN its channel, so it can
+          // answer "am I reachable?" without inferring it from transport internals.
+          // "online" registered · "offline" owns a peer but is not registered (nobody can
+          // reach it) · "deferred" never joined · "local" no relay.
+          // services/peer-presence.ts carries the vocabulary and how each state arises.
+          presence: (() => {
+            const p = getPresence();
+            if (!p) {
+              return { state: "unknown", detail: "presence has not been evaluated yet" };
+            }
+            return {
+              state: p.state,
+              restored: p.restored,
+              detail: p.detail,
+              ..."peerId" in p ? { peerId: p.peerId } : {}
+            };
+          })()
         };
         return successResult(enriched);
       } catch (err) {
@@ -37258,6 +37451,7 @@ var init_health_check2 = __esm({
     init_errors4();
     init_logger();
     init_auto_relay();
+    init_peer_presence();
   }
 });
 
@@ -94017,6 +94211,11 @@ async function main() {
   void runPreflights().catch((err) => {
     logger.warn(
       `Preflight error (non-fatal): ${err instanceof Error ? err.message : String(err)}`
+    );
+  });
+  void restorePeerPresence().catch((err) => {
+    logger.warn(
+      `Presence restore error (non-fatal): ${err instanceof Error ? err.message : String(err)}`
     );
   });
   startUpdateCheckLoop(SERVER_VERSION);
