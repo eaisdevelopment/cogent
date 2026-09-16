@@ -1,5 +1,6 @@
 ---
 description: Send a message to another peer on the Cogent Bridge
+argument-hint: "[peerId] [message] — omit to pick from the peer list"
 ---
 
 Send a message to another peer on the Cogent Bridge.

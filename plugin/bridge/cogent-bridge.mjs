@@ -26389,8 +26389,8 @@ var init_stdio2 = __esm({
 // src/constants.ts
 import { createRequire } from "node:module";
 function resolveVersion() {
-  if ("3.24.0") {
-    return "3.24.0";
+  if ("3.24.1") {
+    return "3.24.1";
   }
   try {
     const require2 = createRequire(import.meta.url);
@@ -36055,10 +36055,24 @@ function registerRegisterPeerTool(server) {
               {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  secret: autoSecret,
-                  label: `Auto-created by ${label}`
-                })
+                // 🔴 NO `label` — let the relay name the channel.
+                //
+                // This used to send `Auto-created by ${label}`, which the relay's own
+                // CreateSessionRequestSchema can NEVER accept: it requires
+                // /^[a-z0-9][a-z0-9-]{1,30}[a-z0-9]$/ (lowercase, digits, hyphens, 3-32 chars).
+                // "Auto-created by ..." has a capital A and spaces, so EVERY auto-create got
+                // HTTP 400 INVALID_INPUT and the zero-config path — register with no channel
+                // configured — could not work at all. Measured against a real relay 2026-09-15:
+                // this body 400s, the same POST without a label returns 201.
+                //
+                // The 400 was visible as far back as 3.5.2 and was read as "don't fall into
+                // auto-create" (see e2e/team-join-live.e2e.test.ts), so the symptom was routed
+                // around and the path itself stayed broken.
+                //
+                // Omitting the label is not a workaround: the relay generates one with
+                // collision-retry scoped to the org (generateSessionLabel + isLabelTaken). A
+                // client-side slug would have to re-implement that and could still collide.
+                body: JSON.stringify({ secret: autoSecret })
               }
             );
             if (!resp.ok) {
@@ -36077,6 +36091,8 @@ function registerRegisterPeerTool(server) {
               sessionId: cloudSessionId,
               token: cloudToken,
               peerId,
+              // The CHANNEL's label (not this peer's) — the name a human needs to join it.
+              label: created.label,
               savedAt: (/* @__PURE__ */ new Date()).toISOString()
             });
             try {

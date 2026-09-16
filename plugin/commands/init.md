@@ -1,5 +1,6 @@
 ---
 description: Set up a shared bridge folder for two or more project directories
+argument-hint: "[<project-path> <project-path> ...] [--share <shared-path>]"
 ---
 
 Help the user configure Cogent Bridge with a shared state folder across multiple projects.

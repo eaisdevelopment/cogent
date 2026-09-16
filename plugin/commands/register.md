@@ -1,5 +1,6 @@
 ---
-description: Register this session on the Cogent Bridge as a peer
+description: Register this session on the Cogent Bridge as a peer (reads .env when given no arguments)
+argument-hint: '[channel "<name>" password "<pw>" peer "<peerId>" [ORGID "<org-id>"]] — omit to use .env'
 ---
 
 Register this Claude Code session on the Cogent Bridge.
