@@ -26389,8 +26389,8 @@ var init_stdio2 = __esm({
 // src/constants.ts
 import { createRequire } from "node:module";
 function resolveVersion() {
-  if ("3.24.1") {
-    return "3.24.1";
+  if ("3.24.2") {
+    return "3.24.2";
   }
   try {
     const require2 = createRequire(import.meta.url);
@@ -27646,7 +27646,10 @@ async function checkCodexSandbox() {
   const probe = await probeSandboxStatus(config2);
   if (probe.status === "blocked") {
     if (config2.COGENT_CODEX_SANDBOX_FALLBACK) {
-      return { ok: true, message: `Sandbox blocked (${probe.detail}) \u2014 auto-bypass fallback is ON, so codex runs unsandboxed` };
+      return {
+        ok: true,
+        message: `Sandbox blocked (${probe.detail}) \u2014 auto-bypass is ON, so codex sessions COGENT WAKES run unsandboxed. This does NOT change an already-running interactive codex session: that keeps the sandbox/approval profile it was launched with, and on this host its bwrap-backed modes will still fail. Relaunch it with --dangerously-bypass-approvals-and-sandbox, or enable unprivileged userns, to fix that.`
+      };
     }
     return { ok: false, message: `Sandbox blocked: ${probe.detail}. Codex can't edit/test \u2014 set COGENT_CODEX_SANDBOX_FALLBACK=1, COGENT_CODEX_SANDBOX=bypass, or enable unprivileged userns` };
   }
