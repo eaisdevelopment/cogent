@@ -26389,8 +26389,8 @@ var init_stdio2 = __esm({
 // src/constants.ts
 import { createRequire } from "node:module";
 function resolveVersion() {
-  if ("3.24.2") {
-    return "3.24.2";
+  if ("3.25.0") {
+    return "3.25.0";
   }
   try {
     const require2 = createRequire(import.meta.url);
@@ -27710,7 +27710,7 @@ var init_file_backend = __esm({
           threadId
         );
       }
-      async deregisterPeer(peerId) {
+      async deregisterPeer(peerId, _peerSecret) {
         return { removed: await deregisterPeer(peerId), mailboxDeprovisioned: false };
       }
       getPeer(peerId) {
@@ -27871,10 +27871,10 @@ var init_http_backend = __esm({
        * confirmed the Team mailbox was reaped, so the deregister-peer tool can clear the now-dead
        * local mail creds. A 404 (peer not found) resolves to `{ removed: false, ... }`, not a throw.
        */
-      async deregisterPeer(peerId) {
+      async deregisterPeer(peerId, peerSecret) {
         const path26 = PATHS.peer.replace(":sessionId", this.sessionId).replace(":peerId", peerId);
         try {
-          const headers = await this.http.delete(path26, {});
+          const headers = await this.http.delete(path26, peerSecret ? { peerSecret } : {});
           const mailboxDeprovisioned = headers.get(MAILBOX_DEPROVISIONED_HEADER) === "true";
           return { removed: true, mailboxDeprovisioned };
         } catch (err) {
@@ -27941,6 +27941,9 @@ var init_http_backend = __esm({
         }
         if (record2.attachments && record2.attachments.length > 0) {
           body.attachments = record2.attachments;
+        }
+        if (record2.replyExpected === false && await relaySupports(this.http, "terminal-messages")) {
+          body.replyExpected = false;
         }
         const resp = await this.http.post(path26, body);
         return {
@@ -28126,6 +28129,38 @@ var init_http_client = __esm({
         }
       }
       /**
+       * Parse a SUCCESS body, turning an unparseable one into a BridgeError.
+       *
+       * 🔴 WHY THIS EXISTS. `throwMappedError` has always guarded the NON-2xx path, so an nginx 502 or
+       * 413 HTML page arrives as a clean BridgeError. The 2xx path did not: `return resp.json()` let a
+       * truncated or empty success body escape as a raw `SyntaxError` carrying no code, no suggestion,
+       * and nothing in the signature to warn a caller it could happen — callers at
+       * http-backend.ts (list peers / get history / health check) simply propagated it.
+       *
+       * That is the worst corner of the trade-off the vault describes (how much information a failure
+       * carries vs how strictly consumers must handle it —
+       * memory/typescript-master-vault/concepts/Error_Handling.md), in a codebase whose own
+       * BridgeError(code, message, suggestion) is the answer to it.
+       *
+       * A 2xx with an unreadable body is REAL: @hono/node-server can answer with a null body or append
+       * `Error: …` to an already-streaming response (handleResponseError), and any proxy may truncate a
+       * long /poll body. STARTUP_FAILED is deliberately the same code throwMappedError falls back to
+       * for a non-JSON error body, so both directions of "the relay said something we cannot read"
+       * report identically rather than inventing a second vocabulary.
+       */
+      async parseJson(resp, method, url) {
+        try {
+          return await resp.json();
+        } catch (e) {
+          const detail = e instanceof Error ? e.message : String(e);
+          throw new BridgeError(
+            "STARTUP_FAILED" /* STARTUP_FAILED */,
+            `Relay returned HTTP ${resp.status} with an unreadable body for ${method} ${url.pathname}: ${detail}`,
+            "The response was not valid JSON \u2014 usually a proxy error page or a truncated body. Retry; if it persists, check the relay and any proxy in front of it."
+          );
+        }
+      }
+      /**
        * Perform an authenticated GET request.
        * Appends query parameters to the URL if provided.
        */
@@ -28140,7 +28175,7 @@ var init_http_client = __esm({
         if (!resp.ok) {
           await this.throwMappedError(resp);
         }
-        return resp.json();
+        return this.parseJson(resp, "GET", url);
       }
       /**
        * Perform an authenticated POST request with a JSON body.
@@ -28158,7 +28193,7 @@ var init_http_client = __esm({
         if (resp.status === 204 || resp.headers?.get("content-length") === "0") {
           return void 0;
         }
-        return resp.json();
+        return this.parseJson(resp, "POST", url);
       }
       /**
        * Perform an authenticated PATCH request with a JSON body.
@@ -28177,7 +28212,7 @@ var init_http_client = __esm({
         if (resp.status === 204 || resp.headers?.get("content-length") === "0") {
           return void 0;
         }
-        return resp.json();
+        return this.parseJson(resp, "PATCH", url);
       }
       /**
        * Perform an authenticated DELETE request.
@@ -36370,7 +36405,10 @@ function registerSendMessageTool(server) {
       inputSchema: {
         fromPeerId: import_zod4.z.string().describe("Peer ID of the sender, e.g. 'backend'"),
         toPeerId: import_zod4.z.string().describe("Peer ID of the recipient, e.g. 'frontend'. Use '*' or 'broadcast' to send to all peers."),
-        message: import_zod4.z.string().describe("The message content to send to the target peer")
+        message: import_zod4.z.string().describe("The message content to send to the target peer"),
+        replyExpected: import_zod4.z.boolean().optional().describe(
+          "Set false for a TERMINAL message \u2014 an acknowledgement, confirmation or FYI that conveys information and needs no answer. The recipient's check-on-stop hook then never counts it as owing a reply. Omit (or true) for anything that asks a question or expects a response. Without this, two agents acknowledging each other never terminate: every ACK is itself a directed message demanding an ACK."
+        )
       },
       annotations: {
         readOnlyHint: false,
@@ -36379,7 +36417,7 @@ function registerSendMessageTool(server) {
         openWorldHint: true
       }
     },
-    async ({ fromPeerId, toPeerId, message }) => {
+    async ({ fromPeerId, toPeerId, message, replyExpected }) => {
       try {
         if (isCloudDeferred(getConfig().COGENT_ENDPOINT)) {
           return successResult({
@@ -36421,7 +36459,8 @@ function registerSendMessageTool(server) {
               response: null,
               durationMs: Date.now() - startMs2,
               success: true,
-              error: null
+              error: null,
+              ...replyExpected === false ? { replyExpected: false } : {}
             });
             return successResult({
               success: true,
@@ -36484,7 +36523,8 @@ function registerSendMessageTool(server) {
                 response: null,
                 durationMs,
                 success: true,
-                error: null
+                error: null,
+                ...replyExpected === false ? { replyExpected: false } : {}
               });
             } catch (recordErr) {
               autoRelay.clearExpectation(toPeerId);
@@ -36579,7 +36619,8 @@ function registerSendMessageTool(server) {
             response: success2 ? result.stdout : null,
             durationMs,
             success: success2,
-            error: success2 ? null : result.stderr
+            error: success2 ? null : result.stderr,
+            ...replyExpected === false ? { replyExpected: false } : {}
           });
           return successResult({
             success: success2,
@@ -36676,6 +36717,7 @@ var init_message = __esm({
       durationMs: import_zod6.z.number().nullable().describe("Round-trip duration in ms"),
       success: import_zod6.z.boolean().describe("Whether delivery succeeded"),
       pending: import_zod6.z.boolean().optional().describe("Delivered+acked; the reply is still expected"),
+      replyExpected: import_zod6.z.boolean().optional().describe("Sender declares the message terminal \u2014 no reply expected. Absent/true = a reply is expected."),
       error: import_zod6.z.string().nullable().describe("Error message if delivery failed"),
       originPlatform: import_zod6.z.enum(["cc", "codex", "slack", "gchat", "web", "gemini", "whatsapp", "telegram", "discord"]).optional().describe("Platform that originated this message"),
       attachments: import_zod6.z.array(AttachmentSchema).optional().describe("Cogent Mail M2.5 \u2014 file references (byte transport = email)")
@@ -37285,7 +37327,12 @@ function registerDeregisterPeerTool(server) {
           });
         }
         const backend = getBackend();
-        const { removed, mailboxDeprovisioned } = await backend.deregisterPeer(peerId);
+        let ownershipProof;
+        try {
+          ownershipProof = (await loadCredentials())?.peerSecret;
+        } catch {
+        }
+        const { removed, mailboxDeprovisioned } = await backend.deregisterPeer(peerId, ownershipProof);
         if (removed) heartbeat.stop();
         if (mailboxDeprovisioned) {
           try {

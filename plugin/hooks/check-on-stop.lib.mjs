@@ -180,6 +180,23 @@ export function selectUnanswered({ messages, me, scope }) {
       continue;
     }
     if (m.isRelayEcho === true) continue; // a peer's echo — never my job
+    // 🔴 THE SENDER DECLARED THIS TERMINAL — it owes no answer (2026-09-21).
+    //
+    // Rail C decides "unanswered" from ADDRESSING alone, so a directed acknowledgement demands a
+    // reply, and that reply is itself a directed message demanding one back. Two agents running
+    // this hook acknowledge each other forever. Observed live between po-backend and
+    // po-integrator, which burned turns on ACK-of-ACK and then negotiated a PROSE protocol
+    // between themselves ("send closures as undirected broadcasts", `ACK_*` prefixes, "no reply
+    // needed" in the body). None of it could work: this function reads addressing, not prose —
+    // and their agreed workaround was structurally incapable of clearing anything, because a
+    // broadcast never clears a directed message (dequeueOldestBroadcast, above).
+    //
+    // Checked on the INBOUND side only. A terminal message I SEND still dequeues a pending item
+    // (it is a real answer to whatever it replies to); it simply never creates a new obligation
+    // for the recipient. That asymmetry is what actually terminates the loop.
+    //
+    // Absent === a reply IS expected, so every pre-3.24.3 record behaves exactly as before.
+    if (m.replyExpected === false) continue;
     if (!isForMe(m, me, scope)) continue;
     enqueue({ ...m, _i: idx });
   }
