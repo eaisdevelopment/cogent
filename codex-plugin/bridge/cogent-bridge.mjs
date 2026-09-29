@@ -26389,8 +26389,8 @@ var init_stdio2 = __esm({
 // src/constants.ts
 import { createRequire } from "node:module";
 function resolveVersion() {
-  if ("3.25.0") {
-    return "3.25.0";
+  if ("3.25.1") {
+    return "3.25.1";
   }
   try {
     const require2 = createRequire(import.meta.url);
@@ -27028,7 +27028,8 @@ async function getHistory(peerId, limit = 150, includeRelayEchoes = false, metad
       timestamp: m.timestamp,
       durationMs: m.durationMs,
       isRelayEcho: m.isRelayEcho === true,
-      success: m.success
+      success: m.success,
+      attachmentCount: m.attachments?.length ?? 0
     }));
     return projected;
   }
@@ -37231,7 +37232,7 @@ function registerGetHistoryTool(server) {
           "Include auto-relay echo records that mirror the recipient's reply. Off by default to keep history readable; turn on for debugging the relay pipeline (260511-o3p, requires server 3.1.6+)."
         ),
         metadataOnly: import_zod12.z.boolean().optional().default(false).describe(
-          'Return records as metadata only \u2014 keys limited to {id, fromPeerId, toPeerId, timestamp, durationMs, isRelayEcho, success}. message and response bodies are omitted entirely. Target: \u226590% payload reduction for cheap "did head move?" polling. Added in 3.2 (HIST-02).'
+          'Return records as metadata only \u2014 keys limited to {id, fromPeerId, toPeerId, timestamp, durationMs, isRelayEcho, success, attachmentCount}. message and response bodies are omitted entirely. Target: \u226590% payload reduction for cheap "did head move?" polling. Added in 3.2 (HIST-02); attachmentCount added by Cogent Mail M2.5.'
         ),
         dedupInferredEchoes: import_zod12.z.boolean().optional().default(false).describe(
           "Suppress untagged auto-relay echo records via content-and-direction heuristic: drop M[i] when M[i].message === M[i-1].response AND fromPeerId/toPeerId are swapped AND \u0394t < 120s. Catches the ~13% of echoes that bypass the isRelayEcho tag (peer-driven re-broadcasts). Requires server 3.2.1+; older servers ignore the param. Added in 3.2.1 (FIX-INFERRED-ECHO, Phase 18 light)."
