@@ -624,6 +624,7 @@ function hasJoinedInProcess() {
 }
 function markCloudAttemptInProcess() {
   cloudAttemptInProcessFlag = true;
+  joinedInProcessFlag = false;
 }
 function hasCloudAttemptInProcess() {
   return cloudAttemptInProcessFlag;
@@ -646,6 +647,12 @@ async function saveCredentials(creds, credentialPath) {
     { encoding: "utf-8", mode: 384 }
   );
   await fs4.chmod(filePath, 384);
+}
+async function rememberIssuedPeerSecret(sessionId, peerId, peerSecret) {
+  const creds = await loadCredentials();
+  if (!creds || creds.sessionId !== sessionId) return;
+  if (creds.peerId === peerId && creds.peerSecret === peerSecret) return;
+  await saveCredentials({ ...creds, peerId, peerSecret, savedAt: (/* @__PURE__ */ new Date()).toISOString() });
 }
 async function legacyGlobalCredentialsExist() {
   try {
@@ -26389,8 +26396,8 @@ var init_stdio2 = __esm({
 // src/constants.ts
 import { createRequire } from "node:module";
 function resolveVersion() {
-  if ("3.25.1") {
-    return "3.25.1";
+  if ("3.25.4") {
+    return "3.25.4";
   }
   try {
     const require2 = createRequire(import.meta.url);
@@ -27806,6 +27813,7 @@ var init_http_backend = __esm({
     init_constants();
     init_config();
     init_relay_version_cache();
+    init_credential_store();
     MAILBOX_DEPROVISIONED_HEADER = "X-Cogent-Mailbox-Deprovisioned";
     PATHS = {
       peers: "/api/sessions/:sessionId/peers",
@@ -27861,7 +27869,15 @@ var init_http_backend = __esm({
         if (peerSecret !== void 0 && await relaySupports(this.http, "peer-ownership")) {
           body.peerSecret = peerSecret;
         }
-        return this.http.post(path26, body);
+        const peer = await this.http.post(path26, body);
+        const issued = peer?.peerSecret;
+        if (issued) {
+          try {
+            await rememberIssuedPeerSecret(this.sessionId, peerId, issued);
+          } catch {
+          }
+        }
+        return peer;
       }
       /**
        * Deregister a peer from the cloud session.
@@ -36721,7 +36737,9 @@ var init_message = __esm({
       replyExpected: import_zod6.z.boolean().optional().describe("Sender declares the message terminal \u2014 no reply expected. Absent/true = a reply is expected."),
       error: import_zod6.z.string().nullable().describe("Error message if delivery failed"),
       originPlatform: import_zod6.z.enum(["cc", "codex", "slack", "gchat", "web", "gemini", "whatsapp", "telegram", "discord"]).optional().describe("Platform that originated this message"),
-      attachments: import_zod6.z.array(AttachmentSchema).optional().describe("Cogent Mail M2.5 \u2014 file references (byte transport = email)")
+      attachments: import_zod6.z.array(AttachmentSchema).optional().describe("Cogent Mail M2.5 \u2014 file references (byte transport = email)"),
+      isRelayEcho: import_zod6.z.boolean().optional().describe("Relay-stamped: the record is an auto-relay echo"),
+      traceId: import_zod6.z.string().optional().describe("Relay-minted trace id, carried on frames/poll")
     });
   }
 });
@@ -36847,9 +36865,9 @@ var init_api_requests = __esm({
       peerSecret: import_zod10.z.string().min(1).max(256).optional().describe("AUD-003: proof of ownership when reclaiming a peer from a different token"),
       cwd: import_zod10.z.string().max(FIELD_LIMITS.CWD_MAX).describe("Peer working directory path"),
       label: import_zod10.z.string().max(FIELD_LIMITS.PEER_LABEL_MAX).describe("Human-readable peer label"),
-      platform: import_zod10.z.enum(["cc", "codex", "slack", "gchat", "web", "gemini"]).optional().describe("Platform this peer belongs to"),
+      platform: import_zod10.z.enum(["cc", "codex", "slack", "gchat", "web", "gemini", "whatsapp", "telegram", "discord"]).optional().describe("Platform this peer belongs to"),
       type: import_zod10.z.enum(["agent", "human"]).optional().describe("Peer type"),
-      transport: import_zod10.z.enum(["ws", "slack-bot", "gchat-bot", "websocket"]).optional().describe("Transport mechanism"),
+      transport: import_zod10.z.enum(["ws", "slack-bot", "gchat-bot", "websocket", "whatsapp-cloud", "telegram-bot", "discord-bot"]).optional().describe("Transport mechanism"),
       platformIdentity: import_zod10.z.record(import_zod10.z.string().max(64), import_zod10.z.string().max(FIELD_LIMITS.PLATFORM_IDENTITY_VALUE_MAX)).optional().describe("Platform-specific identity fields"),
       role: import_zod10.z.string().max(64).optional().describe("A2A role advertised by this peer (Agent Card)"),
       capabilities: import_zod10.z.array(import_zod10.z.string().max(64)).max(16).optional().describe("Capability strings \u2192 A2A Agent Card skills[]")
