@@ -26396,8 +26396,8 @@ var init_stdio2 = __esm({
 // src/constants.ts
 import { createRequire } from "node:module";
 function resolveVersion() {
-  if ("3.25.4") {
-    return "3.25.4";
+  if ("3.25.5") {
+    return "3.25.5";
   }
   try {
     const require2 = createRequire(import.meta.url);
@@ -35510,6 +35510,7 @@ var init_claude_preflight = __esm({
 var startup_exports = {};
 __export(startup_exports, {
   autoRelay: () => autoRelay,
+  cancelPresenceRetry: () => cancelPresenceRetry,
   cloudHttpClient: () => cloudHttpClient,
   cloudInbox: () => cloudInbox,
   cloudWsClient: () => cloudWsClient,
@@ -35668,7 +35669,15 @@ function presenceRegisterArgs(p) {
     // AUD-003 ownership proof — reclaims a peer owned by an earlier token
   ];
 }
-async function restorePeerPresence() {
+function cancelPresenceRetry() {
+  if (presenceRetry) clearTimeout(presenceRetry);
+  presenceRetry = null;
+}
+function presenceRetryDelayMs(attempt) {
+  const base = Number(process.env.COGENT_PRESENCE_RETRY_MS);
+  return Math.min((Number.isFinite(base) && base > 0 ? base : 3e4) * 2 ** attempt, 3e5);
+}
+async function restorePeerPresence(attempt = 0) {
   const outcome = await restorePresence({
     // The endpoint being a relay URL is what makes presence meaningful. We deliberately do
     // NOT gate on the active backend being the cloud one: at startup it is still the
@@ -35699,6 +35708,17 @@ async function restorePeerPresence() {
   });
   setPresence(outcome);
   logPresence(outcome);
+  if (outcome.state === "offline" && outcome.detail.startsWith("presence restore failed")) {
+    const delay = presenceRetryDelayMs(attempt);
+    cancelPresenceRetry();
+    presenceRetry = setTimeout(() => {
+      presenceRetry = null;
+      void restorePeerPresence(attempt + 1).catch(() => {
+      });
+    }, delay);
+    presenceRetry.unref?.();
+    logger.warn(`presence: restore failed \u2014 retrying in ${Math.round(delay / 1e3)}s`);
+  }
   return outcome;
 }
 function createCloudWsClient(endpoint, sessionId, token, http, inbox, pollIntervalMs) {
@@ -35938,7 +35958,7 @@ async function runPreflights() {
     await preflightClaude(config2.COGENT_CLAUDE_PATH);
   }
 }
-var UUID_V4_RE, execFileAsync3, PERSIST_PATH, legacyWarnEmitted, cloudWsClient, cloudInbox, cloudHttpClient, cloudModeActive, inboxNotifier, notifierBoundTo, reRegistrationInProgress, pendingLabelResolve;
+var UUID_V4_RE, execFileAsync3, PERSIST_PATH, legacyWarnEmitted, cloudWsClient, cloudInbox, cloudHttpClient, cloudModeActive, inboxNotifier, notifierBoundTo, reRegistrationInProgress, presenceRetry, pendingLabelResolve;
 var init_startup = __esm({
   "src/startup.ts"() {
     "use strict";
@@ -35971,6 +35991,7 @@ var init_startup = __esm({
     inboxNotifier = null;
     notifierBoundTo = null;
     reRegistrationInProgress = false;
+    presenceRetry = null;
     pendingLabelResolve = null;
   }
 });
