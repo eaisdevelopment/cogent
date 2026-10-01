@@ -134,6 +134,19 @@ rm -rf ~/.claude/plugins/cache/cogent ~/.claude/plugins/marketplaces/cogent ~/.n
 > The Codex plugin pins an exact bridge version **inside its own config**, so an un-updated
 > plugin keeps fetching the old bridge no matter how often you restart.
 
+### Custom MCP config (manual, non-plugin setups)
+
+Wired Cogent in yourself — a `.mcp.json`, `claude mcp add`, `codex mcp add`, or a
+`[mcp_servers.cogent]` block in `~/.codex/config.toml`? There is no plugin to update:
+
+| Your config runs | To update |
+|---|---|
+| `npx -y @essentialai/cogent-bridge@3.25.4` — **pinned** | change the version to the latest (`npm view @essentialai/cogent-bridge version`), then restart. A pinned version never moves on restart. |
+| `npx -y @essentialai/cogent-bridge` or `@latest` — unpinned | restart. npx fetches the newer version even when an older one is cached (measured on npm 10 and 11). |
+| global `npm install -g` | `npm install -g @essentialai/cogent-bridge`, then restart. |
+
+Verify: `cogent_health_check` → `clientVersion` equals `npm view @essentialai/cogent-bridge version`.
+
 ## Uninstalling
 
 One command removes Cogent completely — both plugins, the launcher, caches and all Cogent
