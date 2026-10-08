@@ -65,6 +65,8 @@ Call `cogent_register_peer` with:
 - `cwd`: the absolute working directory path (output of `pwd`)
 - `label`: the chosen label
 
+> 🔴 **HARD RULE — never change your peerId.** Register under the EXACT peer name you were given — never a suffixed, "-recovery", "-2" or otherwise invented variant: your peers address you by that name, and a renamed peer silently stops receiving their messages. If `cogent_register_peer` fails with **`PEER_NOT_YOURS`**, the name is almost always held by your OWN earlier registration: retry the **SAME** `peerId` after the `retryAfterMs` / time the error states (or stop the other session using it). If it returns **`JOIN_NOT_CONFIRMED`**, re-join the channel it names — do not create a new one. Report the failure to the user rather than picking another name.
+
 ## Step 4: Confirm Registration
 
 After successful registration, inform the user:

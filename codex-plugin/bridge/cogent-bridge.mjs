@@ -625,6 +625,20 @@ function hasJoinedInProcess() {
 function markCloudAttemptInProcess() {
   cloudAttemptInProcessFlag = true;
   joinedInProcessFlag = false;
+  cloudAttemptGeneration++;
+  for (const fn of cloudAttemptListeners) {
+    try {
+      fn();
+    } catch {
+    }
+  }
+}
+function getCloudAttemptGeneration() {
+  return cloudAttemptGeneration;
+}
+function onCloudAttemptInProcess(fn) {
+  cloudAttemptListeners.add(fn);
+  return () => cloudAttemptListeners.delete(fn);
 }
 function hasCloudAttemptInProcess() {
   return cloudAttemptInProcessFlag;
@@ -662,7 +676,7 @@ async function legacyGlobalCredentialsExist() {
     return false;
   }
 }
-var LEGACY_GLOBAL_CREDENTIAL_PATH, joinedInProcessFlag, cloudAttemptInProcessFlag;
+var LEGACY_GLOBAL_CREDENTIAL_PATH, joinedInProcessFlag, cloudAttemptInProcessFlag, cloudAttemptGeneration, cloudAttemptListeners;
 var init_credential_store = __esm({
   "src/cloud/credential-store.ts"() {
     "use strict";
@@ -672,6 +686,8 @@ var init_credential_store = __esm({
     );
     joinedInProcessFlag = false;
     cloudAttemptInProcessFlag = false;
+    cloudAttemptGeneration = 0;
+    cloudAttemptListeners = /* @__PURE__ */ new Set();
   }
 });
 
@@ -26396,8 +26412,8 @@ var init_stdio2 = __esm({
 // src/constants.ts
 import { createRequire } from "node:module";
 function resolveVersion() {
-  if ("3.25.5") {
-    return "3.25.5";
+  if ("3.25.6") {
+    return "3.25.6";
   }
   try {
     const require2 = createRequire(import.meta.url);
@@ -26787,11 +26803,14 @@ var init_errors4 = __esm({
       BridgeErrorCode2["DIR_NOT_WRITABLE"] = "DIR_NOT_WRITABLE";
       BridgeErrorCode2["NETWORK_TIMEOUT"] = "NETWORK_TIMEOUT";
       BridgeErrorCode2["JOIN_NOT_CONFIRMED"] = "JOIN_NOT_CONFIRMED";
+      BridgeErrorCode2["PEER_NOT_YOURS"] = "PEER_NOT_YOURS";
       return BridgeErrorCode2;
     })(BridgeErrorCode || {});
     BridgeError = class extends Error {
       code;
       suggestion;
+      /** Relay hint: ms until a refused peerId can be reclaimed (PEER_NOT_YOURS only). */
+      retryAfterMs;
       constructor(code, message, suggestion) {
         const fullMessage = suggestion ? `${code}: ${message}. ${suggestion}` : `${code}: ${message}`;
         super(fullMessage);
@@ -28278,12 +28297,16 @@ var init_http_client = __esm({
         } catch {
           errorBody = { message: resp.statusText };
         }
-        const code = errorBody.code && errorBody.code in BridgeErrorCode ? errorBody.code : "STARTUP_FAILED" /* STARTUP_FAILED */;
-        throw new BridgeError(
+        const code = /PEER_NOT_YOURS/.test(errorBody.message ?? "") ? "PEER_NOT_YOURS" /* PEER_NOT_YOURS */ : errorBody.code && errorBody.code in BridgeErrorCode ? errorBody.code : "STARTUP_FAILED" /* STARTUP_FAILED */;
+        const err = new BridgeError(
           code,
           errorBody.message ?? `HTTP ${resp.status}`,
           errorBody.suggestion
         );
+        if (typeof errorBody.retryAfterMs === "number" && Number.isFinite(errorBody.retryAfterMs)) {
+          err.retryAfterMs = errorBody.retryAfterMs;
+        }
+        throw err;
       }
     };
   }
@@ -35517,6 +35540,7 @@ __export(startup_exports, {
   hasPendingLabelResolve: () => hasPendingLabelResolve,
   isCloudMode: () => isCloudMode2,
   presenceRegisterArgs: () => presenceRegisterArgs,
+  presenceRetryPending: () => presenceRetryPending,
   reinitCloudBackend: () => reinitCloudBackend,
   resolvePendingLabel: () => resolvePendingLabel,
   restorePeerPresence: () => restorePeerPresence,
@@ -35669,6 +35693,9 @@ function presenceRegisterArgs(p) {
     // AUD-003 ownership proof — reclaims a peer owned by an earlier token
   ];
 }
+function presenceRetryPending() {
+  return presenceRetry !== null;
+}
 function cancelPresenceRetry() {
   if (presenceRetry) clearTimeout(presenceRetry);
   presenceRetry = null;
@@ -35678,6 +35705,17 @@ function presenceRetryDelayMs(attempt) {
   return Math.min((Number.isFinite(base) && base > 0 ? base : 3e4) * 2 ** attempt, 3e5);
 }
 async function restorePeerPresence(attempt = 0) {
+  if (!presenceSupersedeBound) {
+    presenceSupersedeBound = true;
+    onCloudAttemptInProcess(() => cancelPresenceRetry());
+  }
+  const superseded = { state: "deferred", restored: false, detail: PRESENCE_SUPERSEDED };
+  if (hasCloudAttemptInProcess()) {
+    logPresence(superseded);
+    return superseded;
+  }
+  const generation = getCloudAttemptGeneration();
+  const stillCurrent = () => getCloudAttemptGeneration() === generation;
   const outcome = await restorePresence({
     // The endpoint being a relay URL is what makes presence meaningful. We deliberately do
     // NOT gate on the active backend being the cloud one: at startup it is still the
@@ -35698,14 +35736,24 @@ async function restorePeerPresence(attempt = 0) {
     loadCredentials: () => loadCredentials(),
     cwd: () => process.cwd(),
     goOnline: async ({ peerId, endpoint, sessionId, token, cwd, label, peerSecret }) => {
+      if (!stillCurrent()) throw new Error(PRESENCE_SUPERSEDED);
       await reinitCloudBackend(endpoint, sessionId, token);
       const backend = getBackend();
       await backend.registerPeer(...presenceRegisterArgs({ peerId, sessionId, cwd, label, peerSecret }));
+      const slot = await loadCredentials();
+      if (!stillCurrent() || slot?.sessionId !== sessionId || slot?.endpoint !== endpoint) {
+        throw new Error(PRESENCE_SUPERSEDED);
+      }
       autoRelay.setLocalPeer(peerId, sessionId, cwd, "agent", label, sessionId);
       if (cloudWsClient) cloudWsClient.setPeerId(peerId);
       heartbeat.restart();
+      markJoinedInProcess();
     }
   });
+  if (!stillCurrent()) {
+    logPresence(superseded);
+    return superseded;
+  }
   setPresence(outcome);
   logPresence(outcome);
   if (outcome.state === "offline" && outcome.detail.startsWith("presence restore failed")) {
@@ -35958,7 +36006,7 @@ async function runPreflights() {
     await preflightClaude(config2.COGENT_CLAUDE_PATH);
   }
 }
-var UUID_V4_RE, execFileAsync3, PERSIST_PATH, legacyWarnEmitted, cloudWsClient, cloudInbox, cloudHttpClient, cloudModeActive, inboxNotifier, notifierBoundTo, reRegistrationInProgress, presenceRetry, pendingLabelResolve;
+var UUID_V4_RE, execFileAsync3, PERSIST_PATH, legacyWarnEmitted, cloudWsClient, cloudInbox, cloudHttpClient, cloudModeActive, inboxNotifier, notifierBoundTo, reRegistrationInProgress, presenceRetry, presenceSupersedeBound, PRESENCE_SUPERSEDED, pendingLabelResolve;
 var init_startup = __esm({
   "src/startup.ts"() {
     "use strict";
@@ -35992,6 +36040,8 @@ var init_startup = __esm({
     notifierBoundTo = null;
     reRegistrationInProgress = false;
     presenceRetry = null;
+    presenceSupersedeBound = false;
+    PRESENCE_SUPERSEDED = "presence restore superseded: an explicit cogent_join_session/cogent_create_session ran in this process and owns the channel choice";
     pendingLabelResolve = null;
   }
 });
@@ -36064,6 +36114,30 @@ function unresolvedSessionReason(r) {
   if (r.sessionId) return null;
   return r.candidateCount === 0 ? "no-candidates" : "ambiguous";
 }
+function peerReclaimWaitMs() {
+  const v = Number(process.env.COGENT_PEER_RECLAIM_WAIT_MS);
+  return Number.isFinite(v) && v >= 0 ? v : 5e4;
+}
+async function retrySamePeerId(first, attempt, budgetMs = peerReclaimWaitMs(), sleep4 = (ms) => new Promise((r) => setTimeout(r, ms))) {
+  let err = first;
+  const start = Date.now();
+  let backoff = 1e3;
+  for (; ; ) {
+    const remaining = budgetMs - (Date.now() - start);
+    const retryAfter = err.retryAfterMs;
+    if (retryAfter === void 0 || remaining <= 0 || retryAfter > remaining) throw err;
+    const wait = Math.min(Math.max(retryAfter, backoff), remaining);
+    logger.warn(`register_peer: peerId held by an earlier registration \u2014 retrying the SAME id in ${Math.round(wait / 1e3)}s`);
+    await sleep4(wait);
+    backoff = Math.min(backoff * 2, 15e3);
+    try {
+      return await attempt();
+    } catch (next) {
+      if (!(next instanceof BridgeError && next.code === "PEER_NOT_YOURS" /* PEER_NOT_YOURS */)) throw next;
+      err = next;
+    }
+  }
+}
 function registerRegisterPeerTool(server) {
   server.registerTool(
     "cogent_register_peer",
@@ -36125,6 +36199,17 @@ function registerRegisterPeerTool(server) {
             }
           }
           if (!cloudSessionId) {
+            const stored = await loadCredentials();
+            if (stored?.sessionId) {
+              const channel = stored.label ? `'${stored.label}' (${stored.sessionId})` : `'${stored.sessionId}'`;
+              return errorResult(
+                new BridgeError(
+                  "JOIN_NOT_CONFIRMED" /* JOIN_NOT_CONFIRMED */,
+                  `This working directory is already on channel ${channel} at ${stored.endpoint}, but this bridge is not online on it, so cogent_register_peer will NOT auto-create a new channel (that would silently move you off your channel while reporting success)`,
+                  `Call cogent_join_session for channel ${channel} (name + secret, + Org_ID for Team channels) and confirm it returns success, then retry cogent_register_peer with the SAME peerId. If that join reports the channel no longer exists, or you do not know its secret, ask the user which channel this agent belongs on and join it (cogent_join_session) or create it (cogent_create_session) explicitly, then register with the SAME peerId \u2014 a channel is never auto-created over a stored one`
+                )
+              );
+            }
             autoSecret = crypto10.randomBytes(16).toString("hex");
             const resp = await fetch(
               `${endpoint}/api/sessions`,
@@ -36259,6 +36344,24 @@ function registerRegisterPeerTool(server) {
             } catch (recoverErr) {
               logger.debug(`register_peer: ownership recovery failed: ${recoverErr.message}`);
             }
+          }
+          if (!recovered && regErr instanceof BridgeError && regErr.code === "PEER_NOT_YOURS" /* PEER_NOT_YOURS */) {
+            recovered = await retrySamePeerId(
+              regErr,
+              () => backend.registerPeer(
+                peerId,
+                sessionId,
+                cwd,
+                label,
+                CLIENT_VERSION,
+                mode,
+                channelSessionId,
+                capabilities,
+                workspaceId,
+                threadId,
+                storedPeerSecret
+              )
+            );
           }
           if (!recovered) throw regErr;
           peer = recovered;
