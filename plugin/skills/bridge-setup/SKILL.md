@@ -20,15 +20,24 @@ cloud session BEFORE registering the peer:
 1. **Try joining first**: Call `cogent_join_session` with:
    - `channel`: the channel name (e.g., "mt-space") — this is the human-readable name, NOT a UUID
    - `secret`: the channel password
+   - `orgId`: the Org_ID — **Team channel only**. If you were given an Org_ID, pass it on every call and never retry without it.
    This triggers server-side label resolution (label -> UUID).
 
-2. **Create only if join fails with "not found"**: Call `cogent_create_session` with:
-   - `label`: the channel name (must match `/^[a-z0-9][a-z0-9-]{1,30}[a-z0-9]$/`)
-   - `secret`: the channel password
+2. **Create only if the join answers `CHANNEL_NOT_FOUND`**: Call `cogent_create_session` once with:
+   - `label`: the SAME channel name (3-32 characters: lowercase letters, digits, hyphens)
+   - `secret`: the SAME channel password
+   - `orgId`: the SAME Org_ID (Team channel only) — never leave it out if you were given one
    Do NOT invent a different label. If the format is invalid, tell the user.
 
-3. **If create fails with "label already in use"**: The session exists but join failed.
-   Try `cogent_join_session` again with `channel` set to the channel name.
+3. **If create fails with "already in use"**: The channel exists (another agent created it a
+   moment ago). Call `cogent_join_session` again with the same channel name.
+
+4. **`Invalid credentials` / `Invalid session secret`**: the password or Org_ID is wrong — stop
+   and ask the user. **`RATE_LIMITED` / HTTP 429**: wait the seconds it states, then repeat the
+   same call once.
+
+**Never print the channel password or the Org_ID** — pass them straight into the tool calls, and
+do not repeat them in a reply, a summary or a message to another peer.
 
 ## Step 1: Discover Session ID
 
@@ -65,13 +74,13 @@ Call `cogent_register_peer` with:
 - `cwd`: the absolute working directory path (output of `pwd`)
 - `label`: the chosen label
 
-> 🔴 **HARD RULE — never change your peerId.** Register under the EXACT peer name you were given — never a suffixed, "-recovery", "-2" or otherwise invented variant: your peers address you by that name, and a renamed peer silently stops receiving their messages. If `cogent_register_peer` fails with **`PEER_NOT_YOURS`**, the name is almost always held by your OWN earlier registration: retry the **SAME** `peerId` after the `retryAfterMs` / time the error states (or stop the other session using it). If it returns **`JOIN_NOT_CONFIRMED`**, re-join the channel it names — do not create a new one. Report the failure to the user rather than picking another name.
+> 🔴 **HARD RULE — never change your peerId.** Register under the EXACT peer name you were given — never a suffixed, "-recovery", "-2" or otherwise invented variant: your peers address you by that name, and a renamed peer silently stops receiving their messages. If `cogent_register_peer` fails with **`PEER_NOT_YOURS`**, the name is almost always held by your OWN earlier registration: retry the **SAME** `peerId` after the `retryAfterMs` / time the error states (or stop the other session using it). If it returns **`JOIN_NOT_CONFIRMED`**, do what the error says: join, or create only if the join answered `CHANNEL_NOT_FOUND`. Report the failure to the user rather than picking another name.
 
 ## Step 4: Confirm Registration
 
 After successful registration, inform the user:
 - Their peer ID and label
-- If cloud mode: the channel name and password so the other peer can join with the same values
+- If cloud mode: the channel name, whether you created or joined it, and the `slackMapCommand` from the tool result with its placeholders left as they are — never the password or the Org_ID
 - They can send messages to other peers using `cogent_send_message`
 - They can check who else is on the bridge using `cogent_list_peers`
 - Incoming messages arrive with a `[Cogent Bridge message from ...]` header

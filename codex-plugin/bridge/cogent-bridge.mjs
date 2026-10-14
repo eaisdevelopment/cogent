@@ -1282,8 +1282,8 @@ var init_parseUtil = __esm({
     init_errors();
     init_en();
     makeIssue = (params) => {
-      const { data, path: path26, errorMaps, issueData } = params;
-      const fullPath = [...path26, ...issueData.path || []];
+      const { data, path: path27, errorMaps, issueData } = params;
+      const fullPath = [...path27, ...issueData.path || []];
       const fullIssue = {
         ...issueData,
         path: fullPath
@@ -1563,11 +1563,11 @@ var init_types = __esm({
     init_parseUtil();
     init_util();
     ParseInputLazyPath = class {
-      constructor(parent, value, path26, key) {
+      constructor(parent, value, path27, key) {
         this._cachedPath = [];
         this.parent = parent;
         this.data = value;
-        this._path = path26;
+        this._path = path27;
         this._key = key;
       }
       get path() {
@@ -5019,10 +5019,10 @@ function assignProp(target, prop, value) {
     configurable: true
   });
 }
-function getElementAtPath(obj, path26) {
-  if (!path26)
+function getElementAtPath(obj, path27) {
+  if (!path27)
     return obj;
-  return path26.reduce((acc, key) => acc?.[key], obj);
+  return path27.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -5271,11 +5271,11 @@ function aborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path26, issues) {
+function prefixIssues(path27, issues) {
   return issues.map((iss) => {
     var _a;
     (_a = iss).path ?? (_a.path = []);
-    iss.path.unshift(path26);
+    iss.path.unshift(path27);
     return iss;
   });
 }
@@ -17081,8 +17081,8 @@ var require_utils = __commonJS({
       }
       return ind;
     }
-    function removeDotSegments(path26) {
-      let input = path26;
+    function removeDotSegments(path27) {
+      let input = path27;
       const output = [];
       let nextSlash = -1;
       let len = 0;
@@ -17281,8 +17281,8 @@ var require_schemes = __commonJS({
         wsComponent.secure = void 0;
       }
       if (wsComponent.resourceName) {
-        const [path26, query] = wsComponent.resourceName.split("?");
-        wsComponent.path = path26 && path26 !== "/" ? path26 : void 0;
+        const [path27, query] = wsComponent.resourceName.split("?");
+        wsComponent.path = path27 && path27 !== "/" ? path27 : void 0;
         wsComponent.query = query;
         wsComponent.resourceName = void 0;
       }
@@ -20635,12 +20635,12 @@ var require_dist = __commonJS({
         throw new Error(`Unknown format "${name}"`);
       return f;
     };
-    function addFormats(ajv, list, fs24, exportName) {
+    function addFormats(ajv, list, fs25, exportName) {
       var _a;
       var _b;
       (_a = (_b = ajv.opts.code).formats) !== null && _a !== void 0 ? _a : _b.formats = (0, codegen_1._)`require("ajv-formats/dist/formats").${exportName}`;
       for (const f of list)
-        ajv.addFormat(f, fs24[f]);
+        ajv.addFormat(f, fs25[f]);
     }
     module.exports = exports = formatsPlugin;
     Object.defineProperty(exports, "__esModule", { value: true });
@@ -21752,8 +21752,8 @@ var require_parseUtil = __commonJS({
     var errors_js_1 = require_errors2();
     var en_js_1 = __importDefault(require_en());
     var makeIssue2 = (params) => {
-      const { data, path: path26, errorMaps, issueData } = params;
-      const fullPath = [...path26, ...issueData.path || []];
+      const { data, path: path27, errorMaps, issueData } = params;
+      const fullPath = [...path27, ...issueData.path || []];
       const fullIssue = {
         ...issueData,
         path: fullPath
@@ -21907,11 +21907,11 @@ var require_types2 = __commonJS({
     var parseUtil_js_1 = require_parseUtil();
     var util_js_1 = require_util2();
     var ParseInputLazyPath2 = class {
-      constructor(parent, value, path26, key) {
+      constructor(parent, value, path27, key) {
         this._cachedPath = [];
         this.parent = parent;
         this.data = value;
-        this._path = path26;
+        this._path = path27;
         this._key = key;
       }
       get path() {
@@ -26412,8 +26412,8 @@ var init_stdio2 = __esm({
 // src/constants.ts
 import { createRequire } from "node:module";
 function resolveVersion() {
-  if ("3.25.6") {
-    return "3.25.6";
+  if ("3.25.7") {
+    return "3.25.7";
   }
   try {
     const require2 = createRequire(import.meta.url);
@@ -26429,6 +26429,34 @@ var init_constants = __esm({
     SERVER_NAME = "Cogent Bridge from Essential AI Solutions (essentialai.uk)";
     SERVER_VERSION = resolveVersion();
     CLIENT_VERSION = SERVER_VERSION;
+  }
+});
+
+// src/instructions.ts
+var ENV_KEY_NAMES_COMMAND, SERVER_INSTRUCTIONS;
+var init_instructions = __esm({
+  "src/instructions.ts"() {
+    "use strict";
+    ENV_KEY_NAMES_COMMAND = "grep -noE '^#COGENT[A-Za-z0-9_ -]*|^(CHANNEL|COG[A-Z]*NT)_(CHANNEL_)?(NAME|PASSWORD|ORG_ID|PEER_NAME|PEER_LABEL)=' .env";
+    SERVER_INSTRUCTIONS = [
+      "Cogent connects this agent to a shared channel with other agents and with people in Slack. Follow the steps below only when the user asks you to register, join or get online on Cogent; never read .env or register unprompted.",
+      "To get online:",
+      "1. cogent_join_session { channel, secret, orgId? }. channel is the channel NAME (3-32 characters: lowercase letters, digits, hyphens), never a UUID. If you were given an Org_ID (Team channel) pass it as orgId on every call and never retry without it.",
+      "2. Only if step 1 answers CHANNEL_NOT_FOUND: cogent_create_session { label, secret, orgId? } with the SAME name, password and Org_ID. It creates the channel and joins you. Never change the name. Do not repeat step 1 first: five failed joins lock the name for 15 minutes.",
+      "3. cogent_register_peer { peerId, sessionId, cwd, label }. peerId is the peer name you were given. sessionId is this agent session's own resumable id, not the channel id. Do not call this first.",
+      "Values come from the user's message, else from the project .env: the keys ending in CHANNEL_NAME, CHANNEL_PASSWORD, ORG_ID, PEER_NAME and PEER_LABEL. To find them, list the key NAMES only:",
+      ENV_KEY_NAMES_COMMAND,
+      "Then pass the values straight into the tool call. Do not print them and do not write a script that prints them. A key with a misspelled prefix is still used: report its KEY NAME. If the channel name or peer name is missing, or appears more than once, ask. Never invent either.",
+      "Errors:",
+      "- CHANNEL_NOT_FOUND: do step 2 once. Exception: if you were given an Org_ID and left it out, do step 1 again WITH orgId and create nothing.",
+      "- 'already in use' from create: the channel exists. Do step 1 again with the same name.",
+      "- Invalid credentials or Invalid session secret (HTTP 401): the password or Org_ID is wrong. Stop and ask.",
+      "- RATE_LIMITED or HTTP 429: wait the seconds it states, then repeat the same call once. Change nothing.",
+      "- JOIN_NOT_CONFIRMED: step 1 or 2 has not succeeded in this session. Do it, then register.",
+      "- PEER_NOT_YOURS: your own earlier session holds the name. Retry the SAME peerId when the error says. Never rename.",
+      "- Anything else: report it and stop.",
+      "Never print the channel password or the Org_ID. When online, report the peer name, the channel name, whether you created or joined it, and the Slack command from the tool result with its placeholders left as they are."
+    ].join("\n");
   }
 });
 
@@ -26803,6 +26831,7 @@ var init_errors4 = __esm({
       BridgeErrorCode2["DIR_NOT_WRITABLE"] = "DIR_NOT_WRITABLE";
       BridgeErrorCode2["NETWORK_TIMEOUT"] = "NETWORK_TIMEOUT";
       BridgeErrorCode2["JOIN_NOT_CONFIRMED"] = "JOIN_NOT_CONFIRMED";
+      BridgeErrorCode2["CHANNEL_NOT_FOUND"] = "CHANNEL_NOT_FOUND";
       BridgeErrorCode2["PEER_NOT_YOURS"] = "PEER_NOT_YOURS";
       return BridgeErrorCode2;
     })(BridgeErrorCode || {});
@@ -27857,7 +27886,7 @@ var init_http_backend = __esm({
        * in cloud mode we ignore it and use this.sessionId (the cloud session).
        */
       async registerPeer(peerId, _sessionId, cwd, label, clientVersion, mode, _channelSessionId, capabilities, workspaceId, threadId, peerSecret) {
-        const path26 = PATHS.peers.replace(":sessionId", this.sessionId);
+        const path27 = PATHS.peers.replace(":sessionId", this.sessionId);
         const body = {
           peerId,
           cwd,
@@ -27888,7 +27917,7 @@ var init_http_backend = __esm({
         if (peerSecret !== void 0 && await relaySupports(this.http, "peer-ownership")) {
           body.peerSecret = peerSecret;
         }
-        const peer = await this.http.post(path26, body);
+        const peer = await this.http.post(path27, body);
         const issued = peer?.peerSecret;
         if (issued) {
           try {
@@ -27908,9 +27937,9 @@ var init_http_backend = __esm({
        * local mail creds. A 404 (peer not found) resolves to `{ removed: false, ... }`, not a throw.
        */
       async deregisterPeer(peerId, peerSecret) {
-        const path26 = PATHS.peer.replace(":sessionId", this.sessionId).replace(":peerId", peerId);
+        const path27 = PATHS.peer.replace(":sessionId", this.sessionId).replace(":peerId", peerId);
         try {
-          const headers = await this.http.delete(path26, peerSecret ? { peerSecret } : {});
+          const headers = await this.http.delete(path27, peerSecret ? { peerSecret } : {});
           const mailboxDeprovisioned = headers.get(MAILBOX_DEPROVISIONED_HEADER) === "true";
           return { removed: true, mailboxDeprovisioned };
         } catch (err) {
@@ -27934,8 +27963,8 @@ var init_http_backend = __esm({
        * GET /api/sessions/:sessionId/peers
        */
       async listPeers() {
-        const path26 = PATHS.peers.replace(":sessionId", this.sessionId);
-        const result = await this.http.get(path26);
+        const path27 = PATHS.peers.replace(":sessionId", this.sessionId);
+        const result = await this.http.get(path27);
         return result.peers;
       }
       /**
@@ -27943,8 +27972,8 @@ var init_http_backend = __esm({
        * Calls the lightweight heartbeat endpoint on the cloud relay server.
        */
       async updateLastSeen(peerId) {
-        const path26 = PATHS.heartbeat.replace(":sessionId", this.sessionId);
-        await this.http.post(path26, { peerId });
+        const path27 = PATHS.heartbeat.replace(":sessionId", this.sessionId);
+        await this.http.post(path27, { peerId });
       }
       /**
        * Record a message in the cloud session.
@@ -27955,7 +27984,7 @@ var init_http_backend = __esm({
        * the input record to construct a full MessageRecord.
        */
       async recordMessage(record2) {
-        const path26 = PATHS.messages.replace(":sessionId", this.sessionId);
+        const path27 = PATHS.messages.replace(":sessionId", this.sessionId);
         const body = {
           fromPeerId: record2.fromPeerId,
           toPeerId: record2.toPeerId,
@@ -27981,7 +28010,7 @@ var init_http_backend = __esm({
         if (record2.replyExpected === false && await relaySupports(this.http, "terminal-messages")) {
           body.replyExpected = false;
         }
-        const resp = await this.http.post(path26, body);
+        const resp = await this.http.post(path27, body);
         return {
           ...record2,
           id: resp.id,
@@ -27995,7 +28024,7 @@ var init_http_backend = __esm({
        * Supports optional peerId filter and limit (default 300).
        */
       async getHistory(peerId, limit, includeRelayEchoes, metadataOnly, dedupInferredEchoes) {
-        const path26 = PATHS.messages.replace(":sessionId", this.sessionId);
+        const path27 = PATHS.messages.replace(":sessionId", this.sessionId);
         const query = {};
         if (peerId) {
           query.peerId = peerId;
@@ -28010,7 +28039,7 @@ var init_http_backend = __esm({
         if (dedupInferredEchoes) {
           query.dedupInferredEchoes = "true";
         }
-        const result = await this.http.get(path26, query);
+        const result = await this.http.get(path27, query);
         return result.messages;
       }
       /**
@@ -28021,12 +28050,12 @@ var init_http_backend = __esm({
        * so that get-history shows the actual response (not null).
        */
       async updateMessageResponse(messageId, response, durationMs, pending) {
-        const path26 = PATHS.message.replace(":sessionId", this.sessionId).replace(":messageId", messageId);
+        const path27 = PATHS.message.replace(":sessionId", this.sessionId).replace(":messageId", messageId);
         const body = { response, durationMs };
         if (pending === true) {
           body.pending = true;
         }
-        await this.http.patch(path26, body);
+        await this.http.patch(path27, body);
       }
       /**
        * Validate a session.
@@ -28200,8 +28229,8 @@ var init_http_client = __esm({
        * Perform an authenticated GET request.
        * Appends query parameters to the URL if provided.
        */
-      async get(path26, query) {
-        const url = new URL(path26, this.baseUrl);
+      async get(path27, query) {
+        const url = new URL(path27, this.baseUrl);
         if (query) {
           for (const [k, v] of Object.entries(query)) {
             url.searchParams.set(k, v);
@@ -28216,8 +28245,8 @@ var init_http_client = __esm({
       /**
        * Perform an authenticated POST request with a JSON body.
        */
-      async post(path26, body) {
-        const url = new URL(path26, this.baseUrl);
+      async post(path27, body) {
+        const url = new URL(path27, this.baseUrl);
         const resp = await this.fetchWithTimeout(url, {
           method: "POST",
           headers: this.headers(),
@@ -28235,8 +28264,8 @@ var init_http_client = __esm({
        * Perform an authenticated PATCH request with a JSON body.
        * Used to update existing resources (e.g., message response fields).
        */
-      async patch(path26, body) {
-        const url = new URL(path26, this.baseUrl);
+      async patch(path27, body) {
+        const url = new URL(path27, this.baseUrl);
         const resp = await this.fetchWithTimeout(url, {
           method: "PATCH",
           headers: this.headers(),
@@ -28261,8 +28290,8 @@ var init_http_client = __esm({
        * "Malformed JSON in request body" 400 from cogent-server <=3.1.2 when
        * any client (including third-party tools) DELETEd a peer without a body.
        */
-      async delete(path26, body) {
-        const url = new URL(path26, this.baseUrl);
+      async delete(path27, body) {
+        const url = new URL(path27, this.baseUrl);
         const headers = {
           "Authorization": `Bearer ${this.token}`
         };
@@ -32563,14 +32592,14 @@ var init_ws_client = __esm({
         this.restoreCursor();
         const poll = async () => {
           try {
-            const path26 = `/api/sessions/${this.opts.sessionId}/poll`;
+            const path27 = `/api/sessions/${this.opts.sessionId}/poll`;
             const query = {
               peerId: this.opts.peerId
             };
             if (this.lastMessageId) {
               query.lastMessageId = this.lastMessageId;
             }
-            const result = await this.opts.http.get(path26, query);
+            const result = await this.opts.http.get(path27, query);
             if (result.messages && result.messages.length > 0) {
               this.opts.onMessages(result.messages);
               this.advanceCursor(result.messages[result.messages.length - 1].id);
@@ -33487,6 +33516,10 @@ import crypto5 from "node:crypto";
 import fs15 from "node:fs";
 import os11 from "node:os";
 import path16 from "node:path";
+function drainCapMs(timeoutMs) {
+  const t = Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : 3e5;
+  return Math.min(INFLIGHT_TIMEOUT_FACTOR * t, INFLIGHT_MAX_MS);
+}
 function hashCwd3(cwd) {
   return crypto5.createHash("sha256").update(path16.resolve(cwd)).digest("hex").slice(0, 16);
 }
@@ -33813,11 +33846,35 @@ import crypto8 from "node:crypto";
 import fs18 from "node:fs";
 import os14 from "node:os";
 import path19 from "node:path";
+function agentSessionId(env = process.env) {
+  if (env.COGENT_PLATFORM && env.COGENT_PLATFORM !== "cc") return void 0;
+  const id = env.CLAUDE_CODE_SESSION_ID?.trim();
+  return id && id.length <= 128 ? id : void 0;
+}
+function startedWithoutClient() {
+  if (withoutClient === void 0) {
+    try {
+      withoutClient = fs18.fstatSync(0).isCharacterDevice();
+    } catch {
+      withoutClient = false;
+    }
+  }
+  return withoutClient;
+}
 function hashCwd6(cwd) {
   return crypto8.createHash("sha256").update(path19.resolve(cwd)).digest("hex").slice(0, 16);
 }
 function bridgeDirFor(cwd, peerId) {
   return path19.join(os14.homedir(), ".cogent", "bridges", `${hashCwd6(cwd)}.${safe4(peerId)}`);
+}
+function isReservedPeerName(peerId) {
+  return safe4(peerId).toLowerCase() === safe4(PROCESS_MARK).toLowerCase();
+}
+function registryText(value) {
+  return String(value ?? "").replace(/[^A-Za-z0-9._-]/g, "").slice(0, 64) || "unreadable";
+}
+function registryOwnerLabel(o) {
+  return `pid ${registryText(o.pid)} (v${registryText(o.version)}, ${JSON.stringify(String(o.endpoint ?? "").slice(0, 200))})`;
 }
 function pidAlive(pid) {
   if (typeof pid !== "number" || !Number.isInteger(pid) || pid <= 0) return false;
@@ -33829,7 +33886,7 @@ function pidAlive(pid) {
     return err?.code === "EPERM";
   }
 }
-function announceBridge(cwd, peerId, version2, endpoint) {
+function announceBridge(cwd, peerId, version2, endpoint, sessionId = agentSessionId()) {
   const dir = bridgeDirFor(cwd, peerId);
   try {
     fs18.mkdirSync(dir, { recursive: true });
@@ -33839,12 +33896,29 @@ function announceBridge(cwd, peerId, version2, endpoint) {
       version: version2,
       peerId,
       endpoint,
-      cwd: path19.resolve(cwd)
+      cwd: path19.resolve(cwd),
+      parentPid: process.ppid,
+      ...sessionId ? { sessionId } : {},
+      // 🔴 A headless bridge never had a client to lose (review r7 FIX2-2, SEC2-2): when its launching
+      // shell exited, the changed parent read as "client gone" and any bridge that started took its name.
+      ...startedWithoutClient() ? { noClient: true } : {}
     };
     fs18.writeFileSync(path19.join(dir, `${process.pid}.json`), JSON.stringify(entry));
   } catch (err) {
     logger.debug(`wake-ownership: could not announce this bridge (${err.message})`);
   }
+}
+function markBridgeDraining(cwd, peerId) {
+  const file = path19.join(bridgeDirFor(cwd, peerId), `${process.pid}.json`);
+  try {
+    const entry = JSON.parse(fs18.readFileSync(file, "utf-8"));
+    fs18.writeFileSync(file, JSON.stringify({ ...entry, draining: true }));
+  } catch {
+  }
+}
+function markBridgeProcess(cwd, version2) {
+  listLiveBridges(cwd, PROCESS_MARK);
+  announceBridge(cwd, PROCESS_MARK, version2, "");
 }
 function withdrawBridge(cwd, peerId) {
   try {
@@ -33882,6 +33956,16 @@ function listLiveBridges(cwd, peerId) {
   live.sort((a, b) => b.startedAt - a.startedAt || b.pid - a.pid);
   return live;
 }
+function listLiveBridgesInFolder(cwd) {
+  const prefix = `${hashCwd6(cwd)}.`;
+  let dirs;
+  try {
+    dirs = fs18.readdirSync(path19.join(os14.homedir(), ".cogent", "bridges"));
+  } catch {
+    return [];
+  }
+  return dirs.filter((d) => d.startsWith(prefix)).flatMap((d) => listLiveBridges(cwd, d.slice(prefix.length)));
+}
 function checkWakeOwnership(cwd, peerId) {
   let live;
   try {
@@ -33902,13 +33986,14 @@ function checkWakeOwnership(cwd, peerId) {
   }
   return { isOwner: true, liveCount: live.length + 1 };
 }
-var PROCESS_STARTED_AT, safe4;
+var PROCESS_STARTED_AT, withoutClient, safe4, PROCESS_MARK;
 var init_wake_ownership = __esm({
   "src/services/wake-ownership.ts"() {
     "use strict";
     init_logger();
     PROCESS_STARTED_AT = Date.now() - Math.floor(process.uptime() * 1e3);
     safe4 = (s) => String(s).replace(/[^A-Za-z0-9._-]/g, "_");
+    PROCESS_MARK = ".process";
   }
 });
 
@@ -33926,6 +34011,39 @@ function isBridgeCommand(argv) {
 function versionFromArgv(argv) {
   const m = argv.match(/\/cogent\/(\d+\.\d+\.\d+)\//);
   return m ? m[1] : null;
+}
+function versionAtLeast(a, b) {
+  const pa = a.split(/[-+]/)[0].split(".").map(Number);
+  const pb = b.split(/[-+]/)[0].split(".").map(Number);
+  for (let i = 0; i < 3; i++) {
+    const x = pa[i] ?? 0;
+    const y = pb[i] ?? 0;
+    if (x !== y) return x > y;
+  }
+  return true;
+}
+function bridgeVersion(argv, readFile = (p) => fs19.readFileSync(p, "utf-8")) {
+  const fromPath = versionFromArgv(argv);
+  if (fromPath) return fromPath;
+  const candidates = [];
+  const pkg = argv.match(/(\S*\/@essentialai\/cogent-bridge(?:-bundled)?)\/dist\/(?:cli|index)\.js(?:\s|$)/);
+  if (pkg) candidates.push(path20.join(pkg[1], "package.json"));
+  const bin = argv.match(/(\S*\/node_modules)\/\.bin\/cogent-bridge(?:\s|$)/);
+  if (bin) {
+    for (const name of ["cogent-bridge", "cogent-bridge-bundled"]) {
+      candidates.push(path20.join(bin[1], "@essentialai", name, "package.json"));
+    }
+  }
+  for (const file of candidates) {
+    try {
+      const pj = JSON.parse(readFile(file));
+      if (typeof pj.name === "string" && pj.name.startsWith("@essentialai/cogent-bridge") && typeof pj.version === "string" && /^\d+\.\d+\.\d+/.test(pj.version)) {
+        return pj.version;
+      }
+    } catch {
+    }
+  }
+  return null;
 }
 function listProcesses() {
   let out;
@@ -33988,25 +34106,13 @@ function ancestorsOf(pid, procs) {
   }
   return seen;
 }
-function announcedPidsFor(cwd) {
-  const pids = /* @__PURE__ */ new Set();
-  try {
-    const base = path20.dirname(bridgeDirFor(cwd, "x"));
-    const prefix = path20.basename(bridgeDirFor(cwd, "x")).split(".")[0];
-    for (const dir of fs19.readdirSync(base)) {
-      if (!dir.startsWith(`${prefix}.`)) continue;
-      const peerId = dir.slice(prefix.length + 1);
-      for (const e of listLiveBridges(cwd, peerId)) pids.add(e.pid);
-    }
-  } catch {
-  }
-  return pids;
-}
 function findStaleBridges(cwd, procs = listProcesses(), opts = {}) {
+  const versionOf = opts.versionOf ?? ((argv) => bridgeVersion(argv));
   const selfPid = opts.selfPid ?? process.pid;
-  const selfStartedAt = opts.selfStartedAt ?? Date.now() - Math.floor(process.uptime() * 1e3);
+  const selfStartedAt = opts.selfStartedAt ?? procs.find((p) => p.pid === selfPid)?.startedAt ?? NaN;
+  if (!Number.isFinite(selfStartedAt)) return [];
   const cwdOf = opts.cwdOf ?? processCwd;
-  const announced = opts.announced ?? announcedPidsFor(cwd);
+  const announced = opts.announced ?? new Set(listLiveBridgesInFolder(cwd).map((e) => e.pid));
   const target = canonicalPath(cwd);
   const ancestors = ancestorsOf(selfPid, procs);
   const out = [];
@@ -34018,10 +34124,11 @@ function findStaleBridges(cwd, procs = listProcesses(), opts = {}) {
     if (!Number.isFinite(p.startedAt) || p.startedAt >= selfStartedAt) continue;
     const theirCwd = cwdOf(p.pid);
     if (!theirCwd || canonicalPath(theirCwd) !== target) continue;
-    const ver = versionFromArgv(p.argv);
+    const ver = versionOf(p.argv);
+    if (!ver || versionAtLeast(ver, SELF_SUPERSESSION_VERSION)) continue;
     out.push({
       proc: p,
-      reason: `pid ${p.pid}${ver ? ` (plugin ${ver})` : ""} is a cogent bridge in this exact checkout, started ${new Date(p.startedAt).toISOString()} \u2014 before this process \u2014 and has not announced itself, so it predates self-supersession and would keep waking this session forever`
+      reason: `pid ${p.pid} (version ${ver}) is a cogent bridge in this exact checkout, started ${new Date(p.startedAt).toISOString()} \u2014 before this process \u2014 and is not in the bridge registry; version ${ver} predates ${SELF_SUPERSESSION_VERSION} self-supersession and would keep waking this session forever`
     });
   }
   return out;
@@ -34055,21 +34162,25 @@ function reapStaleBridges(cwd, opts = {}) {
   }
   if (reaped.length) {
     logger.warn(
-      `Cogent: reaped ${reaped.length} stale bridge process(es) left behind by an earlier plugin version. They could not stand down on their own because they predate 3.23.4.`
+      `Cogent: reaped ${reaped.length} stale bridge process(es) for this checkout, each at a version before ${SELF_SUPERSESSION_VERSION}: they could not stand down on their own.`
     );
   }
   return reaped;
 }
+var SELF_SUPERSESSION_VERSION;
 var init_stale_bridge_reaper = __esm({
   "src/services/stale-bridge-reaper.ts"() {
     "use strict";
     init_logger();
     init_wake_ownership();
+    SELF_SUPERSESSION_VERSION = "3.23.4";
   }
 });
 
 // src/services/auto-relay.ts
 import { randomUUID as randomUUID2 } from "node:crypto";
+import fs20 from "node:fs";
+import path21 from "node:path";
 function buildStatusNotice(status, peerId, traceId) {
   const tail = traceId ? ` (trace ${traceId})` : "";
   if (status === RELAY_STATUS.QUEUED) {
@@ -34196,6 +34307,21 @@ function truncate(s) {
   const flat = s.replace(/\s+/g, " ").trim();
   return flat.length > DIAGNOSTIC_MAX ? `${flat.slice(0, DIAGNOSTIC_MAX - 1)}\u2026` : flat;
 }
+function isInsideOwnFolder(dir) {
+  try {
+    const real = fs20.realpathSync.native(dir);
+    return real === process.cwd() || real.startsWith(process.cwd() + path21.sep);
+  } catch {
+    return false;
+  }
+}
+function isOwnFolder(dir) {
+  try {
+    return fs20.realpathSync.native(dir) === fs20.realpathSync.native(process.cwd());
+  } catch {
+    return false;
+  }
+}
 var RELAY_STATUS, STATUS_MARKER_RE, DIAGNOSTIC_MAX, EARLY_ACK_TTL_MS, EARLY_ACK_MAX, AutoRelayService, autoRelay;
 var init_auto_relay = __esm({
   "src/services/auto-relay.ts"() {
@@ -34236,6 +34362,8 @@ var init_auto_relay = __esm({
        */
       pinnedSessionId = null;
       localCwd = null;
+      /** Every folder this process announced the current peer name under — what a drain or a stop must cover. */
+      announcedCwds = /* @__PURE__ */ new Set();
       /**
        * Peer participation mode (3.2.0, Phase 17 OBS-03).
        * - "agent" (default): full auto-relay — inbound directed messages run
@@ -34299,6 +34427,7 @@ var init_auto_relay = __esm({
        * successful registration so we know which session to inject into.
        */
       setLocalPeer(peerId, sessionId, cwd, mode, label, pinnedSessionId) {
+        if (this.localPeerId && this.localPeerId !== peerId) this.withdrawAnnouncement();
         this.localPeerId = peerId;
         this.localSessionId = sessionId;
         this.pinnedSessionId = pinnedSessionId ?? sessionId;
@@ -34308,7 +34437,12 @@ var init_auto_relay = __esm({
         logger.info(
           `Auto-relay configured for peer ${peerId} (session: ${sessionId}, pinned: ${this.pinnedSessionId}, mode: ${this.localMode}, label: ${this.localLabel})`
         );
-        announceBridge(cwd, peerId, CLIENT_VERSION, getConfig().COGENT_ENDPOINT ?? "local");
+        const dirs = /* @__PURE__ */ new Set([path21.resolve(cwd)]);
+        if (isInsideOwnFolder(path21.resolve(cwd))) dirs.add(process.cwd());
+        for (const dir of dirs) {
+          this.announcedCwds.add(dir);
+          announceBridge(dir, peerId, CLIENT_VERSION, getConfig().COGENT_ENDPOINT ?? "local");
+        }
         this.supersededNotified.clear();
         if (!this.reapedStaleBridges) {
           this.reapedStaleBridges = true;
@@ -34683,10 +34817,13 @@ var init_auto_relay = __esm({
           }
         }
         if (this.localPeerId && this.localCwd) {
-          const own = checkWakeOwnership(this.localCwd, this.localPeerId);
-          if (!own.isOwner) {
-            await this._reportSuperseded(msg, own.owner);
-            return;
+          const dirs = /* @__PURE__ */ new Set([path21.resolve(this.localCwd), ...isOwnFolder(this.localCwd) ? [process.cwd()] : []]);
+          for (const dir of dirs) {
+            const own = checkWakeOwnership(dir, this.localPeerId);
+            if (!own.isOwner) {
+              await this._reportSuperseded(msg, own.owner);
+              return;
+            }
           }
         }
         if (this.localPeerId && !this.awarenessOnly.has(msg.id)) {
@@ -34731,7 +34868,7 @@ var init_auto_relay = __esm({
        * notice generator.
        */
       async _reportSuperseded(msg, owner) {
-        const who = owner ? `pid ${owner.pid} (v${owner.version}, ${owner.endpoint})` : "a newer bridge";
+        const who = owner ? registryOwnerLabel(owner) : "a newer bridge";
         logger.warn(
           `Auto-relay: NOT waking for ${msg.fromPeerId} \u2014 this bridge (pid ${process.pid}, v${CLIENT_VERSION}) has been superseded for peer "${this.localPeerId}" in this checkout by ${who}. It is a leftover process; the newer bridge is answering. Standing down.`
         );
@@ -35163,6 +35300,24 @@ var init_auto_relay = __esm({
         };
       }
       /**
+       * Stop claiming this peer's name for this checkout, WITHOUT stopping work already in flight.
+       * Called the moment the MCP client is gone: a draining bridge serves no agent, and while it
+       * counted as the peer's holder, the restarted agent's new bridge stood by behind it (review r2
+       * NEW-1). The announcement is MARKED, not removed — see markBridgeDraining (R3-2). Idempotent.
+       * 🔴 EVERY announcement, not only the last registered cwd's (review r7 SEC2-1, ABC2-2, FIX2-5):
+       * after a register with another spelling of the folder, the one for the bridge's own folder stayed
+       * unmarked, and the restarted agent waited out the drain or stood by for good.
+       */
+      announceDraining() {
+        if (!this.localPeerId) return;
+        for (const dir of this.announcedCwds) markBridgeDraining(dir, this.localPeerId);
+      }
+      /** Remove this bridge's ownership announcements (graceful shutdown, a rename). Idempotent. */
+      withdrawAnnouncement() {
+        if (this.localPeerId) for (const dir of this.announcedCwds) withdrawBridge(dir, this.localPeerId);
+        this.announcedCwds.clear();
+      }
+      /**
        * Stop the auto-relay service: clear queue and reset state.
        */
       stop() {
@@ -35181,7 +35336,7 @@ var init_auto_relay = __esm({
         }
         this.deliveryAckWaiters.clear();
         this.recentAcks.clear();
-        if (this.localCwd && this.localPeerId) withdrawBridge(this.localCwd, this.localPeerId);
+        this.withdrawAnnouncement();
         this.queue = [];
         this.awarenessOnly.clear();
         this.supersededNotified.clear();
@@ -35201,6 +35356,63 @@ var init_auto_relay = __esm({
 });
 
 // src/services/peer-presence.ts
+function holderRelation(holderSession, ownSession) {
+  if (holderSession && ownSession) return holderSession === ownSession ? "same-session" : "other-session";
+  return holderSession || ownSession ? "unknown" : "no-session";
+}
+function holderClientGone(holder, procs) {
+  if (holder.noClient === true) return false;
+  const byPid = new Map(procs.map((p) => [p.pid, p]));
+  let cur = byPid.get(holder.pid);
+  if (!cur) return false;
+  if (typeof holder.parentPid === "number") return cur.ppid !== holder.parentPid;
+  for (let hops = 0; hops < 3; hops++) {
+    if (cur.ppid === 1) return true;
+    const parent = byPid.get(cur.ppid);
+    if (!parent) return false;
+    const exe = parent.argv.trim().split(/\s+/)[0] ?? "";
+    if (ORPHAN_PARENT_RE.test(exe.split("/").pop() ?? "")) return true;
+    if (!NPX_WRAPPER_RE.test(parent.argv.trim())) return false;
+    cur = parent;
+  }
+  return false;
+}
+function insideCodexWakeTurn(selfPid, procs) {
+  const byPid = new Map(procs.map((p) => [p.pid, p]));
+  const seen = /* @__PURE__ */ new Set();
+  let cur = byPid.get(selfPid)?.ppid;
+  while (cur && cur > 1 && !seen.has(cur)) {
+    seen.add(cur);
+    const p = byPid.get(cur);
+    if (!p) break;
+    if (/(^|[\s/])codex(\.js)?\s+exec\s+resume(\s|$)/.test(p.argv)) return true;
+    cur = p.ppid;
+  }
+  return false;
+}
+function otherBridgesInFolder(entries, self, listProcs) {
+  let procs = null;
+  return entries.filter(
+    (e) => e.peerId !== PROCESS_MARK && e.pid !== self.pid && !e.draining && holderRelation(e.sessionId, self.sessionId) !== "same-session" && !holderClientGone(e, procs ??= listProcs())
+  );
+}
+function anotherAgentSessionAmong(others, ownSession) {
+  return others.some((o) => holderRelation(o.sessionId, ownSession) === "other-session");
+}
+function otherBridgeNotice(others, peerId, verdict, ownSession) {
+  const lines = others.map((o) => {
+    const version2 = registryText(o.version);
+    const who = holderRelation(o.sessionId, ownSession) === "other-session" ? `Another live agent session in this folder (bridge pid ${o.pid}, version ${version2}, agent session ${registryText(o.sessionId)})` : `Another live bridge in this folder (pid ${o.pid}, version ${version2}; its agent session cannot be compared with this one, so it may be this agent's own previous or second bridge)`;
+    if (o.peerId !== peerId) {
+      return `${who} is still registered as '${registryText(o.peerId)}'. It keeps that name while it runs, but the folder's saved identity now points at this bridge ('${peerId}'): after a restart that bridge's agent comes back as '${peerId}' only if this bridge is no longer running then; otherwise it stays out of the channel until it registers again.`;
+    }
+    if (verdict.isOwner) {
+      return `${who} was registered as '${peerId}'. It is now superseded: this bridge holds '${peerId}' and that bridge has stopped answering for it.`;
+    }
+    return `${who} is registered as '${peerId}' too. NOBODY answers for '${peerId}' in this channel now: the bridge that started last (pid ${verdict.owner?.pid ?? "unknown"}) is the one that wakes its agent, but in this channel the relay registration now belongs to this bridge, so the relay refuses that bridge's replies here and this bridge does not wake. It stays that way until that bridge is closed or its agent registers again. If that bridge is registered in another channel, it still answers there.`;
+  });
+  return lines.join(" ") + (anotherAgentSessionAmong(others, ownSession) ? ` Two agents in one folder are not supported yet: each agent needs its own peer name and, for now, its own folder.` : "");
+}
 function autoPresenceEnabled(env = process.env) {
   const v = env.COGENT_AUTO_PRESENCE;
   if (v === void 0 || v === "") return true;
@@ -35230,11 +35442,42 @@ async function restorePresence(deps) {
       };
     }
     const peerId = creds.peerId;
-    if (deps.peerAlreadyServed(peerId)) {
+    if (deps.startedByWakeTurn?.()) {
       return {
-        state: "online",
+        state: "deferred",
         restored: false,
-        detail: `peer '${peerId}' is already served by a live bridge for this working directory`
+        detail: `this bridge runs inside a codex wake turn ('codex exec resume'); peer '${peerId}' belongs to the agent's own bridge, which started this turn \u2014 nothing to restore here`
+      };
+    }
+    const served = deps.peerAlreadyServed(peerId);
+    if (served) {
+      const session = deps.agentSessionId?.();
+      const holder = holderRelation(served.sessionId, session);
+      const servedBy = {
+        ...served,
+        ...served.version === void 0 ? {} : { version: registryText(served.version) },
+        ...served.sessionId === void 0 ? {} : { sessionId: registryText(served.sessionId) }
+      };
+      const started = Number.isFinite(servedBy.startedAt) ? new Date(servedBy.startedAt).toISOString() : "unknown";
+      const recheck = holder === "same-session";
+      const every = deps.recheckSeconds ? ` (re-checked every ${deps.recheckSeconds}s)` : "";
+      const take = `To take '${peerId}' for this agent now, run /cogent:register (cogent_join_session, then cogent_register_peer)`;
+      const why = {
+        "same-session": `That bridge serves this same agent session (${session})`,
+        "no-session": `Neither bridge records an agent session (codex, gemini), so it cannot be told whether that bridge is this agent's previous one or another agent's. ${take}`,
+        "other-session": `That bridge serves another agent session (${servedBy.sessionId}; ours: ${session}). Two agents in one folder are not supported yet: a second agent needs its own folder and peer name. ${take}`,
+        unknown: `Its agent session cannot be compared with this one (that bridge: ${servedBy.sessionId ?? "not recorded"}; this bridge: ${session ?? "not known"}): it may be this agent's own other bridge of an older version, or another agent's. ${take}`
+      };
+      return {
+        state: "standby",
+        restored: false,
+        peerId,
+        servedBy,
+        holder,
+        recheck,
+        // A final standby is evaluated once, so it says "when this bridge started": the health
+        // check keeps showing this text after that bridge is gone.
+        detail: `peer '${peerId}' ${recheck ? "is already served" : "was already served when this bridge started"} by a live bridge for this working directory (pid ${servedBy.pid}, version ${servedBy.version ?? "unknown"}, started ${started}); this bridge has NOT registered and ` + (recheck ? `restores '${peerId}' by itself once that bridge is gone${every}. ` : `does NOT take '${peerId}' by itself, also after that bridge is gone. `) + why[holder]
       };
     }
     if (!autoPresenceEnabled(deps.env ?? process.env)) {
@@ -35294,15 +35537,22 @@ function logPresence(outcome) {
     );
   } else if (outcome.state === "offline") {
     logger.warn(`Presence: OFFLINE \u2014 ${outcome.detail}.`);
+  } else if (outcome.state === "standby" && outcome.holder === "other-session") {
+    logger.warn(`Presence: STANDBY \u2014 ${outcome.detail}.`);
+  } else if (outcome.state === "standby" || outcome.state === "deferred") {
+    logger.info(`Presence: ${outcome.state.toUpperCase()} \u2014 ${outcome.detail}.`);
   } else {
     logger.debug(`Presence: ${outcome.state} \u2014 ${outcome.detail}.`);
   }
 }
-var lastPresence;
+var ORPHAN_PARENT_RE, NPX_WRAPPER_RE, lastPresence;
 var init_peer_presence = __esm({
   "src/services/peer-presence.ts"() {
     "use strict";
     init_logger();
+    init_wake_ownership();
+    ORPHAN_PARENT_RE = /^(init|launchd|systemd)$/;
+    NPX_WRAPPER_RE = /^(?:\S*\/)?(?:sh|bash|dash) -c cogent-bridge\b|^npm exec @essentialai\/cogent-bridge/;
     lastPresence = null;
   }
 });
@@ -35550,8 +35800,8 @@ __export(startup_exports, {
   triggerReRegistration: () => triggerReRegistration
 });
 import os15 from "node:os";
-import path21 from "node:path";
-import fs20 from "node:fs/promises";
+import path22 from "node:path";
+import fs21 from "node:fs/promises";
 import readline2 from "node:readline";
 import { execFile as execFile5 } from "node:child_process";
 import { promisify as promisify4 } from "node:util";
@@ -35569,7 +35819,7 @@ function bindInboxNotifier() {
 }
 async function loadPersistedConfig() {
   try {
-    const raw = await fs20.readFile(PERSIST_PATH, "utf-8");
+    const raw = await fs21.readFile(PERSIST_PATH, "utf-8");
     return JSON.parse(raw);
   } catch {
     return {};
@@ -35577,7 +35827,7 @@ async function loadPersistedConfig() {
 }
 async function savePersistedConfig(config2) {
   try {
-    await fs20.writeFile(PERSIST_PATH, JSON.stringify(config2, null, 2) + "\n", "utf-8");
+    await fs21.writeFile(PERSIST_PATH, JSON.stringify(config2, null, 2) + "\n", "utf-8");
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     logger.warn(`Could not save config to ${PERSIST_PATH}: ${msg}`);
@@ -35612,11 +35862,11 @@ First run detected. Where should cogent-bridge store its data?
   });
 }
 async function validateStateDir(statePath) {
-  await fs20.mkdir(statePath, { recursive: true });
-  const testFile = path21.join(statePath, ".write-test");
+  await fs21.mkdir(statePath, { recursive: true });
+  const testFile = path22.join(statePath, ".write-test");
   try {
-    await fs20.writeFile(testFile, "test", "utf-8");
-    await fs20.unlink(testFile);
+    await fs21.writeFile(testFile, "test", "utf-8");
+    await fs21.unlink(testFile);
   } catch {
     throw new BridgeError(
       "STARTUP_FAILED" /* STARTUP_FAILED */,
@@ -35700,9 +35950,15 @@ function cancelPresenceRetry() {
   if (presenceRetry) clearTimeout(presenceRetry);
   presenceRetry = null;
 }
-function presenceRetryDelayMs(attempt) {
+function presenceRetryBaseMs() {
   const base = Number(process.env.COGENT_PRESENCE_RETRY_MS);
-  return Math.min((Number.isFinite(base) && base > 0 ? base : 3e4) * 2 ** attempt, 3e5);
+  return Number.isFinite(base) && base > 0 ? base : 3e4;
+}
+function presenceRetryDelayMs(attempt) {
+  return Math.min(presenceRetryBaseMs() * 2 ** attempt, 3e5);
+}
+function standbyRecheckMs() {
+  return Math.max(250, Math.min(presenceRetryBaseMs(), 15e3));
 }
 async function restorePeerPresence(attempt = 0) {
   if (!presenceSupersedeBound) {
@@ -35716,6 +35972,8 @@ async function restorePeerPresence(attempt = 0) {
   }
   const generation = getCloudAttemptGeneration();
   const stillCurrent = () => getCloudAttemptGeneration() === generation;
+  let procs = null;
+  const ps = () => procs ??= listProcesses();
   const outcome = await restorePresence({
     // The endpoint being a relay URL is what makes presence meaningful. We deliberately do
     // NOT gate on the active backend being the cloud one: at startup it is still the
@@ -35728,13 +35986,27 @@ async function restorePeerPresence(attempt = 0) {
     alreadyRegisteredInProcess: () => autoRelay.getDiagnostics().registered,
     peerAlreadyServed: (peerId) => {
       try {
-        return listLiveBridges(process.cwd(), peerId).some((b) => b.pid !== process.pid);
+        const holders = listLiveBridges(process.cwd(), peerId).filter((b) => b.pid !== process.pid && !b.draining);
+        const other = holders.find((b) => {
+          if (!holderClientGone(b, ps())) return true;
+          if (!ignoredHolders.has(b.pid)) {
+            ignoredHolders.add(b.pid);
+            logger.info(
+              `Presence: ignoring bridge pid ${b.pid} (${registryText(b.version)}) announced for '${peerId}' \u2014 its MCP client is gone (parent then: ${b.parentPid === void 0 ? "not recorded" : registryText(b.parentPid)}), so it serves no agent`
+            );
+          }
+          return false;
+        });
+        return other ? { pid: other.pid, version: other.version, startedAt: other.startedAt, sessionId: other.sessionId } : null;
       } catch {
-        return false;
+        return null;
       }
     },
+    agentSessionId: () => agentSessionId(),
+    startedByWakeTurn: () => insideCodexWakeTurn(process.pid, ps()),
     loadCredentials: () => loadCredentials(),
     cwd: () => process.cwd(),
+    recheckSeconds: Math.round(standbyRecheckMs() / 1e3),
     goOnline: async ({ peerId, endpoint, sessionId, token, cwd, label, peerSecret }) => {
       if (!stillCurrent()) throw new Error(PRESENCE_SUPERSEDED);
       await reinitCloudBackend(endpoint, sessionId, token);
@@ -35754,18 +36026,25 @@ async function restorePeerPresence(attempt = 0) {
     logPresence(superseded);
     return superseded;
   }
+  const prev = getPresence();
   setPresence(outcome);
-  logPresence(outcome);
-  if (outcome.state === "offline" && outcome.detail.startsWith("presence restore failed")) {
-    const delay = presenceRetryDelayMs(attempt);
+  if (outcome.state === "standby" && prev?.state === "standby" && prev.servedBy.pid === outcome.servedBy.pid) {
+    logger.debug(`Presence: STANDBY (unchanged) \u2014 ${outcome.detail}.`);
+  } else {
+    logPresence(outcome);
+  }
+  const failed = outcome.state === "offline" && outcome.detail.startsWith("presence restore failed");
+  const standby = outcome.state === "standby" && outcome.recheck;
+  if (failed || standby) {
+    const delay = standby ? standbyRecheckMs() : presenceRetryDelayMs(attempt);
     cancelPresenceRetry();
     presenceRetry = setTimeout(() => {
       presenceRetry = null;
-      void restorePeerPresence(attempt + 1).catch(() => {
+      void restorePeerPresence(standby ? 0 : attempt + 1).catch(() => {
       });
     }, delay);
     presenceRetry.unref?.();
-    logger.warn(`presence: restore failed \u2014 retrying in ${Math.round(delay / 1e3)}s`);
+    if (failed) logger.warn(`presence: restore failed \u2014 retrying in ${Math.round(delay / 1e3)}s`);
   }
   return outcome;
 }
@@ -35899,10 +36178,10 @@ async function runStartup() {
   if (envStatePath) {
     statePath = envStatePath;
   } else {
-    const defaultPath = path21.join(os15.homedir(), ".cogent");
+    const defaultPath = path22.join(os15.homedir(), ".cogent");
     statePath = await firstRunPrompt(defaultPath);
   }
-  if (!envStatePath && statePath !== path21.join(os15.homedir(), ".cogent")) {
+  if (!envStatePath && statePath !== path22.join(os15.homedir(), ".cogent")) {
     process.env.COGENT_STATE_PATH = statePath;
   } else if (!envStatePath) {
     process.env.COGENT_STATE_PATH = statePath;
@@ -35966,7 +36245,7 @@ async function runStartup() {
   }
   initLogger(
     config2.COGENT_LOG_LEVEL,
-    path21.join(config2.COGENT_STATE_PATH, "logs")
+    path22.join(config2.COGENT_STATE_PATH, "logs")
   );
   if (isCloud && effectiveSessionId && effectiveToken) {
     cloudInbox = new MessageInbox();
@@ -36006,7 +36285,7 @@ async function runPreflights() {
     await preflightClaude(config2.COGENT_CLAUDE_PATH);
   }
 }
-var UUID_V4_RE, execFileAsync3, PERSIST_PATH, legacyWarnEmitted, cloudWsClient, cloudInbox, cloudHttpClient, cloudModeActive, inboxNotifier, notifierBoundTo, reRegistrationInProgress, presenceRetry, presenceSupersedeBound, PRESENCE_SUPERSEDED, pendingLabelResolve;
+var UUID_V4_RE, execFileAsync3, PERSIST_PATH, legacyWarnEmitted, cloudWsClient, cloudInbox, cloudHttpClient, cloudModeActive, inboxNotifier, notifierBoundTo, reRegistrationInProgress, presenceRetry, ignoredHolders, presenceSupersedeBound, PRESENCE_SUPERSEDED, pendingLabelResolve;
 var init_startup = __esm({
   "src/startup.ts"() {
     "use strict";
@@ -36022,6 +36301,7 @@ var init_startup = __esm({
     init_auto_relay();
     init_peer_presence();
     init_wake_ownership();
+    init_stale_bridge_reaper();
     init_heartbeat();
     init_codex_preflight();
     init_codex_cli();
@@ -36030,7 +36310,7 @@ var init_startup = __esm({
     init_auto_relay();
     UUID_V4_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     execFileAsync3 = promisify4(execFile5);
-    PERSIST_PATH = path21.join(os15.homedir(), ".cogent-config.json");
+    PERSIST_PATH = path22.join(os15.homedir(), ".cogent-config.json");
     legacyWarnEmitted = false;
     cloudWsClient = null;
     cloudInbox = null;
@@ -36040,6 +36320,7 @@ var init_startup = __esm({
     notifierBoundTo = null;
     reRegistrationInProgress = false;
     presenceRetry = null;
+    ignoredHolders = /* @__PURE__ */ new Set();
     presenceSupersedeBound = false;
     PRESENCE_SUPERSEDED = "presence restore superseded: an explicit cogent_join_session/cogent_create_session ran in this process and owns the channel choice";
     pendingLabelResolve = null;
@@ -36048,12 +36329,12 @@ var init_startup = __esm({
 
 // src/cloud/mail-credential-store.ts
 import crypto9 from "node:crypto";
-import fs21 from "node:fs/promises";
-import path22 from "node:path";
+import fs22 from "node:fs/promises";
+import path23 from "node:path";
 import os16 from "node:os";
 function defaultMailCredentialPath(cwd = process.cwd()) {
-  const hash = crypto9.createHash("sha256").update(path22.resolve(cwd)).digest("hex").slice(0, 16);
-  return path22.join(os16.homedir(), ".cogent", "mail-credentials", `${hash}.json`);
+  const hash = crypto9.createHash("sha256").update(path23.resolve(cwd)).digest("hex").slice(0, 16);
+  return path23.join(os16.homedir(), ".cogent", "mail-credentials", `${hash}.json`);
 }
 function resolveMailCredentialPath(credentialPath) {
   if (credentialPath) return credentialPath;
@@ -36064,16 +36345,16 @@ function resolveMailCredentialPath(credentialPath) {
 async function loadMailCredentials(credentialPath) {
   const filePath = resolveMailCredentialPath(credentialPath);
   try {
-    return JSON.parse(await fs21.readFile(filePath, "utf-8"));
+    return JSON.parse(await fs22.readFile(filePath, "utf-8"));
   } catch {
     return null;
   }
 }
 async function saveMailCredentials(creds, credentialPath) {
   const filePath = resolveMailCredentialPath(credentialPath);
-  await fs21.mkdir(path22.dirname(filePath), { recursive: true, mode: 448 });
-  await fs21.writeFile(filePath, JSON.stringify(creds, null, 2) + "\n", { encoding: "utf-8", mode: 384 });
-  await fs21.chmod(filePath, 384);
+  await fs22.mkdir(path23.dirname(filePath), { recursive: true, mode: 448 });
+  await fs22.writeFile(filePath, JSON.stringify(creds, null, 2) + "\n", { encoding: "utf-8", mode: 384 });
+  await fs22.chmod(filePath, 384);
 }
 async function persistProvisionedMailbox(mailbox, credentialPath) {
   if (!mailbox?.address || !mailbox.password) return false;
@@ -36094,7 +36375,7 @@ async function persistProvisionedMailbox(mailbox, credentialPath) {
 async function clearMailCredentials(credentialPath) {
   const filePath = resolveMailCredentialPath(credentialPath);
   try {
-    await fs21.unlink(filePath);
+    await fs22.unlink(filePath);
   } catch (err) {
     if (err.code !== "ENOENT") throw err;
   }
@@ -36143,10 +36424,10 @@ function registerRegisterPeerTool(server) {
     "cogent_register_peer",
     {
       title: "Register Peer",
-      description: "Register a Claude Code session as a named peer on the bridge. Each peer needs a unique peerId, the CC sessionId to resume, the working directory (cwd), and a human-readable label.",
+      description: "Step 3: put this agent online in the channel joined or created in this session. peerId = the peer name you were given (never invent or suffix one); sessionId = this agent session's own resumable id (Claude Code or Codex), not the channel id. Also needs the working directory (cwd) and a human-readable label.",
       inputSchema: {
-        peerId: import_zod3.z.string().describe("Unique identifier for this peer, e.g. 'backend' or 'frontend'"),
-        sessionId: import_zod3.z.string().describe("Claude Code session ID (used with --resume)"),
+        peerId: import_zod3.z.string().describe("The peer name you were given, e.g. 'backend' or 'frontend'. Never invent or suffix one."),
+        sessionId: import_zod3.z.string().describe("This agent session's own resumable id (Claude Code or Codex) \u2014 NOT the channel id"),
         cwd: import_zod3.z.string().describe("Absolute path to the project working directory"),
         label: import_zod3.z.string().describe("Human-readable label, e.g. 'Cogent_Backend' or 'Cogent_Frontend'"),
         peerSecret: import_zod3.z.string().optional().describe(
@@ -36169,13 +36450,22 @@ function registerRegisterPeerTool(server) {
     async ({ peerId, sessionId, cwd, label, mode, role, peerSecret: argPeerSecret }) => {
       try {
         const config2 = getConfig();
+        if (isReservedPeerName(peerId)) {
+          return errorResult(
+            new BridgeError(
+              "INVALID_INPUT" /* INVALID_INPUT */,
+              `peerId '${PROCESS_MARK}' is reserved by the bridge`,
+              "Register under another peerId"
+            )
+          );
+        }
         const hasExplicitCloudSession = !!config2.COGENT_SESSION_ID || process.env.COGENT_TRUST_PERSISTED_CREDENTIALS === "1";
         if (!hasExplicitCloudSession && hasCloudAttemptInProcess() && !hasJoinedInProcess()) {
           return errorResult(
             new BridgeError(
               "JOIN_NOT_CONFIRMED" /* JOIN_NOT_CONFIRMED */,
               "A cogent_join_session/cogent_create_session call was attempted this session but did not succeed, so cogent_register_peer will not fall back to local mode or auto-create a new channel (that would silently put you on the WRONG channel while reporting success)",
-              "Re-run cogent_join_session with the correct channel name + secret (+ Org_ID for Team channels) and confirm it returns success before calling cogent_register_peer"
+              "Re-run cogent_join_session with the correct channel name + secret (+ Org_ID for Team channels) and confirm it returns success before calling cogent_register_peer; or, if the join answered CHANNEL_NOT_FOUND, cogent_create_session with the same name, secret and Org_ID"
             )
           );
         }
@@ -36273,7 +36563,7 @@ function registerRegisterPeerTool(server) {
             new BridgeError(
               "JOIN_NOT_CONFIRMED" /* JOIN_NOT_CONFIRMED */,
               "Cloud endpoint + COGENT_SESSION_ID are configured but this bridge has not joined the channel (no session token \u2014 the relay was unreachable or the session label did not resolve at startup). cogent_register_peer will NOT register against local state (that would leave you on no channel while other local agents' data sits on this host).",
-              "Call cogent_join_session with the channel name + secret (+ Org_ID for Team channels) and confirm it returns success, then retry cogent_register_peer."
+              "Call cogent_join_session with the channel name + secret (+ Org_ID for Team channels) and confirm it returns success (or, if the join answered CHANNEL_NOT_FOUND, cogent_create_session with the same name, secret and Org_ID), then retry cogent_register_peer."
             )
           );
         }
@@ -36422,9 +36712,25 @@ function registerRegisterPeerTool(server) {
           }
         }
         autoRelay.setLocalPeer(peerId, localSessionId, cwd, mode, label, localSessionId);
+        if (isCloudMode()) {
+          setPresence({ state: "online", restored: false, detail: `registered as '${peerId}' by cogent_register_peer` });
+        }
+        let otherBridges;
+        try {
+          const own = agentSessionId();
+          const others = otherBridgesInFolder(listLiveBridgesInFolder(cwd), { pid: process.pid, sessionId: own }, listProcesses);
+          if (others.length) {
+            otherBridges = otherBridgeNotice(others, peerId, checkWakeOwnership(cwd, peerId), own);
+            if (anotherAgentSessionAmong(others, own)) logger.warn(`Register: ${otherBridges}`);
+            else logger.info(`Register: ${otherBridges}`);
+          }
+        } catch (err) {
+          logger.debug(`Register: could not look for other bridges in this folder: ${err.message}`);
+        }
         const result = {
           success: true,
           action: existing ? "updated" : "registered",
+          ...otherBridges ? { otherBridgeInThisFolder: otherBridges } : {},
           peer,
           sessionResolution: {
             decision: resolution.decision,
@@ -36503,6 +36809,9 @@ var init_register_peer = __esm({
     init_logger();
     init_heartbeat();
     init_auto_relay();
+    init_wake_ownership();
+    init_peer_presence();
+    init_stale_bridge_reaper();
     init_session_resolver();
     init_cc_cli();
     init_durable_identity();
@@ -37172,9 +37481,14 @@ var init_ids = __esm({
 });
 
 // cogent/dist/helpers/validation.js
+function isValidSessionLabel(value) {
+  return SESSION_LABEL_REGEX.test(value);
+}
+var SESSION_LABEL_REGEX;
 var init_validation = __esm({
   "cogent/dist/helpers/validation.js"() {
     "use strict";
+    SESSION_LABEL_REGEX = /^[a-z0-9][a-z0-9-]{1,30}[a-z0-9]$/;
   }
 });
 
@@ -37627,7 +37941,8 @@ function registerHealthCheckTool(server) {
           // PRESENCE — the agent's own view of whether it is IN its channel, so it can
           // answer "am I reachable?" without inferring it from transport internals.
           // "online" registered · "offline" owns a peer but is not registered (nobody can
-          // reach it) · "deferred" never joined · "local" no relay.
+          // reach it) · "standby" another live bridge serves this peer, so THIS process is not
+          // registered (servedBy names it) · "deferred" never joined · "local" no relay.
           // services/peer-presence.ts carries the vocabulary and how each state arises.
           presence: (() => {
             const p = getPresence();
@@ -37638,7 +37953,8 @@ function registerHealthCheckTool(server) {
               state: p.state,
               restored: p.restored,
               detail: p.detail,
-              ..."peerId" in p ? { peerId: p.peerId } : {}
+              ..."peerId" in p ? { peerId: p.peerId } : {},
+              ..."servedBy" in p ? { servedBy: p.servedBy } : {}
             };
           })()
         };
@@ -37725,18 +38041,43 @@ var init_wake_log2 = __esm({
   }
 });
 
+// src/tools/channel-text.ts
+function invalidChannelName(name) {
+  if (isValidSessionLabel(name)) return null;
+  return new BridgeError(
+    "INVALID_INPUT" /* INVALID_INPUT */,
+    `Channel names are 3-32 characters: lowercase letters, digits and hyphens. '${name}' is not valid`,
+    "If it differs only by capital letters, retry with it in lowercase; otherwise ask the user."
+  );
+}
+function slackMapCommand(o) {
+  return o.team ? `/cogent map ${o.label} <password> <org-id>` : `/cogent map ${o.sessionId} <password>`;
+}
+var init_channel_text = __esm({
+  "src/tools/channel-text.ts"() {
+    "use strict";
+    init_dist();
+    init_errors4();
+  }
+});
+
 // src/tools/create-session.ts
 import crypto11 from "node:crypto";
 function registerCreateSessionTool(server) {
   server.registerTool(
     "cogent_create_session",
     {
-      title: "Create Cloud Session",
-      description: "Create a new cloud bridge session on the relay server. Returns session ID and secret for other peers to join. Only available when COGENT_ENDPOINT is configured.",
+      title: "Create Cloud Channel",
+      description: "Step 2: create a Cogent channel and join it. Call this ONLY after cogent_join_session answered CHANNEL_NOT_FOUND, with the SAME channel name, secret and (Team channel) orgId. Never choose a different name. Next call: cogent_register_peer.",
       inputSchema: {
-        label: import_zod15.z.string().optional().describe("Human-readable label for the session"),
+        label: import_zod15.z.string().optional().describe(
+          "The channel name (3-32 characters: lowercase letters, digits, hyphens) \u2014 the same name the join was given. Auto-generated if omitted."
+        ),
         secret: import_zod15.z.string().min(8).optional().describe(
-          "Shared secret for session authentication (min 8 chars). Auto-generated if omitted."
+          "Shared secret / password for the channel (min 8 chars). Auto-generated if omitted."
+        ),
+        orgId: import_zod15.z.string().min(1).optional().describe(
+          "Org_ID \u2014 the 3rd credential for a Team (business) channel. Provide it to create a Team channel; omit for a free channel."
         )
       },
       annotations: {
@@ -37746,28 +38087,57 @@ function registerCreateSessionTool(server) {
         openWorldHint: true
       }
     },
-    async ({ label, secret }) => {
+    async ({ label, secret, orgId }) => {
       try {
         markCloudAttemptInProcess();
-        const config2 = getConfig();
-        if (!config2.COGENT_ENDPOINT) {
+        if (label !== void 0 && label.trim() === "") {
+          return errorResult(invalidChannelName(label) ?? new Error("label is empty"));
+        }
+        if (secret !== void 0 && secret.trim() === "") {
           return errorResult(
-            new Error(
-              "COGENT_ENDPOINT not configured. Set it to use cloud mode."
+            new BridgeError(
+              "INVALID_INPUT" /* INVALID_INPUT */,
+              "The channel password is empty",
+              "Pass the password you were given, or omit `secret` to have one generated."
             )
           );
         }
+        label = label?.trim() || void 0;
+        secret = secret?.trim() || void 0;
+        orgId = orgId?.trim() || void 0;
+        const config2 = getConfig();
+        const endpoint = orgId ? config2.COGENT_TEAM_ENDPOINT : config2.COGENT_ENDPOINT;
+        if (!endpoint) {
+          return errorResult(
+            new Error(
+              orgId ? "COGENT_TEAM_ENDPOINT not configured. Set it to create Team (Org_ID) channels." : "COGENT_ENDPOINT not configured. Set it to use cloud mode."
+            )
+          );
+        }
+        if (label !== void 0) {
+          const invalid = invalidChannelName(label);
+          if (invalid) return errorResult(invalid);
+        }
+        const secretWasGenerated = secret === void 0;
         const sessionSecret = secret ?? crypto11.randomBytes(16).toString("hex");
+        const createBody = orgId ? { secret: sessionSecret, label, orgId } : { secret: sessionSecret, label };
         const resp = await fetch(
-          `${config2.COGENT_ENDPOINT}/api/sessions`,
+          `${endpoint}/api/sessions`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ secret: sessionSecret, label })
+            body: JSON.stringify(createBody)
           }
         );
         if (!resp.ok) {
           const body = await resp.text().catch(() => "");
+          if (resp.status === 400 && body.includes("already in use")) {
+            return errorResult(
+              new Error(
+                `Channel '${label}' already exists (already in use). Call cogent_join_session with the same name, secret${orgId ? " and Org_ID" : ""}. Do not choose another name.`
+              )
+            );
+          }
           return errorResult(
             new Error(
               `Failed to create session: HTTP ${resp.status}${body ? ` - ${body}` : ""}`
@@ -37776,7 +38146,7 @@ function registerCreateSessionTool(server) {
         }
         const data = await resp.json();
         await saveCredentials({
-          endpoint: config2.COGENT_ENDPOINT,
+          endpoint,
           sessionId: data.sessionId,
           token: data.token,
           label: data.label,
@@ -37786,7 +38156,7 @@ function registerCreateSessionTool(server) {
         try {
           const startupModule = await Promise.resolve().then(() => (init_startup(), startup_exports));
           if (typeof startupModule.reinitCloudBackend === "function") {
-            await startupModule.reinitCloudBackend(config2.COGENT_ENDPOINT, data.sessionId, data.token);
+            await startupModule.reinitCloudBackend(endpoint, data.sessionId, data.token);
             logger.info(
               "Cloud backend reinitialized with new session credentials"
             );
@@ -37794,32 +38164,40 @@ function registerCreateSessionTool(server) {
         } catch (err) {
           logger.debug(`Backend reinit not available: ${err}`);
         }
+        const channelName = data.label ?? data.sessionId;
         return successResult({
           success: true,
+          created: true,
           sessionId: data.sessionId,
           label: data.label,
-          secret: sessionSecret,
           token: data.token,
           createdAt: data.createdAt,
-          config_snippet: {
-            env_vars: `COGENT_ENDPOINT=${config2.COGENT_ENDPOINT}
-COGENT_SESSION_ID=${data.label ?? data.sessionId}
+          slackMapCommand: slackMapCommand({ team: !!orgId, label: channelName, sessionId: data.sessionId }),
+          // A secret the CALLER supplied is never echoed back: the caller already has it, and a
+          // tool result can be quoted into a channel by an auto-reply. Only a secret this tool
+          // generated is returned — nothing else knows it.
+          ...secretWasGenerated ? {
+            secret: sessionSecret,
+            config_snippet: {
+              env_vars: `COGENT_ENDPOINT=${endpoint}
+COGENT_SESSION_ID=${channelName}
 COGENT_SECRET=${sessionSecret}
 COGENT_PLATFORM=${config2.COGENT_PLATFORM}`,
-            mcp_config: {
-              "cogent": {
-                command: "npx",
-                args: ["-y", "@essentialai/cogent-bridge"],
-                env: {
-                  COGENT_ENDPOINT: config2.COGENT_ENDPOINT,
-                  COGENT_SESSION_ID: data.label ?? data.sessionId,
-                  COGENT_SECRET: sessionSecret,
-                  COGENT_PLATFORM: config2.COGENT_PLATFORM
+              mcp_config: {
+                "cogent": {
+                  command: "npx",
+                  args: ["-y", "@essentialai/cogent-bridge"],
+                  env: {
+                    COGENT_ENDPOINT: endpoint,
+                    COGENT_SESSION_ID: channelName,
+                    COGENT_SECRET: sessionSecret,
+                    COGENT_PLATFORM: config2.COGENT_PLATFORM
+                  }
                 }
               }
             }
-          },
-          note: `Session created with label "${data.label ?? data.sessionId}". Share the secret with peers who need to join. Credentials saved locally. Cloud backend updated.`
+          } : {},
+          note: `${orgId ? "Team channel" : "Channel"} "${channelName}" was created by this call and you are joined to it. Credentials saved locally. Cloud backend updated. Next: cogent_register_peer.`
         });
       } catch (err) {
         logger.error("create-session failed", { error: err });
@@ -37837,6 +38215,7 @@ var init_create_session = __esm({
     init_errors4();
     init_credential_store();
     init_logger();
+    init_channel_text();
   }
 });
 
@@ -37846,14 +38225,14 @@ function registerJoinSessionTool(server) {
     "cogent_join_session",
     {
       title: "Join Cloud Channel",
-      description: 'Join an existing cloud bridge channel by its channel name (e.g. "mt-space") and shared secret. The channel name is the human-readable label provided by the user, NOT a UUID. Do NOT pass a Claude Code session ID here \u2014 use the channel/space name the user gave you.',
+      description: 'Step 1: join an existing Cogent channel by its channel name (e.g. "mt-space") and shared secret (plus orgId for a Team channel). The channel name is the human-readable label provided by the user, NOT a UUID. Do NOT pass an agent session ID here \u2014 use the channel/space name the user gave you. Next call: cogent_register_peer. If this answers CHANNEL_NOT_FOUND, the next call is cogent_create_session with the same name, secret and orgId.',
       inputSchema: {
         channel: import_zod16.z.string().describe(
-          'The channel name to join (e.g. "mt-space"). This is the human-readable name the user provided, NOT a UUID. Do NOT use a Claude Code session ID here.'
+          'The channel name to join (e.g. "mt-space"). This is the human-readable name the user provided, NOT a UUID. Do NOT use an agent session ID here.'
         ),
         secret: import_zod16.z.string().min(1).describe("The shared secret / password for the channel"),
         orgId: import_zod16.z.string().min(1).optional().describe(
-          "Org_ID \u2014 the 3rd credential for a Team (business) channel. Provide it for team channels; omit for free channels."
+          "Org_ID \u2014 the 3rd credential for a Team (business) channel. Provide it for team channels; omit for free channels. If you were given one, never retry without it."
         )
       },
       annotations: {
@@ -37881,10 +38260,12 @@ function registerJoinSessionTool(server) {
         if (UUID_V4_RE2.test(channel)) {
           return errorResult(
             new Error(
-              `The "channel" parameter ("${channel}") looks like a UUID. You should pass the human-readable channel name (e.g. "mt-space") that the user provided, NOT a Claude Code session ID or any UUID. Please retry with the correct channel name.`
+              `The "channel" parameter ("${channel}") looks like a UUID. You should pass the human-readable channel name (e.g. "mt-space") that the user provided, NOT an agent session ID or any UUID. Please retry with the correct channel name.`
             )
           );
         }
+        const invalid = invalidChannelName(channel);
+        if (invalid) return errorResult(invalid);
         let resolvedSessionId;
         let resolvedLabel;
         if (orgId) {
@@ -37896,6 +38277,13 @@ function registerJoinSessionTool(server) {
               body: JSON.stringify({ label: channel, orgId })
             }
           );
+          if (resolveResp.status === 404) {
+            return errorResult(new BridgeError(
+              "CHANNEL_NOT_FOUND" /* CHANNEL_NOT_FOUND */,
+              `Team channel '${channel}' was not found on ${endpoint} for this Org_ID (HTTP 404)`,
+              `If the name and Org_ID are exactly as given, the channel does not exist yet: call cogent_create_session with label '${channel}', the same secret and the same orgId, then cogent_register_peer. Do not call cogent_join_session again first, and never without orgId.`
+            ));
+          }
           if (!resolveResp.ok) {
             const body = await resolveResp.text().catch(() => "");
             return errorResult(new Error(
@@ -37909,6 +38297,13 @@ function registerJoinSessionTool(server) {
           const resolveResp = await fetch(
             `${endpoint}/api/sessions/resolve/${encodeURIComponent(channel)}`
           );
+          if (resolveResp.status === 404) {
+            return errorResult(new BridgeError(
+              "CHANNEL_NOT_FOUND" /* CHANNEL_NOT_FOUND */,
+              `Channel '${channel}' was not found on ${endpoint} (HTTP 404)`,
+              `If you were given an Org_ID you left it out: call cogent_join_session again WITH orgId and do not create anything. Otherwise call cogent_create_session with label '${channel}' and the same secret.`
+            ));
+          }
           if (!resolveResp.ok) {
             const body = await resolveResp.text().catch(() => "");
             return errorResult(new Error(`Failed to resolve channel name "${channel}": HTTP ${resolveResp.status}${body ? ` - ${body}` : ""}`));
@@ -37928,9 +38323,10 @@ function registerJoinSessionTool(server) {
         );
         if (!resp.ok) {
           const body = await resp.text().catch(() => "");
+          const wrong = resp.status === 401 ? `. The password${orgId ? " or Org_ID" : ""} is wrong. Do not retry with guesses - ask the user.` : "";
           return errorResult(
             new Error(
-              `Failed to join session: HTTP ${resp.status}${body ? ` - ${body}` : ""}`
+              `Failed to join session: HTTP ${resp.status}${body ? ` - ${body}` : ""}${wrong}`
             )
           );
         }
@@ -37979,6 +38375,11 @@ function registerJoinSessionTool(server) {
           token: data.token,
           label: resolvedLabel ?? data.label ?? channel,
           peerCount: data.peerCount,
+          slackMapCommand: slackMapCommand({
+            team: !!orgId,
+            label: resolvedLabel ?? data.label ?? channel,
+            sessionId: data.sessionId
+          }),
           note: "Successfully joined session. Credentials saved locally. Cloud backend updated. You can now use cogent_register_peer.",
           ...updateNudge ? { updateAvailable: updateNudge } : {}
         });
@@ -37999,6 +38400,7 @@ var init_join_session = __esm({
     init_credential_store();
     init_logger();
     init_npm_update_check();
+    init_channel_text();
     UUID_V4_RE2 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   }
 });
@@ -38233,8 +38635,8 @@ var require_cookies = __commonJS({
         if (urlparts.hostname !== cookie.domain && (cookie.domain.charAt(0) !== "." || ("." + urlparts.hostname).substr(-cookie.domain.length) !== cookie.domain)) {
           return false;
         }
-        let path26 = this.getPath(urlparts.pathname);
-        if (path26.substr(0, cookie.path.length) !== cookie.path) {
+        let path27 = this.getPath(urlparts.pathname);
+        if (path27.substr(0, cookie.path.length) !== cookie.path) {
           return false;
         }
         if (cookie.secure && urlparts.protocol !== "https:") {
@@ -38294,16 +38696,16 @@ var require_cookies = __commonJS({
        * @returns {String} Normalized path
        */
       getPath(pathname) {
-        let path26 = (pathname || "/").split("/");
-        path26.pop();
-        path26 = path26.join("/").trim();
-        if (path26.charAt(0) !== "/") {
-          path26 = "/" + path26;
+        let path27 = (pathname || "/").split("/");
+        path27.pop();
+        path27 = path27.join("/").trim();
+        if (path27.charAt(0) !== "/") {
+          path27 = "/" + path27;
         }
-        if (path26.substr(-1) !== "/") {
-          path26 += "/";
+        if (path27.substr(-1) !== "/") {
+          path27 += "/";
         }
-        return path26;
+        return path27;
       }
     };
     module.exports = Cookies;
@@ -38604,7 +39006,7 @@ var require_shared = __commonJS({
     "use strict";
     var urllib = __require("url");
     var util2 = __require("util");
-    var fs24 = __require("fs");
+    var fs25 = __require("fs");
     var nmfetch = require_fetch();
     var dns = __require("dns");
     var net = __require("net");
@@ -38990,7 +39392,7 @@ var require_shared = __commonJS({
           }
           return callback(null, parsedDataUri.data);
         } else if (content.path) {
-          return resolveStream(fs24.createReadStream(content.path), callback);
+          return resolveStream(fs25.createReadStream(content.path), callback);
         }
       }
       if (typeof data[key].content === "string" && !["utf8", "usascii", "ascii"].includes(encoding)) {
@@ -39114,7 +39516,7 @@ var require_shared = __commonJS({
 var require_mime_types = __commonJS({
   "node_modules/nodemailer/lib/mime-funcs/mime-types.js"(exports, module) {
     "use strict";
-    var path26 = __require("path");
+    var path27 = __require("path");
     var defaultMimeType = "application/octet-stream";
     var defaultExtension = "bin";
     var mimeTypes = /* @__PURE__ */ new Map([
@@ -41172,7 +41574,7 @@ var require_mime_types = __commonJS({
         if (!filename) {
           return defaultMimeType;
         }
-        let parsed = path26.parse(filename);
+        let parsed = path27.parse(filename);
         let extension = (parsed.ext.substr(1) || parsed.name || "").split("?").shift().trim().toLowerCase();
         let value = defaultMimeType;
         if (extensions.has(extension)) {
@@ -42574,7 +42976,7 @@ var require_mime_node = __commonJS({
   "node_modules/nodemailer/lib/mime-node/index.js"(exports, module) {
     "use strict";
     var crypto12 = __require("crypto");
-    var fs24 = __require("fs");
+    var fs25 = __require("fs");
     var punycode = require_punycode();
     var PassThrough = __require("stream").PassThrough;
     var shared = require_shared();
@@ -43289,7 +43691,7 @@ var require_mime_node = __commonJS({
             setImmediate(() => contentStream.emit("error", new Error("File access rejected for " + content.path)));
             return contentStream;
           }
-          return fs24.createReadStream(content.path);
+          return fs25.createReadStream(content.path);
         } else if (content && typeof content.href === "string") {
           if (this.disableUrlAccess) {
             contentStream = new PassThrough();
@@ -44310,8 +44712,8 @@ var require_dkim = __commonJS({
     var RelaxedBody = require_relaxed_body();
     var sign = require_sign();
     var PassThrough = __require("stream").PassThrough;
-    var fs24 = __require("fs");
-    var path26 = __require("path");
+    var fs25 = __require("fs");
+    var path27 = __require("path");
     var crypto12 = __require("crypto");
     var DKIM_ALGO = "sha256";
     var MAX_MESSAGE_SIZE = 128 * 1024;
@@ -44325,7 +44727,7 @@ var require_dkim = __commonJS({
         this.chunks = [];
         this.chunklen = 0;
         this.readPos = 0;
-        this.cachePath = this.cacheDir ? path26.join(this.cacheDir, "message." + Date.now() + "-" + crypto12.randomBytes(14).toString("hex")) : false;
+        this.cachePath = this.cacheDir ? path27.join(this.cacheDir, "message." + Date.now() + "-" + crypto12.randomBytes(14).toString("hex")) : false;
         this.cache = false;
         this.headers = false;
         this.bodyHash = false;
@@ -44345,10 +44747,10 @@ var require_dkim = __commonJS({
         if (!this.cache || !this.cachePath) {
           return;
         }
-        fs24.unlink(this.cachePath, () => false);
+        fs25.unlink(this.cachePath, () => false);
       }
       createReadCache() {
-        this.cache = fs24.createReadStream(this.cachePath);
+        this.cache = fs25.createReadStream(this.cachePath);
         this.cache.once("error", (err) => {
           this.cleanup();
           this.output.emit("error", err);
@@ -44404,7 +44806,7 @@ var require_dkim = __commonJS({
       }
       createWriteCache() {
         this.output.usingCache = true;
-        this.cache = fs24.createWriteStream(this.cachePath);
+        this.cache = fs25.createWriteStream(this.cachePath);
         this.cache.once("error", (err) => {
           this.cleanup();
           this.relaxedBody.unpipe(this.cache);
@@ -49293,13 +49695,13 @@ var require_nodemailer = __commonJS({
 });
 
 // src/mail/mail-sender.ts
-import fs22 from "node:fs/promises";
-import path23 from "node:path";
+import fs23 from "node:fs/promises";
+import path24 from "node:path";
 async function buildAndSendMail(sender, creds, params) {
   const attachments = [];
   for (const p of params.attachmentPaths ?? []) {
-    const content = await fs22.readFile(p);
-    attachments.push({ filename: path23.basename(p), content });
+    const content = await fs23.readFile(p);
+    attachments.push({ filename: path24.basename(p), content });
   }
   const { messageId } = await sender.send({
     from: creds.address,
@@ -49688,8 +50090,8 @@ var require_req = __commonJS({
       if (req.originalUrl) {
         _req.url = req.originalUrl;
       } else {
-        const path26 = req.path;
-        _req.url = typeof path26 === "string" ? path26 : req.url ? req.url.path || req.url : void 0;
+        const path27 = req.path;
+        _req.url = typeof path27 === "string" ? path27 : req.url ? req.url.path || req.url : void 0;
       }
       if (req.query) {
         _req.query = req.query;
@@ -49854,14 +50256,14 @@ var require_redact = __commonJS({
       }
       return obj;
     }
-    function parsePath(path26) {
+    function parsePath(path27) {
       const parts = [];
       let current = "";
       let inBrackets = false;
       let inQuotes = false;
       let quoteChar = "";
-      for (let i = 0; i < path26.length; i++) {
-        const char = path26[i];
+      for (let i = 0; i < path27.length; i++) {
+        const char = path27[i];
         if (!inBrackets && char === ".") {
           if (current) {
             parts.push(current);
@@ -49992,10 +50394,10 @@ var require_redact = __commonJS({
       return current;
     }
     function redactPaths(obj, paths, censor, remove = false) {
-      for (const path26 of paths) {
-        const parts = parsePath(path26);
+      for (const path27 of paths) {
+        const parts = parsePath(path27);
         if (parts.includes("*")) {
-          redactWildcardPath(obj, parts, censor, path26, remove);
+          redactWildcardPath(obj, parts, censor, path27, remove);
         } else {
           if (remove) {
             removeKey(obj, parts);
@@ -50080,8 +50482,8 @@ var require_redact = __commonJS({
           }
         } else {
           if (afterWildcard.includes("*")) {
-            const wrappedCensor = typeof censor === "function" ? (value, path26) => {
-              const fullPath = [...pathArray.slice(0, pathLength), ...path26];
+            const wrappedCensor = typeof censor === "function" ? (value, path27) => {
+              const fullPath = [...pathArray.slice(0, pathLength), ...path27];
               return censor(value, fullPath);
             } : censor;
             redactWildcardPath(current, afterWildcard, wrappedCensor, originalPath, remove);
@@ -50116,8 +50518,8 @@ var require_redact = __commonJS({
         return null;
       }
       const pathStructure = /* @__PURE__ */ new Map();
-      for (const path26 of pathsToClone) {
-        const parts = parsePath(path26);
+      for (const path27 of pathsToClone) {
+        const parts = parsePath(path27);
         let current = pathStructure;
         for (let i = 0; i < parts.length; i++) {
           const part = parts[i];
@@ -50169,24 +50571,24 @@ var require_redact = __commonJS({
       }
       return cloneSelectively(obj, pathStructure);
     }
-    function validatePath(path26) {
-      if (typeof path26 !== "string") {
+    function validatePath(path27) {
+      if (typeof path27 !== "string") {
         throw new Error("Paths must be (non-empty) strings");
       }
-      if (path26 === "") {
+      if (path27 === "") {
         throw new Error("Invalid redaction path ()");
       }
-      if (path26.includes("..")) {
-        throw new Error(`Invalid redaction path (${path26})`);
+      if (path27.includes("..")) {
+        throw new Error(`Invalid redaction path (${path27})`);
       }
-      if (path26.includes(",")) {
-        throw new Error(`Invalid redaction path (${path26})`);
+      if (path27.includes(",")) {
+        throw new Error(`Invalid redaction path (${path27})`);
       }
       let bracketCount = 0;
       let inQuotes = false;
       let quoteChar = "";
-      for (let i = 0; i < path26.length; i++) {
-        const char = path26[i];
+      for (let i = 0; i < path27.length; i++) {
+        const char = path27[i];
         if ((char === '"' || char === "'") && bracketCount > 0) {
           if (!inQuotes) {
             inQuotes = true;
@@ -50200,20 +50602,20 @@ var require_redact = __commonJS({
         } else if (char === "]" && !inQuotes) {
           bracketCount--;
           if (bracketCount < 0) {
-            throw new Error(`Invalid redaction path (${path26})`);
+            throw new Error(`Invalid redaction path (${path27})`);
           }
         }
       }
       if (bracketCount !== 0) {
-        throw new Error(`Invalid redaction path (${path26})`);
+        throw new Error(`Invalid redaction path (${path27})`);
       }
     }
     function validatePaths(paths) {
       if (!Array.isArray(paths)) {
         throw new TypeError("paths must be an array");
       }
-      for (const path26 of paths) {
-        validatePath(path26);
+      for (const path27 of paths) {
+        validatePath(path27);
       }
     }
     function slowRedact(options = {}) {
@@ -50381,8 +50783,8 @@ var require_redaction = __commonJS({
         if (shape[k] === null) {
           o[k] = (value) => topCensor(value, [k]);
         } else {
-          const wrappedCensor = typeof censor === "function" ? (value, path26) => {
-            return censor(value, [k, ...path26]);
+          const wrappedCensor = typeof censor === "function" ? (value, path27) => {
+            return censor(value, [k, ...path27]);
           } : censor;
           o[k] = Redact({
             paths: shape[k],
@@ -50600,10 +51002,10 @@ var require_atomic_sleep = __commonJS({
 var require_sonic_boom = __commonJS({
   "node_modules/sonic-boom/index.js"(exports, module) {
     "use strict";
-    var fs24 = __require("fs");
+    var fs25 = __require("fs");
     var EventEmitter = __require("events");
     var inherits = __require("util").inherits;
-    var path26 = __require("path");
+    var path27 = __require("path");
     var sleep4 = require_atomic_sleep();
     var assert2 = __require("assert");
     var BUSY_WRITE_TIMEOUT = 100;
@@ -50657,20 +51059,20 @@ var require_sonic_boom = __commonJS({
       const mode = sonic.mode;
       if (sonic.sync) {
         try {
-          if (sonic.mkdir) fs24.mkdirSync(path26.dirname(file), { recursive: true });
-          const fd = fs24.openSync(file, flags, mode);
+          if (sonic.mkdir) fs25.mkdirSync(path27.dirname(file), { recursive: true });
+          const fd = fs25.openSync(file, flags, mode);
           fileOpened(null, fd);
         } catch (err) {
           fileOpened(err);
           throw err;
         }
       } else if (sonic.mkdir) {
-        fs24.mkdir(path26.dirname(file), { recursive: true }, (err) => {
+        fs25.mkdir(path27.dirname(file), { recursive: true }, (err) => {
           if (err) return fileOpened(err);
-          fs24.open(file, flags, mode, fileOpened);
+          fs25.open(file, flags, mode, fileOpened);
         });
       } else {
-        fs24.open(file, flags, mode, fileOpened);
+        fs25.open(file, flags, mode, fileOpened);
       }
     }
     function SonicBoom(opts) {
@@ -50711,8 +51113,8 @@ var require_sonic_boom = __commonJS({
         this.flush = flushBuffer;
         this.flushSync = flushBufferSync;
         this._actualWrite = actualWriteBuffer;
-        fsWriteSync = () => fs24.writeSync(this.fd, this._writingBuf);
-        fsWrite = () => fs24.write(this.fd, this._writingBuf, this.release);
+        fsWriteSync = () => fs25.writeSync(this.fd, this._writingBuf);
+        fsWrite = () => fs25.write(this.fd, this._writingBuf, this.release);
       } else if (contentMode === void 0 || contentMode === kContentModeUtf8) {
         this._writingBuf = "";
         this.write = write;
@@ -50721,15 +51123,15 @@ var require_sonic_boom = __commonJS({
         this._actualWrite = actualWrite;
         fsWriteSync = () => {
           if (Buffer.isBuffer(this._writingBuf)) {
-            return fs24.writeSync(this.fd, this._writingBuf);
+            return fs25.writeSync(this.fd, this._writingBuf);
           }
-          return fs24.writeSync(this.fd, this._writingBuf, "utf8");
+          return fs25.writeSync(this.fd, this._writingBuf, "utf8");
         };
         fsWrite = () => {
           if (Buffer.isBuffer(this._writingBuf)) {
-            return fs24.write(this.fd, this._writingBuf, this.release);
+            return fs25.write(this.fd, this._writingBuf, this.release);
           }
-          return fs24.write(this.fd, this._writingBuf, "utf8", this.release);
+          return fs25.write(this.fd, this._writingBuf, "utf8", this.release);
         };
       } else {
         throw new Error(`SonicBoom supports "${kContentModeUtf8}" and "${kContentModeBuffer}", but passed ${contentMode}`);
@@ -50786,7 +51188,7 @@ var require_sonic_boom = __commonJS({
           }
         }
         if (this._fsync) {
-          fs24.fsyncSync(this.fd);
+          fs25.fsyncSync(this.fd);
         }
         const len = this._len;
         if (this._reopening) {
@@ -50900,7 +51302,7 @@ var require_sonic_boom = __commonJS({
       const onDrain = () => {
         if (!this._fsync) {
           try {
-            fs24.fsync(this.fd, (err) => {
+            fs25.fsync(this.fd, (err) => {
               this._flushPending = false;
               cb(err);
             });
@@ -51002,7 +51404,7 @@ var require_sonic_boom = __commonJS({
       const fd = this.fd;
       this.once("ready", () => {
         if (fd !== this.fd) {
-          fs24.close(fd, (err) => {
+          fs25.close(fd, (err) => {
             if (err) {
               return this.emit("error", err);
             }
@@ -51051,7 +51453,7 @@ var require_sonic_boom = __commonJS({
           buf = this._bufs[0];
         }
         try {
-          const n = Buffer.isBuffer(buf) ? fs24.writeSync(this.fd, buf) : fs24.writeSync(this.fd, buf, "utf8");
+          const n = Buffer.isBuffer(buf) ? fs25.writeSync(this.fd, buf) : fs25.writeSync(this.fd, buf, "utf8");
           const releasedBufObj = releaseWritingBuf(buf, this._len, n);
           buf = releasedBufObj.writingBuf;
           this._len = releasedBufObj.len;
@@ -51067,7 +51469,7 @@ var require_sonic_boom = __commonJS({
         }
       }
       try {
-        fs24.fsyncSync(this.fd);
+        fs25.fsyncSync(this.fd);
       } catch {
       }
     }
@@ -51088,7 +51490,7 @@ var require_sonic_boom = __commonJS({
           buf = mergeBuf(this._bufs[0], this._lens[0]);
         }
         try {
-          const n = fs24.writeSync(this.fd, buf);
+          const n = fs25.writeSync(this.fd, buf);
           buf = buf.subarray(n);
           this._len = Math.max(this._len - n, 0);
           if (buf.length <= 0) {
@@ -51116,13 +51518,13 @@ var require_sonic_boom = __commonJS({
       this._writingBuf = this._writingBuf.length ? this._writingBuf : this._bufs.shift() || "";
       if (this.sync) {
         try {
-          const written = Buffer.isBuffer(this._writingBuf) ? fs24.writeSync(this.fd, this._writingBuf) : fs24.writeSync(this.fd, this._writingBuf, "utf8");
+          const written = Buffer.isBuffer(this._writingBuf) ? fs25.writeSync(this.fd, this._writingBuf) : fs25.writeSync(this.fd, this._writingBuf, "utf8");
           release(null, written);
         } catch (err) {
           release(err);
         }
       } else {
-        fs24.write(this.fd, this._writingBuf, release);
+        fs25.write(this.fd, this._writingBuf, release);
       }
     }
     function actualWriteBuffer() {
@@ -51131,7 +51533,7 @@ var require_sonic_boom = __commonJS({
       this._writingBuf = this._writingBuf.length ? this._writingBuf : mergeBuf(this._bufs.shift(), this._lens.shift());
       if (this.sync) {
         try {
-          const written = fs24.writeSync(this.fd, this._writingBuf);
+          const written = fs25.writeSync(this.fd, this._writingBuf);
           release(null, written);
         } catch (err) {
           release(err);
@@ -51140,7 +51542,7 @@ var require_sonic_boom = __commonJS({
         if (kCopyBuffer) {
           this._writingBuf = Buffer.from(this._writingBuf);
         }
-        fs24.write(this.fd, this._writingBuf, release);
+        fs25.write(this.fd, this._writingBuf, release);
       }
     }
     function actualClose(sonic) {
@@ -51156,12 +51558,12 @@ var require_sonic_boom = __commonJS({
       sonic._lens = [];
       assert2(typeof sonic.fd === "number", `sonic.fd must be a number, got ${typeof sonic.fd}`);
       try {
-        fs24.fsync(sonic.fd, closeWrapped);
+        fs25.fsync(sonic.fd, closeWrapped);
       } catch {
       }
       function closeWrapped() {
         if (sonic.fd !== 1 && sonic.fd !== 2) {
-          fs24.close(sonic.fd, done);
+          fs25.close(sonic.fd, done);
         } else {
           done();
         }
@@ -51997,15 +52399,15 @@ var require_transport = __commonJS({
       if (!unquoted) {
         return false;
       }
-      let path26 = unquoted;
-      if (path26.startsWith("file://")) {
+      let path27 = unquoted;
+      if (path27.startsWith("file://")) {
         try {
-          path26 = fileURLToPath(path26);
+          path27 = fileURLToPath(path27);
         } catch {
           return false;
         }
       }
-      return isAbsolute(path26) && !existsSync(path26);
+      return isAbsolute(path27) && !existsSync(path27);
     }
     function stripQuotes(value) {
       const first = value[0];
@@ -86072,15 +86474,15 @@ var require_tools2 = __commonJS({
        * @param {String} path - Mailbox path to encode
        * @returns {String} Encoded mailbox path
        */
-      encodePath(connection, path26) {
-        path26 = (path26 || "").toString();
-        if (!connection.enabled.has("UTF8=ACCEPT") && !tools.isRev2Active(connection) && /[&\x00-\x08\x0b-\x0c\x0e-\x1f\u0080-\uffff]/.test(path26)) {
+      encodePath(connection, path27) {
+        path27 = (path27 || "").toString();
+        if (!connection.enabled.has("UTF8=ACCEPT") && !tools.isRev2Active(connection) && /[&\x00-\x08\x0b-\x0c\x0e-\x1f\u0080-\uffff]/.test(path27)) {
           try {
-            path26 = iconv.encode(path26, "utf-7-imap").toString();
+            path27 = iconv.encode(path27, "utf-7-imap").toString();
           } catch {
           }
         }
-        return path26;
+        return path27;
       },
       /**
        * Decodes a mailbox path from modified UTF-7 if the server does not support UTF8=ACCEPT.
@@ -86089,15 +86491,15 @@ var require_tools2 = __commonJS({
        * @param {String} path - Mailbox path to decode
        * @returns {String} Decoded mailbox path
        */
-      decodePath(connection, path26) {
-        path26 = (path26 || "").toString();
-        if (!connection.enabled.has("UTF8=ACCEPT") && !tools.isRev2Active(connection) && /[&]/.test(path26)) {
+      decodePath(connection, path27) {
+        path27 = (path27 || "").toString();
+        if (!connection.enabled.has("UTF8=ACCEPT") && !tools.isRev2Active(connection) && /[&]/.test(path27)) {
           try {
-            path26 = iconv.decode(Buffer.from(path26), "utf-7-imap").toString();
+            path27 = iconv.decode(Buffer.from(path27), "utf-7-imap").toString();
           } catch {
           }
         }
-        return path26;
+        return path27;
       },
       /**
        * Normalizes a mailbox path by joining array segments with the namespace delimiter,
@@ -86108,17 +86510,17 @@ var require_tools2 = __commonJS({
        * @param {Boolean} [skipNamespace] - If true, skips prepending the namespace prefix
        * @returns {String} Normalized mailbox path
        */
-      normalizePath(connection, path26, skipNamespace) {
-        if (Array.isArray(path26)) {
-          path26 = path26.join(connection.namespace && connection.namespace.delimiter || "");
+      normalizePath(connection, path27, skipNamespace) {
+        if (Array.isArray(path27)) {
+          path27 = path27.join(connection.namespace && connection.namespace.delimiter || "");
         }
-        if (path26.toUpperCase() === "INBOX") {
+        if (path27.toUpperCase() === "INBOX") {
           return "INBOX";
         }
-        if (!skipNamespace && connection.namespace && connection.namespace.prefix && !path26.startsWith(connection.namespace.prefix)) {
-          path26 = connection.namespace.prefix + path26;
+        if (!skipNamespace && connection.namespace && connection.namespace.prefix && !path27.startsWith(connection.namespace.prefix)) {
+          path27 = connection.namespace.prefix + path27;
         }
-        return path26;
+        return path27;
       },
       /**
        * Compares two mailbox paths for equality after normalization.
@@ -86449,14 +86851,14 @@ var require_tools2 = __commonJS({
           }
         }
         if (map.emailId || map.uid) {
-          let path26 = mailbox.path;
-          if (/[\u0080-\uffff]/.test(path26)) {
+          let path27 = mailbox.path;
+          if (/[\u0080-\uffff]/.test(path27)) {
             try {
-              path26 = iconv.encode(path26, "utf-7-imap").toString();
+              path27 = iconv.encode(path27, "utf-7-imap").toString();
             } catch {
             }
           }
-          map.id = map.emailId || createHash2("md5").update([path26, mailbox.uidValidity?.toString() || "", map.uid.toString()].join(":")).digest("hex");
+          map.id = map.emailId || createHash2("md5").update([path27, mailbox.uidValidity?.toString() || "", map.uid.toString()].join(":")).digest("hex");
         }
         if (map.flags) {
           let flagColor = tools.getFlagColor(map.flags);
@@ -86631,16 +87033,16 @@ var require_tools2 = __commonJS({
        * @returns {Object} Parsed body structure tree with part numbers, types, parameters, and child nodes
        */
       parseBodystructure(entry) {
-        let walk = (node, path26) => {
-          path26 = path26 || [];
+        let walk = (node, path27) => {
+          path27 = path27 || [];
           let curNode = {}, i = 0, part = 0;
-          if (path26.length) {
-            curNode.part = path26.join(".");
+          if (path27.length) {
+            curNode.part = path27.join(".");
           }
           if (Array.isArray(node[0])) {
             curNode.childNodes = [];
             while (Array.isArray(node[i])) {
-              curNode.childNodes.push(walk(node[i], path26.concat(++part)));
+              curNode.childNodes.push(walk(node[i], path27.concat(++part)));
               i++;
             }
             curNode.type = "multipart/" + ((node[i++] || {}).value || "").toString().toLowerCase();
@@ -86683,7 +87085,7 @@ var require_tools2 = __commonJS({
                   // the encapsulated message shares the part number with its wrapper.
                   // Distinction is via suffixes: path.MIME = wrapper headers,
                   // path.HEADER = encapsulated message headers.
-                  walk(node[i], path26)
+                  walk(node[i], path27)
                 ];
               }
               i++;
@@ -88645,14 +89047,14 @@ var require_select = __commonJS({
       // update into a silent no-op for the rest of the session.
       permanentflags: { key: "permanentFlags", parse: (value) => Array.isArray(value) && new Set(value) }
     });
-    module.exports = async (connection, path26, options) => {
+    module.exports = async (connection, path27, options) => {
       if (![connection.states.AUTHENTICATED, connection.states.SELECTED].includes(connection.state)) {
         return;
       }
       options = options || {};
-      path26 = normalizePath(connection, path26);
-      if (!connection.folders.has(path26)) {
-        let folders = await connection.run("LIST", "", path26);
+      path27 = normalizePath(connection, path27);
+      if (!connection.folders.has(path27)) {
+        let folders = await connection.run("LIST", "", path27);
         if (!folders) {
           throw new Error("Failed to fetch folders");
         }
@@ -88660,10 +89062,10 @@ var require_select = __commonJS({
           connection.folders.set(folder.path, folder);
         });
       }
-      let folderListData = connection.folders.has(path26) ? connection.folders.get(path26) : false;
+      let folderListData = connection.folders.has(path27) ? connection.folders.get(path27) : false;
       let response;
       try {
-        let map = { path: path26 };
+        let map = { path: path27 };
         if (folderListData) {
           ["delimiter", "specialUse", "subscribed", "listed"].forEach((key) => {
             if (folderListData[key]) {
@@ -88682,7 +89084,7 @@ var require_select = __commonJS({
           ]);
           map.qresync = true;
         }
-        let encodedPath = encodePath(connection, path26);
+        let encodedPath = encodePath(connection, path27);
         let selectCommand = {
           command: !options.readOnly ? "SELECT" : "EXAMINE",
           /* c8 ignore next */
@@ -88742,12 +89144,12 @@ var require_select = __commonJS({
             // since the client's last known state. Only received when QRESYNC was requested.
             // A dummy mailbox object is passed because the mailbox isn't officially open yet.
             VANISHED: async (untagged) => {
-              await connection.untaggedVanished(untagged, { path: path26, uidNext: false, uidValidity: false });
+              await connection.untaggedVanished(untagged, { path: path27, uidNext: false, uidValidity: false });
             },
             // Untagged FETCH during SELECT/EXAMINE: only occurs with QRESYNC, delivering
             // updated flags for messages that changed since the client's last modseq.
             FETCH: async (untagged) => {
-              await connection.untaggedFetch(untagged, { path: path26, uidNext: false, uidValidity: false });
+              await connection.untaggedFetch(untagged, { path: path27, uidNext: false, uidValidity: false });
             }
           }
         });
@@ -88761,13 +89163,13 @@ var require_select = __commonJS({
         }
         let currentMailbox = connection.mailbox;
         connection.mailbox = false;
-        if (currentMailbox && currentMailbox.path !== path26) {
+        if (currentMailbox && currentMailbox.path !== path27) {
           connection.emit("mailboxClose", currentMailbox);
         }
         connection.mailbox = map;
         connection.currentSelectCommand = selectCommand;
         connection.state = connection.states.SELECTED;
-        if (!currentMailbox || currentMailbox.path !== path26) {
+        if (!currentMailbox || currentMailbox.path !== path27) {
           connection.emit("mailboxOpen", connection.mailbox);
         }
         response.next();
@@ -88982,17 +89384,17 @@ var require_create = __commonJS({
   "node_modules/imapflow/lib/commands/create.js"(exports, module) {
     "use strict";
     var { encodePath, normalizePath, getStatusCode, enhanceCommandError } = require_tools2();
-    module.exports = async (connection, path26) => {
+    module.exports = async (connection, path27) => {
       if (![connection.states.AUTHENTICATED, connection.states.SELECTED].includes(connection.state)) {
         return;
       }
-      path26 = normalizePath(connection, path26);
+      path27 = normalizePath(connection, path27);
       let response;
       try {
         let map = {
-          path: path26
+          path: path27
         };
-        response = await connection.exec("CREATE", [{ type: "ATOM", value: encodePath(connection, path26) }]);
+        response = await connection.exec("CREATE", [{ type: "ATOM", value: encodePath(connection, path27) }]);
         let section = response.response.attributes && response.response.attributes[0] && response.response.attributes[0].section && response.response.attributes[0].section.length ? response.response.attributes[0].section : false;
         if (section) {
           let key;
@@ -89018,13 +89420,13 @@ var require_create = __commonJS({
         }
         map.created = true;
         response.next();
-        await connection.run("SUBSCRIBE", path26);
+        await connection.run("SUBSCRIBE", path27);
         return map;
       } catch (err) {
         let errorCode = getStatusCode(err.response);
         if (errorCode === "ALREADYEXISTS") {
           return {
-            path: path26,
+            path: path27,
             created: false
           };
         }
@@ -89041,20 +89443,20 @@ var require_delete = __commonJS({
   "node_modules/imapflow/lib/commands/delete.js"(exports, module) {
     "use strict";
     var { encodePath, normalizePath, enhanceCommandError } = require_tools2();
-    module.exports = async (connection, path26) => {
+    module.exports = async (connection, path27) => {
       if (![connection.states.AUTHENTICATED, connection.states.SELECTED].includes(connection.state)) {
         return;
       }
-      path26 = normalizePath(connection, path26);
-      if (connection.state === connection.states.SELECTED && connection.mailbox.path === path26) {
+      path27 = normalizePath(connection, path27);
+      if (connection.state === connection.states.SELECTED && connection.mailbox.path === path27) {
         await connection.run("CLOSE");
       }
       let response;
       try {
         let map = {
-          path: path26
+          path: path27
         };
-        response = await connection.exec("DELETE", [{ type: "ATOM", value: encodePath(connection, path26) }]);
+        response = await connection.exec("DELETE", [{ type: "ATOM", value: encodePath(connection, path27) }]);
         response.next();
         return map;
       } catch (err) {
@@ -89071,23 +89473,23 @@ var require_rename = __commonJS({
   "node_modules/imapflow/lib/commands/rename.js"(exports, module) {
     "use strict";
     var { encodePath, normalizePath, enhanceCommandError } = require_tools2();
-    module.exports = async (connection, path26, newPath) => {
+    module.exports = async (connection, path27, newPath) => {
       if (![connection.states.AUTHENTICATED, connection.states.SELECTED].includes(connection.state)) {
         return;
       }
-      path26 = normalizePath(connection, path26);
+      path27 = normalizePath(connection, path27);
       newPath = normalizePath(connection, newPath);
-      if (connection.state === connection.states.SELECTED && connection.mailbox.path === path26) {
+      if (connection.state === connection.states.SELECTED && connection.mailbox.path === path27) {
         await connection.run("CLOSE");
       }
       let response;
       try {
         let map = {
-          path: path26,
+          path: path27,
           newPath
         };
         response = await connection.exec("RENAME", [
-          { type: "ATOM", value: encodePath(connection, path26) },
+          { type: "ATOM", value: encodePath(connection, path27) },
           { type: "ATOM", value: encodePath(connection, newPath) }
         ]);
         response.next();
@@ -89134,14 +89536,14 @@ var require_subscribe = __commonJS({
   "node_modules/imapflow/lib/commands/subscribe.js"(exports, module) {
     "use strict";
     var { encodePath, normalizePath, enhanceCommandError } = require_tools2();
-    module.exports = async (connection, path26) => {
+    module.exports = async (connection, path27) => {
       if (![connection.states.AUTHENTICATED, connection.states.SELECTED].includes(connection.state)) {
         return;
       }
-      path26 = normalizePath(connection, path26);
+      path27 = normalizePath(connection, path27);
       let response;
       try {
-        response = await connection.exec("SUBSCRIBE", [{ type: "ATOM", value: encodePath(connection, path26) }]);
+        response = await connection.exec("SUBSCRIBE", [{ type: "ATOM", value: encodePath(connection, path27) }]);
         response.next();
         return true;
       } catch (err) {
@@ -89158,14 +89560,14 @@ var require_unsubscribe = __commonJS({
   "node_modules/imapflow/lib/commands/unsubscribe.js"(exports, module) {
     "use strict";
     var { encodePath, normalizePath, enhanceCommandError } = require_tools2();
-    module.exports = async (connection, path26) => {
+    module.exports = async (connection, path27) => {
       if (![connection.states.AUTHENTICATED, connection.states.SELECTED].includes(connection.state)) {
         return;
       }
-      path26 = normalizePath(connection, path26);
+      path27 = normalizePath(connection, path27);
       let response;
       try {
-        response = await connection.exec("UNSUBSCRIBE", [{ type: "ATOM", value: encodePath(connection, path26) }]);
+        response = await connection.exec("UNSUBSCRIBE", [{ type: "ATOM", value: encodePath(connection, path27) }]);
         response.next();
         return true;
       } catch (err) {
@@ -89971,11 +90373,11 @@ var require_status = __commonJS({
     var { encodePath, normalizePath, buildStatusQueryAttributes, isRev2Active } = require_tools2();
     var { parseStatusList } = require_status_fields();
     var MAILBOX_UPDATERS = {
-      messages: (value, connection, path26) => {
+      messages: (value, connection, path27) => {
         let prevCount = connection.mailbox.exists;
         if (prevCount !== value) {
           connection.mailbox.exists = value;
-          connection.emit("exists", { path: path26, count: value, prevCount });
+          connection.emit("exists", { path: path27, count: value, prevCount });
         }
       },
       uidNext: (value, connection) => {
@@ -89985,28 +90387,28 @@ var require_status = __commonJS({
         connection.mailbox.highestModseq = value;
       }
     };
-    module.exports = async (connection, path26, query) => {
-      if (![connection.states.AUTHENTICATED, connection.states.SELECTED].includes(connection.state) || !path26) {
+    module.exports = async (connection, path27, query) => {
+      if (![connection.states.AUTHENTICATED, connection.states.SELECTED].includes(connection.state) || !path27) {
         return false;
       }
-      path26 = normalizePath(connection, path26);
-      let encodedPath = encodePath(connection, path26);
+      path27 = normalizePath(connection, path27);
+      let encodedPath = encodePath(connection, path27);
       let attributes = [{ type: encodedPath.indexOf("&") >= 0 ? "STRING" : "ATOM", value: encodedPath }];
       let queryAttributes = buildStatusQueryAttributes(connection, query);
       let syntheticRecent = query && query.recent && isRev2Active(connection);
       if (!queryAttributes.length) {
-        return syntheticRecent ? { path: path26, recent: 0 } : false;
+        return syntheticRecent ? { path: path27, recent: 0 } : false;
       }
       attributes.push(queryAttributes);
       let response;
       try {
-        let map = { path: path26 };
+        let map = { path: path27 };
         response = await connection.exec("STATUS", attributes, {
           untagged: {
             // STATUS response: * STATUS <mailbox> (<key> <value> <key> <value> ...)
             // Parsed as alternating key-value pairs (i % 2 pattern).
             STATUS: async (untagged) => {
-              let updateCurrent = connection.state === connection.states.SELECTED && path26 === connection.mailbox.path;
+              let updateCurrent = connection.state === connection.states.SELECTED && path27 === connection.mailbox.path;
               let list = untagged.attributes && Array.isArray(untagged.attributes[1]) ? untagged.attributes[1] : false;
               if (!list) {
                 return;
@@ -90014,7 +90416,7 @@ var require_status = __commonJS({
               parseStatusList(list, (key, value) => {
                 map[key] = value;
                 if (updateCurrent && MAILBOX_UPDATERS[key]) {
-                  MAILBOX_UPDATERS[key](value, connection, path26);
+                  MAILBOX_UPDATERS[key](value, connection, path27);
                 }
               });
             }
@@ -90027,9 +90429,9 @@ var require_status = __commonJS({
         return map;
       } catch (err) {
         if (err.responseStatus === "NO") {
-          let folders = await connection.run("LIST", "", path26, { listOnly: true });
+          let folders = await connection.run("LIST", "", path27, { listOnly: true });
           if (folders && !folders.length) {
-            let error2 = new Error(`Mailbox doesn't exist: ${path26}`);
+            let error2 = new Error(`Mailbox doesn't exist: ${path27}`);
             error2.code = "NotFound";
             error2.response = err;
             throw error2;
@@ -90176,15 +90578,15 @@ var require_quota = __commonJS({
   "node_modules/imapflow/lib/commands/quota.js"(exports, module) {
     "use strict";
     var { encodePath, normalizePath, enhanceCommandError, parseUintValue, isUnsafeKey } = require_tools2();
-    module.exports = async (connection, path26) => {
-      if (![connection.states.AUTHENTICATED, connection.states.SELECTED].includes(connection.state) || !path26) {
+    module.exports = async (connection, path27) => {
+      if (![connection.states.AUTHENTICATED, connection.states.SELECTED].includes(connection.state) || !path27) {
         return;
       }
       if (!connection.capabilities.has("QUOTA")) {
         return false;
       }
-      path26 = normalizePath(connection, path26);
-      let map = { path: path26 };
+      path27 = normalizePath(connection, path27);
+      let map = { path: path27 };
       let processQuotaResponse = (untagged) => {
         let attributes = untagged.attributes && untagged.attributes[1];
         if (!attributes || !attributes.length) {
@@ -90224,7 +90626,7 @@ var require_quota = __commonJS({
       let quotaFound = false;
       let response;
       try {
-        response = await connection.exec("GETQUOTAROOT", [{ type: "ATOM", value: encodePath(connection, path26) }], {
+        response = await connection.exec("GETQUOTAROOT", [{ type: "ATOM", value: encodePath(connection, path27) }], {
           untagged: {
             // QUOTAROOT response tells us which quota root applies to this mailbox.
             // A mailbox may have zero or one quota root.
@@ -90367,15 +90769,15 @@ var require_idle = __commonJS({
       }
     }
     async function pollOnce2(connection, session) {
-      let path26 = connection.mailbox && connection.mailbox.path;
+      let path27 = connection.mailbox && connection.mailbox.path;
       switch (connection.missingIdleCommand) {
         case "SELECT":
           connection.log.debug({ src: "c", msg: `Running SELECT to detect changes in folder`, cid: connection.id });
-          await connection.runInternal("SELECT", path26, { readOnly: session.selectCommand.command === "EXAMINE" });
+          await connection.runInternal("SELECT", path27, { readOnly: session.selectCommand.command === "EXAMINE" });
           break;
         case "STATUS": {
           connection.log.debug({ src: "c", msg: `Running STATUS to detect changes in folder`, cid: connection.id });
-          let status = await connection.runInternal("STATUS", path26, {
+          let status = await connection.runInternal("STATUS", path27, {
             messages: true,
             uidNext: true,
             uidValidity: true,
@@ -92062,12 +92464,12 @@ var require_imap_flow = __commonJS({
           this.emit("flags", updateEvent);
         }
       }
-      async ensureSelectedMailbox(path26) {
-        if (!path26) {
+      async ensureSelectedMailbox(path27) {
+        if (!path27) {
           return false;
         }
-        if (!this.mailbox || !comparePaths(this, this.mailbox.path, path26)) {
-          return await this.mailboxOpen(path26);
+        if (!this.mailbox || !comparePaths(this, this.mailbox.path, path27)) {
+          return await this.mailboxOpen(path27);
         }
         return true;
       }
@@ -92482,9 +92884,9 @@ var require_imap_flow = __commonJS({
        * let quota = await client.getQuota();
        * console.log(quota.storage.used, quota.storage.limit)
        */
-      async getQuota(path26) {
-        path26 = path26 || "INBOX";
-        return await this.run("QUOTA", path26);
+      async getQuota(path27) {
+        path27 = path27 || "INBOX";
+        return await this.run("QUOTA", path27);
       }
       /**
        * @typedef {Object} ListResponse
@@ -92594,8 +92996,8 @@ var require_imap_flow = __commonJS({
        * console.log(info.path);
        * // "INBOX.parent.child" // assumes "INBOX." as namespace prefix and "." as delimiter
        */
-      async mailboxCreate(path26) {
-        return await this.run("CREATE", path26);
+      async mailboxCreate(path27) {
+        return await this.run("CREATE", path27);
       }
       /**
        * @typedef {Object} MailboxRenameResponse
@@ -92616,8 +93018,8 @@ var require_imap_flow = __commonJS({
        * console.log(info.newPath);
        * // "INBOX.Important stuff ❗️" // assumes "INBOX." as namespace prefix
        */
-      async mailboxRename(path26, newPath) {
-        return await this.run("RENAME", path26, newPath);
+      async mailboxRename(path27, newPath) {
+        return await this.run("RENAME", path27, newPath);
       }
       /**
        * @typedef {Object} MailboxDeleteResponse
@@ -92636,8 +93038,8 @@ var require_imap_flow = __commonJS({
        * console.log(info.path);
        * // "INBOX.Important stuff ❗️" // assumes "INBOX." as namespace prefix
        */
-      async mailboxDelete(path26) {
-        return await this.run("DELETE", path26);
+      async mailboxDelete(path27) {
+        return await this.run("DELETE", path27);
       }
       /**
        * Subscribes to a mailbox
@@ -92648,8 +93050,8 @@ var require_imap_flow = __commonJS({
        * @example
        * await client.mailboxSubscribe('Important stuff ❗️');
        */
-      async mailboxSubscribe(path26) {
-        return await this.run("SUBSCRIBE", path26);
+      async mailboxSubscribe(path27) {
+        return await this.run("SUBSCRIBE", path27);
       }
       /**
        * Unsubscribes from a mailbox
@@ -92660,8 +93062,8 @@ var require_imap_flow = __commonJS({
        * @example
        * await client.mailboxUnsubscribe('Important stuff ❗️');
        */
-      async mailboxUnsubscribe(path26) {
-        return await this.run("UNSUBSCRIBE", path26);
+      async mailboxUnsubscribe(path27) {
+        return await this.run("UNSUBSCRIBE", path27);
       }
       /**
        * Opens a mailbox to access messages. You can perform message operations only against an opened mailbox.
@@ -92679,8 +93081,8 @@ var require_imap_flow = __commonJS({
        * console.log(mailbox.exists);
        * // 125
        */
-      async mailboxOpen(path26, options) {
-        return await this.run("SELECT", path26, options);
+      async mailboxOpen(path27, options) {
+        return await this.run("SELECT", path27, options);
       }
       /**
        * Closes a previously opened mailbox
@@ -92727,8 +93129,8 @@ var require_imap_flow = __commonJS({
        * console.log(status.unseen);
        * // 123
        */
-      async status(path26, query) {
-        return await this.run("STATUS", path26, query);
+      async status(path27, query) {
+        return await this.run("STATUS", path27, query);
       }
       /**
        * Starts listening for new or deleted messages from the currently opened mailbox. Only required if {@link ImapFlow#disableAutoIdle} is set to `true`
@@ -92982,8 +93384,8 @@ var require_imap_flow = __commonJS({
        * @example
        * await client.append('INBOX', rawMessageBuffer, ['\\Seen'], new Date(2000, 1, 1));
        */
-      async append(path26, content, flags, idate) {
-        return await this.run("APPEND", path26, content, flags, idate) || false;
+      async append(path27, content, flags, idate) {
+        return await this.run("APPEND", path27, content, flags, idate) || false;
       }
       /**
        * @typedef {Object} CopyResponseObject
@@ -93827,7 +94229,7 @@ var require_imap_flow = __commonJS({
               await new Promise((resolve2) => setImmediate(resolve2));
             }
             const lock = this.locks.shift();
-            const { resolve, reject, path: path26, options, lockId } = lock;
+            const { resolve, reject, path: path27, options, lockId } = lock;
             if (lock.acquireTimer) {
               clearTimeout(lock.acquireTimer);
               lock.acquireTimer = null;
@@ -93843,7 +94245,7 @@ var require_imap_flow = __commonJS({
                 this.log.warn({
                   msg: "Mailbox lock held for a long time",
                   lockId: lock.lockId,
-                  path: path26,
+                  path: path27,
                   heldFor: Date.now() - lock.heldAt,
                   /* c8 ignore next */
                   // the held-lock-warning diagnostic with a description set is a timing-dependent log detail
@@ -93879,52 +94281,52 @@ var require_imap_flow = __commonJS({
               }
             };
             if (!this.usable || !this.socket || this.socket.destroyed) {
-              this.log.trace({ msg: "Failed to acquire mailbox lock", path: path26, lockId, idling: this.idling });
+              this.log.trace({ msg: "Failed to acquire mailbox lock", path: path27, lockId, idling: this.idling });
               let error2 = new Error("Connection not available");
               error2.code = "NoConnection";
               reject(error2);
               continue;
             }
-            if (this.mailbox && this.mailbox.path === path26 && !!this.mailbox.readOnly === !!options.readOnly) {
+            if (this.mailbox && this.mailbox.path === path27 && !!this.mailbox.readOnly === !!options.readOnly) {
               this.log.trace({
                 msg: "Mailbox lock acquired [existing]",
-                path: path26,
+                path: path27,
                 lockId,
                 idling: this.idling,
                 ...options.description && { description: options.description }
               });
               this.currentLock = lock;
               armHeldTimer();
-              resolve({ path: path26, release });
+              resolve({ path: path27, release });
               break;
             }
             try {
-              await this.mailboxOpen(path26, options);
+              await this.mailboxOpen(path27, options);
               this.log.trace({
                 msg: "Mailbox lock acquired [selected]",
-                path: path26,
+                path: path27,
                 lockId,
                 idling: this.idling,
                 ...options.description && { description: options.description }
               });
               this.currentLock = lock;
               armHeldTimer();
-              resolve({ path: path26, release });
+              resolve({ path: path27, release });
               break;
             } catch (err) {
               if (err.responseStatus === "NO") {
                 try {
-                  let folders = await this.run("LIST", "", path26, { listOnly: true });
+                  let folders = await this.run("LIST", "", path27, { listOnly: true });
                   if (!folders || !folders.length) {
                     err.mailboxMissing = true;
                   }
                 } catch (E) {
-                  this.log.trace({ msg: "Failed to verify failed mailbox", path: path26, err: E });
+                  this.log.trace({ msg: "Failed to verify failed mailbox", path: path27, err: E });
                 }
               }
               this.log.trace({
                 msg: "Failed to acquire mailbox lock",
-                path: path26,
+                path: path27,
                 lockId,
                 idling: this.idling,
                 ...options.description && { description: options.description },
@@ -93963,13 +94365,13 @@ var require_imap_flow = __commonJS({
        *   lock.release();
        * }
        */
-      getMailboxLock(path26, options) {
+      getMailboxLock(path27, options) {
         options = options || {};
-        path26 = normalizePath(this, path26);
+        path27 = normalizePath(this, path27);
         let lockId = ++this.lockCounter;
         this.log.trace({
           msg: "Requesting lock",
-          path: path26,
+          path: path27,
           lockId,
           ...options.description && { description: options.description },
           activeLock: this.currentLock ? {
@@ -93978,7 +94380,7 @@ var require_imap_flow = __commonJS({
           } : null
         });
         let lockPromise = new Promise((resolve, reject) => {
-          let lockEntry = { resolve, reject, path: path26, options, lockId };
+          let lockEntry = { resolve, reject, path: path27, options, lockId };
           this.locks.push(lockEntry);
           if (Number(options.acquireTimeout) > 0) {
             lockEntry.acquireTimer = setTimeout(() => {
@@ -94067,16 +94469,16 @@ var require_imap_flow = __commonJS({
 });
 
 // src/mail/mail-fetcher.ts
-import fs23 from "node:fs/promises";
-import path24 from "node:path";
+import fs24 from "node:fs/promises";
+import path25 from "node:path";
 async function saveAttachments(attachments, downloadDir) {
   if (attachments.length === 0) return [];
-  await fs23.mkdir(downloadDir, { recursive: true });
+  await fs24.mkdir(downloadDir, { recursive: true });
   const saved = [];
   for (const a of attachments) {
-    const name = path24.basename(a.filename) || "attachment";
-    const savedPath = path24.join(downloadDir, name);
-    await fs23.writeFile(savedPath, a.content);
+    const name = path25.basename(a.filename) || "attachment";
+    const savedPath = path25.join(downloadDir, name);
+    await fs24.writeFile(savedPath, a.content);
     saved.push({ filename: name, savedPath, size: a.content.length });
   }
   return saved;
@@ -94207,7 +94609,7 @@ var init_mail_fetcher = __esm({
 
 // src/tools/fetch-mail.ts
 import os17 from "node:os";
-import path25 from "node:path";
+import path26 from "node:path";
 function registerFetchMailTool(server, deps = {}) {
   const makeFetcher = deps.fetcherFactory ?? ((creds) => new ImapflowMailFetcher(creds));
   server.registerTool(
@@ -94269,7 +94671,7 @@ var init_fetch_mail = __esm({
     init_mail_fetcher();
     init_auth_error();
     init_validate();
-    DEFAULT_DOWNLOAD_DIR = path25.join(os17.homedir(), ".cogent", "mail-downloads");
+    DEFAULT_DOWNLOAD_DIR = path26.join(os17.homedir(), ".cogent", "mail-downloads");
   }
 });
 
@@ -94360,9 +94762,74 @@ var init_rotate_mail_creds = __esm({
 
 // src/index.ts
 var index_exports = {};
+function shutdown(reason) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  try {
+    logger.info(`Shutting down: ${reason}`);
+    autoRelay.stop();
+    withdrawBridge(process.cwd(), PROCESS_MARK);
+    heartbeat.stop();
+    if (cloudWsClient) {
+      cloudWsClient.disconnect();
+    }
+    logger.close();
+  } finally {
+    process.exit(0);
+  }
+}
+async function clientGone(reason) {
+  if (draining || shuttingDown) return;
+  draining = true;
+  autoRelay.announceDraining();
+  const busy = () => {
+    const d = autoRelay.getDiagnostics();
+    return { requests: stdoutDead ? [] : [...inFlightRequests.values()], wake: d.processing, queued: d.queueLength };
+  };
+  const b0 = busy();
+  if (!b0.requests.length && !b0.wake && !b0.queued) return shutdown(reason);
+  let capMs = drainCapMs(3e5);
+  try {
+    capMs = drainCapMs(getConfig().COGENT_TIMEOUT_MS);
+  } catch {
+  }
+  logger.info(
+    `Client gone (${reason}) \u2014 draining before exit (cap ${Math.round(capMs / 1e3)}s): ${b0.requests.length} MCP request(s) [${b0.requests.join(", ")}], wake running: ${b0.wake}, queued: ${b0.queued}`
+  );
+  cancelPresenceRetry();
+  heartbeat.stop();
+  cloudWsClient?.disconnect();
+  const t0 = Date.now();
+  let b = b0;
+  while (Date.now() - t0 < capMs) {
+    b = busy();
+    if (!b.requests.length && !b.wake && !b.queued) break;
+    await new Promise((r) => setTimeout(r, 50));
+  }
+  if (!stdoutDead) {
+    await new Promise((r) => {
+      const t = setTimeout(r, 1e3);
+      try {
+        process.stdout.write("", () => {
+          clearTimeout(t);
+          r();
+        });
+      } catch {
+        clearTimeout(t);
+        r();
+      }
+    });
+  }
+  const left = b.requests.length || b.wake || b.queued;
+  const undeliverable = stdoutDead && inFlightRequests.size ? ` (${inFlightRequests.size} MCP response(s) undeliverable: stdout closed)` : "";
+  shutdown(
+    left ? `${reason}; drain cap reached after ${Date.now() - t0}ms \u2014 ABANDONED ${b.requests.length} MCP request(s) [${b.requests.join(", ")}], wake running: ${b.wake}, queued: ${b.queued}${undeliverable}` : `${reason}; drained in ${Date.now() - t0}ms (${b0.requests.length} MCP request(s), wake: ${b0.wake}, queued: ${b0.queued})${undeliverable}`
+  );
+}
 async function main() {
+  markBridgeProcess(process.cwd(), SERVER_VERSION);
   await runStartup();
-  const server = new McpServer({ name: SERVER_NAME, version: SERVER_VERSION });
+  const server = new McpServer({ name: SERVER_NAME, version: SERVER_VERSION }, { instructions: SERVER_INSTRUCTIONS });
   registerRegisterPeerTool(server);
   registerDeregisterPeerTool(server);
   registerSendMessageTool(server);
@@ -94407,7 +94874,31 @@ async function main() {
     });
   }
   const transport = new StdioServerTransport();
+  transport.onclose = () => void clientGone("MCP transport closed");
   await server.connect(transport);
+  const sdkOnMessage = transport.onmessage;
+  transport.onmessage = (msg) => {
+    if ("method" in msg && "id" in msg) {
+      const tool = msg.method === "tools/call" ? msg.params?.name : void 0;
+      inFlightRequests.set(msg.id, typeof tool === "string" ? `tools/call ${tool}` : msg.method);
+    } else if ("method" in msg && msg.method === "notifications/cancelled") {
+      const id = msg.params?.requestId;
+      if (typeof id === "string" || typeof id === "number") inFlightRequests.delete(id);
+    }
+    sdkOnMessage?.(msg);
+  };
+  const sdkSend = transport.send.bind(transport);
+  transport.send = (msg) => {
+    const settles = !("method" in msg) && "id" in msg ? msg.id : void 0;
+    return sdkSend(msg).finally(() => {
+      if (settles !== void 0) inFlightRequests.delete(settles);
+    });
+  };
+  const stdinIsDevice = startedWithoutClient();
+  if (!process.stdin.isTTY && !stdinIsDevice) {
+    process.stdin.once("end", () => void clientGone("stdin EOF \u2014 the MCP client is gone"));
+    process.stdin.once("close", () => void clientGone("stdin closed \u2014 the MCP client is gone"));
+  }
   process.stderr.write(
     `${SERVER_NAME} v${SERVER_VERSION} running on stdio
 `
@@ -94432,14 +94923,17 @@ async function main() {
     "Server ready. Tools: cogent_register_peer, cogent_deregister_peer, cogent_send_message, cogent_list_peers, cogent_get_history, cogent_health_check, cogent_create_session, cogent_join_session"
   );
 }
+var shuttingDown, draining, stdoutDead, inFlightRequests;
 var init_index = __esm({
   "src/index.ts"() {
     "use strict";
     init_mcp();
     init_stdio2();
     init_constants();
+    init_instructions();
     init_npm_update_check();
     init_startup();
+    init_config();
     init_logger();
     init_register_peer();
     init_send_message();
@@ -94455,10 +94949,12 @@ var init_index = __esm({
     init_fetch_mail();
     init_rotate_mail_creds();
     init_heartbeat();
+    init_wake_inflight();
+    init_wake_ownership();
     process.on("uncaughtException", (err) => {
       if (err.code === "EPIPE") {
-        logger.close();
-        process.exit(0);
+        stdoutDead = true;
+        void clientGone("stdout EPIPE \u2014 the MCP client is gone");
         return;
       }
       logger.error(`Uncaught exception: ${err.message}`, { stack: err.stack });
@@ -94467,26 +94963,12 @@ var init_index = __esm({
       const msg = reason instanceof Error ? reason.message : String(reason);
       logger.error(`Unhandled rejection: ${msg}`);
     });
-    process.on("SIGTERM", () => {
-      logger.info("SIGTERM received, shutting down");
-      autoRelay.stop();
-      heartbeat.stop();
-      if (cloudWsClient) {
-        cloudWsClient.disconnect();
-      }
-      logger.close();
-      process.exit(0);
-    });
-    process.on("SIGINT", () => {
-      logger.info("SIGINT received, shutting down");
-      autoRelay.stop();
-      heartbeat.stop();
-      if (cloudWsClient) {
-        cloudWsClient.disconnect();
-      }
-      logger.close();
-      process.exit(0);
-    });
+    shuttingDown = false;
+    draining = false;
+    stdoutDead = false;
+    process.on("SIGTERM", () => shutdown("SIGTERM received"));
+    process.on("SIGINT", () => shutdown("SIGINT received"));
+    inFlightRequests = /* @__PURE__ */ new Map();
     main().catch((err) => {
       const msg = err instanceof Error ? err.message : String(err);
       logger.error(`Fatal startup error: ${msg}`);
