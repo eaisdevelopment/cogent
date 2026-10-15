@@ -26412,8 +26412,8 @@ var init_stdio2 = __esm({
 // src/constants.ts
 import { createRequire } from "node:module";
 function resolveVersion() {
-  if ("3.25.7") {
-    return "3.25.7";
+  if ("3.25.8") {
+    return "3.25.8";
   }
   try {
     const require2 = createRequire(import.meta.url);
@@ -26833,6 +26833,7 @@ var init_errors4 = __esm({
       BridgeErrorCode2["JOIN_NOT_CONFIRMED"] = "JOIN_NOT_CONFIRMED";
       BridgeErrorCode2["CHANNEL_NOT_FOUND"] = "CHANNEL_NOT_FOUND";
       BridgeErrorCode2["PEER_NOT_YOURS"] = "PEER_NOT_YOURS";
+      BridgeErrorCode2["PEER_HELD_IN_FOLDER"] = "PEER_HELD_IN_FOLDER";
       return BridgeErrorCode2;
     })(BridgeErrorCode || {});
     BridgeError = class extends Error {
@@ -35396,6 +35397,19 @@ function otherBridgesInFolder(entries, self, listProcs) {
     (e) => e.peerId !== PROCESS_MARK && e.pid !== self.pid && !e.draining && holderRelation(e.sessionId, self.sessionId) !== "same-session" && !holderClientGone(e, procs ??= listProcs())
   );
 }
+function heldInFolder(others, peerId, ownSession) {
+  return others.find((o) => o.peerId === peerId && !mayBeOwnPreSessionBridge(o, ownSession));
+}
+function mayBeOwnPreSessionBridge(holder, ownSession) {
+  if (holder.sessionId || !ownSession) return false;
+  const v = /^(\d+)\.(\d+)\.(\d+)$/.exec(String(holder.version ?? ""));
+  if (!v) return false;
+  const [maj, min, pat] = [Number(v[1]), Number(v[2]), Number(v[3])];
+  return maj < 3 || maj === 3 && (min < 25 || min === 25 && pat < 7);
+}
+function heldNameAdvice(peerId) {
+  return `If this agent was just restarted, its previous connection closes within ${HOLDER_LINGER_SECONDS} seconds: wait ${HOLDER_LINGER_SECONDS}+ seconds, then run /cogent:register again with the SAME peer name '${peerId}'. If '${peerId}' is still held after that, another live connection is using it \u2014 another agent, or an old window of this one still open. Do not take the name and do not rename: ask the user`;
+}
 function anotherAgentSessionAmong(others, ownSession) {
   return others.some((o) => holderRelation(o.sessionId, ownSession) === "other-session");
 }
@@ -35461,7 +35475,7 @@ async function restorePresence(deps) {
       const started = Number.isFinite(servedBy.startedAt) ? new Date(servedBy.startedAt).toISOString() : "unknown";
       const recheck = holder === "same-session";
       const every = deps.recheckSeconds ? ` (re-checked every ${deps.recheckSeconds}s)` : "";
-      const take = `To take '${peerId}' for this agent now, run /cogent:register (cogent_join_session, then cogent_register_peer)`;
+      const take = heldNameAdvice(peerId);
       const why = {
         "same-session": `That bridge serves this same agent session (${session})`,
         "no-session": `Neither bridge records an agent session (codex, gemini), so it cannot be told whether that bridge is this agent's previous one or another agent's. ${take}`,
@@ -35545,7 +35559,7 @@ function logPresence(outcome) {
     logger.debug(`Presence: ${outcome.state} \u2014 ${outcome.detail}.`);
   }
 }
-var ORPHAN_PARENT_RE, NPX_WRAPPER_RE, lastPresence;
+var ORPHAN_PARENT_RE, NPX_WRAPPER_RE, HOLDER_LINGER_SECONDS, lastPresence;
 var init_peer_presence = __esm({
   "src/services/peer-presence.ts"() {
     "use strict";
@@ -35553,6 +35567,7 @@ var init_peer_presence = __esm({
     init_wake_ownership();
     ORPHAN_PARENT_RE = /^(init|launchd|systemd)$/;
     NPX_WRAPPER_RE = /^(?:\S*\/)?(?:sh|bash|dash) -c cogent-bridge\b|^npm exec @essentialai\/cogent-bridge/;
+    HOLDER_LINGER_SECONDS = 60;
     lastPresence = null;
   }
 });
@@ -36468,6 +36483,24 @@ function registerRegisterPeerTool(server) {
               "Re-run cogent_join_session with the correct channel name + secret (+ Org_ID for Team channels) and confirm it returns success before calling cogent_register_peer; or, if the join answered CHANNEL_NOT_FOUND, cogent_create_session with the same name, secret and Org_ID"
             )
           );
+        }
+        if (config2.COGENT_ENDPOINT) try {
+          const own = agentSessionId();
+          const seen = /* @__PURE__ */ new Set();
+          const entries = [...listLiveBridgesInFolder(cwd), ...listLiveBridgesInFolder(process.cwd())].filter((e) => !seen.has(`${e.pid}:${e.peerId}`) && seen.add(`${e.pid}:${e.peerId}`));
+          const holder = heldInFolder(otherBridgesInFolder(entries, { pid: process.pid, sessionId: own }, listProcesses), peerId, own);
+          if (holder) {
+            logger.info(`Register: refused '${peerId}' \u2014 held in this folder by bridge pid ${holder.pid}`);
+            return errorResult(
+              new BridgeError(
+                "PEER_HELD_IN_FOLDER" /* PEER_HELD_IN_FOLDER */,
+                `'${peerId}' is held by another live connection in this folder (bridge pid ${holder.pid}, version ${registryText(holder.version)}); this bridge has NOT registered`,
+                heldNameAdvice(peerId)
+              )
+            );
+          }
+        } catch (err) {
+          logger.debug(`Register: could not check this folder for a holder of '${peerId}': ${err.message}`);
         }
         const hasCloudEndpointConfig = config2.COGENT_ENDPOINT && isCloudEndpoint(config2.COGENT_ENDPOINT);
         let sessionCreated = false;
