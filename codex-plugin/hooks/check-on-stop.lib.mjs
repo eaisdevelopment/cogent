@@ -84,6 +84,27 @@ export function buildAgentSessionRecord(payload, nowIso) {
   };
 }
 
+/**
+ * Which saved identity this hook's agent is (COG-80). MUST follow src/cloud/credential-store.ts
+ * chooseRestoreCredentials + peerCredentials. `folder` is the folder file; its `peers` map holds one
+ * entry per registered peer. The top-level fields name the last-registered peer and are that peer's
+ * newest write. Returns null when the folder's names provably belong to other agents (stay silent
+ * rather than act as the other agent in the folder).
+ */
+export function chooseHookCredentials(folder, sessionId, platform) {
+  if (!folder) return null;
+  const records = Object.entries(folder.peers || {}).map(([peerId, e]) => ({ ...e, peerId }));
+  if (records.length === 0) return folder;
+  const resolve = (peerId) => (folder.peerId === peerId ? folder : { ...folder.peers[peerId], peerId });
+  const mine = sessionId ? records.filter((r) => r.agentSession === sessionId) : [];
+  if (mine.length > 0) return resolve(mine[0].peerId);
+  const sameKind = records.filter((r) => r.platform === platform);
+  if (sameKind.length === 1) return resolve(sameKind[0].peerId);
+  if (sameKind.length > 1 && folder.peerId && sameKind.some((r) => r.peerId === folder.peerId)) return folder;
+  if (sameKind.length === 0 && folder.peerId && !records.some((r) => r.peerId === folder.peerId)) return folder;
+  return null;
+}
+
 function isForMe(msg, me, scope) {
   if (msg.toPeerId === me) return scope.directed;
   if (msg.toPeerId === "*") {

@@ -20,6 +20,8 @@ import {
   activeInFlightIds,
   agentSessionRecordPath,
   buildAgentSessionRecord,
+  chooseHookCredentials,
+  rootFromTranscriptPath,
 } from "./check-on-stop.lib.mjs";
 
 const HTTP_TIMEOUT_MS = 5000; // < the 8s hook timeout; only bites on a degraded relay
@@ -143,7 +145,9 @@ async function main() {
   if (envOff(env.COGENT_CHECK_ON_STOP)) return process.exit(0); // opt-out
   const cwd = input.cwd || process.cwd();
 
-  const creds = await readJson(credPath(cwd, env));
+  // COG-80: this agent's own record — the folder file names whichever agent registered last.
+  const creds = chooseHookCredentials(await readJson(credPath(cwd, env)), input.session_id,
+    rootFromTranscriptPath(input.transcript_path) ? "cc" : "codex");
   if (!creds || !creds.endpoint || !creds.sessionId || !creds.token) {
     return process.exit(0); // not registered in cloud mode → nothing to do
   }

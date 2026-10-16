@@ -655,18 +655,80 @@ async function loadCredentials(credentialPath) {
 async function saveCredentials(creds, credentialPath) {
   const filePath = resolveCredentialPath(credentialPath);
   await fs4.mkdir(path4.dirname(filePath), { recursive: true, mode: 448 });
-  await fs4.writeFile(
-    filePath,
-    JSON.stringify(creds, null, 2) + "\n",
-    { encoding: "utf-8", mode: 384 }
-  );
-  await fs4.chmod(filePath, 384);
+  let out = creds;
+  if (creds.peers === void 0) {
+    const prior = await loadCredentials(filePath);
+    if (prior?.peers) out = { ...creds, peers: prior.peers };
+  }
+  const tmp = `${filePath}.${process.pid}.${crypto.randomBytes(4).toString("hex")}.tmp`;
+  await fs4.writeFile(tmp, JSON.stringify(out, null, 2) + "\n", { encoding: "utf-8", mode: 384 });
+  await fs4.chmod(tmp, 384);
+  await fs4.rename(tmp, filePath);
 }
 async function rememberIssuedPeerSecret(sessionId, peerId, peerSecret) {
   const creds = await loadCredentials();
   if (!creds || creds.sessionId !== sessionId) return;
-  if (creds.peerId === peerId && creds.peerSecret === peerSecret) return;
-  await saveCredentials({ ...creds, peerId, peerSecret, savedAt: (/* @__PURE__ */ new Date()).toISOString() });
+  const entry = creds.peers?.[peerId];
+  const entryCurrent = !entry || entry.sessionId !== sessionId || entry.peerSecret === peerSecret;
+  if (creds.peerId === peerId && creds.peerSecret === peerSecret && entryCurrent) return;
+  const peers = entry && entry.sessionId === sessionId ? { ...creds.peers, [peerId]: { ...entry, peerSecret, savedAt: (/* @__PURE__ */ new Date()).toISOString() } } : creds.peers;
+  const base = entry && entry.sessionId === sessionId ? { ...creds, ...entry } : creds;
+  await saveCredentials({ ...base, peerId, peerSecret, ...peers ? { peers } : {}, savedAt: (/* @__PURE__ */ new Date()).toISOString() });
+}
+function setCurrentCloudConnection(c2) {
+  currentCloudConnection = c2;
+}
+function getCurrentCloudConnection() {
+  return currentCloudConnection;
+}
+function peerCredentials(folder, peerId) {
+  if (!folder) return null;
+  if (folder.peerId === peerId) {
+    const { peers: _p, ...top } = folder;
+    return top;
+  }
+  const e = folder.peers?.[peerId];
+  return e ? { ...e, peerId } : null;
+}
+function peerRecordsOf(folder) {
+  if (!folder?.peers) return [];
+  return Object.entries(folder.peers).map(([peerId, e]) => ({ ...e, peerId }));
+}
+async function loadPeerRecord(peerId, credentialPath) {
+  return peerCredentials(await loadCredentials(credentialPath), peerId);
+}
+async function loadPeerRecords(credentialPath) {
+  return peerRecordsOf(await loadCredentials(credentialPath));
+}
+async function savePeerRecord(rec, credentialPath) {
+  const folder = await loadCredentials(credentialPath);
+  if (!folder) return;
+  const { peerId, peers: _p, ...entry } = rec;
+  await saveCredentials({ ...folder, peers: { ...folder.peers ?? {}, [peerId]: entry } }, credentialPath);
+}
+async function deletePeerRecord(peerId, credentialPath) {
+  const folder = await loadCredentials(credentialPath);
+  if (!folder?.peers?.[peerId]) return;
+  const { [peerId]: _gone, ...rest } = folder.peers;
+  await saveCredentials({ ...folder, peers: rest }, credentialPath);
+}
+function chooseRestoreCredentials(folder, records, ownSession, platform) {
+  if (records.length === 0) return { creds: folder };
+  const top = folder?.peerId ? peerCredentials(folder, folder.peerId) : null;
+  const pick2 = (r) => peerCredentials(folder, r.peerId) ?? r;
+  if (ownSession) {
+    const mine = records.filter((r) => r.agentSession === ownSession);
+    if (mine.length > 0) return { creds: pick2(mine[0]) };
+  }
+  const sameKind = records.filter((r) => r.platform === platform);
+  if (sameKind.length === 1) return { creds: pick2(sameKind[0]) };
+  if (sameKind.length > 1 && top && sameKind.some((r) => r.peerId === top.peerId)) return { creds: top };
+  if (sameKind.length === 0 && top && !records.some((r) => r.peerId === top.peerId)) return { creds: top };
+  const names = records.map((r) => `'${r.peerId}' (${r.platform ?? "unknown agent"})`).join(", ");
+  return {
+    creds: null,
+    skip: sameKind.length === 0 ? `this folder's saved names belong to other agents \u2014 ${names}; this ${platform} agent has none, so it registers its own name explicitly` : `this folder has several saved ${platform} names and this bridge cannot tell which is its own \u2014 ${names}; the agent registers its name explicitly`
+  };
 }
 async function legacyGlobalCredentialsExist() {
   try {
@@ -676,7 +738,7 @@ async function legacyGlobalCredentialsExist() {
     return false;
   }
 }
-var LEGACY_GLOBAL_CREDENTIAL_PATH, joinedInProcessFlag, cloudAttemptInProcessFlag, cloudAttemptGeneration, cloudAttemptListeners;
+var LEGACY_GLOBAL_CREDENTIAL_PATH, joinedInProcessFlag, cloudAttemptInProcessFlag, cloudAttemptGeneration, cloudAttemptListeners, currentCloudConnection;
 var init_credential_store = __esm({
   "src/cloud/credential-store.ts"() {
     "use strict";
@@ -688,6 +750,7 @@ var init_credential_store = __esm({
     cloudAttemptInProcessFlag = false;
     cloudAttemptGeneration = 0;
     cloudAttemptListeners = /* @__PURE__ */ new Set();
+    currentCloudConnection = null;
   }
 });
 
@@ -26412,8 +26475,8 @@ var init_stdio2 = __esm({
 // src/constants.ts
 import { createRequire } from "node:module";
 function resolveVersion() {
-  if ("3.25.8") {
-    return "3.25.8";
+  if ("3.25.9") {
+    return "3.25.9";
   }
   try {
     const require2 = createRequire(import.meta.url);
@@ -26692,6 +26755,11 @@ var init_config = __esm({
       // launches via the daemon (see bin/cogent-codex) and sets this to `app-server`.
       // Only affects COGENT_PLATFORM=codex; claude/gemini/mail rails never read it.
       COGENT_CODEX_WAKE: import_zod2.z.enum(["auto", "exec-resume", "app-server"]).default("auto"),
+      // COG-86: what a Claude wake may do. `read` (default) = Read, Glob and Grep only: the wake answers but cannot edit,
+      // run commands or commit. A wake resumes the SAME session a human may have open in a terminal, and nothing can
+      // tell reliably that the terminal is there; on 2026-10-15 a full-tool wake edited a live session's files, then
+      // committed and pushed. `full` = every tool (the behaviour before 3.25.9), for an agent no human drives.
+      COGENT_WAKE_TOOLS: import_zod2.z.enum(["read", "full"]).default("read"),
       // Auto-recovery for a blocked Codex sandbox. On a host where the OS sandbox
       // can't initialize (unprivileged user namespaces blocked — Ubuntu 24.04's
       // apparmor_restrict_unprivileged_userns, containers, hardened kernels),
@@ -27352,6 +27420,11 @@ async function execClaude(sessionId, message, cwd, timeoutMs) {
       // as a raw JSON blob. Flag drift is guarded by claude-preflight.ts.
       "--output-format",
       "json",
+      // COG-86: an ALLOW list, never a deny list. --disallowedTools Edit,Write,NotebookEdit,Bash was measured to leak
+      // (the Monitor tool, loaded through ToolSearch, ran a shell and wrote a file) and would miss every tool a later
+      // claude adds. --tools is variadic, so it must be followed by another option, never by the message. A claude
+      // too old to know --tools exits "unknown option" — the wake fails, it never runs with every tool.
+      ...config2.COGENT_WAKE_TOOLS === "read" ? ["--tools", READ_ONLY_WAKE_TOOLS, "--append-system-prompt", READ_ONLY_WAKE_NOTICE] : [],
       "-p",
       truncated
     ];
@@ -27480,12 +27553,15 @@ function parseClaudeJsonReply(raw) {
   const result = typeof env.result === "string" ? env.result : null;
   return { result, isError: env.is_error === true || env.subtype !== "success" };
 }
+var READ_ONLY_WAKE_TOOLS, READ_ONLY_WAKE_NOTICE;
 var init_cc_cli = __esm({
   "src/services/cc-cli.ts"() {
     "use strict";
     init_config();
     init_agent_config();
     init_agent_sessions();
+    READ_ONLY_WAKE_TOOLS = "Read,Glob,Grep";
+    READ_ONLY_WAKE_NOTICE = "This is an automatic Cogent wake. You can read files but cannot change them or run commands. If the message asks for changes, say what must change and that it has to be done in the agent's own session.";
   }
 });
 
@@ -33900,6 +33976,7 @@ function announceBridge(cwd, peerId, version2, endpoint, sessionId = agentSessio
       cwd: path19.resolve(cwd),
       parentPid: process.ppid,
       ...sessionId ? { sessionId } : {},
+      platform: process.env.COGENT_PLATFORM || "cc",
       // 🔴 A headless bridge never had a client to lose (review r7 FIX2-2, SEC2-2): when its launching
       // shell exited, the changed parent read as "client gone" and any bridge that started took its name.
       ...startedWithoutClient() ? { noClient: true } : {}
@@ -35407,7 +35484,13 @@ function mayBeOwnPreSessionBridge(holder, ownSession) {
   const [maj, min, pat] = [Number(v[1]), Number(v[2]), Number(v[3])];
   return maj < 3 || maj === 3 && (min < 25 || min === 25 && pat < 7);
 }
-function heldNameAdvice(peerId) {
+function heldNameAdvice(peerId, holder, own) {
+  const otherSession = !!(holder?.sessionId && own?.sessionId && holder.sessionId !== own.sessionId);
+  const otherPlatform = !!(holder?.platform && own?.platform && holder.platform !== own.platform);
+  if (otherSession || otherPlatform) {
+    const who = [holder?.platform && `a ${holder.platform} agent`, holder?.sessionId && `session ${holder.sessionId}`].filter(Boolean).join(", ");
+    return `'${peerId}' is held by ANOTHER agent's live bridge in this folder (${who}). It keeps the name while that agent runs, so waiting will not free it. Do not take the name and do not rename: tell the user which agent holds '${peerId}' and ask them to have THAT agent run /cogent:register with ITS OWN peer name (which releases '${peerId}'); after that, run /cogent:register again with the SAME peer name '${peerId}'`;
+  }
   return `If this agent was just restarted, its previous connection closes within ${HOLDER_LINGER_SECONDS} seconds: wait ${HOLDER_LINGER_SECONDS}+ seconds, then run /cogent:register again with the SAME peer name '${peerId}'. If '${peerId}' is still held after that, another live connection is using it \u2014 another agent, or an old window of this one still open. Do not take the name and do not rename: ask the user`;
 }
 function anotherAgentSessionAmong(others, ownSession) {
@@ -35425,7 +35508,7 @@ function otherBridgeNotice(others, peerId, verdict, ownSession) {
     }
     return `${who} is registered as '${peerId}' too. NOBODY answers for '${peerId}' in this channel now: the bridge that started last (pid ${verdict.owner?.pid ?? "unknown"}) is the one that wakes its agent, but in this channel the relay registration now belongs to this bridge, so the relay refuses that bridge's replies here and this bridge does not wake. It stays that way until that bridge is closed or its agent registers again. If that bridge is registered in another channel, it still answers there.`;
   });
-  return lines.join(" ") + (anotherAgentSessionAmong(others, ownSession) ? ` Two agents in one folder are not supported yet: each agent needs its own peer name and, for now, its own folder.` : "");
+  return lines.join(" ") + (anotherAgentSessionAmong(others, ownSession) ? ` Each agent in this folder keeps its own saved name (COG-80): after a restart it comes back under that name, not the other agent's.` : "");
 }
 function autoPresenceEnabled(env = process.env) {
   const v = env.COGENT_AUTO_PRESENCE;
@@ -35441,6 +35524,10 @@ async function restorePresence(deps) {
       return { state: "online", restored: false, detail: "registered by this process" };
     }
     const creds = await deps.loadCredentials();
+    const skip = creds ? void 0 : deps.restoreSkip?.();
+    if (skip) {
+      return { state: "deferred", restored: false, detail: `nothing restored: ${skip}` };
+    }
     if (!creds || !creds.endpoint || !creds.sessionId || !creds.token) {
       return {
         state: "deferred",
@@ -35479,7 +35566,7 @@ async function restorePresence(deps) {
       const why = {
         "same-session": `That bridge serves this same agent session (${session})`,
         "no-session": `Neither bridge records an agent session (codex, gemini), so it cannot be told whether that bridge is this agent's previous one or another agent's. ${take}`,
-        "other-session": `That bridge serves another agent session (${servedBy.sessionId}; ours: ${session}). Two agents in one folder are not supported yet: a second agent needs its own folder and peer name. ${take}`,
+        "other-session": `That bridge serves another agent session (${servedBy.sessionId}; ours: ${session}). ` + heldNameAdvice(peerId, { sessionId: servedBy.sessionId }, { sessionId: session }),
         unknown: `Its agent session cannot be compared with this one (that bridge: ${servedBy.sessionId ?? "not recorded"}; this bridge: ${session ?? "not known"}): it may be this agent's own other bridge of an older version, or another agent's. ${take}`
       };
       return {
@@ -35789,7 +35876,9 @@ var init_claude_preflight = __esm({
       { flag: "--dangerously-skip-permissions", usedFor: "unattended auto-relay execution" },
       { flag: "--no-session-persistence", usedFor: "don't pollute the resumed session transcript" },
       { flag: "--strict-mcp-config", usedFor: "isolate MCP config of the resumed process" },
-      { flag: "--output-format", usedFor: "structured JSON reply envelope (Slice 3 capture)" }
+      { flag: "--output-format", usedFor: "structured JSON reply envelope (Slice 3 capture)" },
+      { flag: "--tools", usedFor: "read-only wake: Read, Glob and Grep only (COG-86)" },
+      { flag: "--append-system-prompt", usedFor: "tell a read-only wake it cannot change anything (COG-86)" }
     ];
   }
 });
@@ -36019,7 +36108,9 @@ async function restorePeerPresence(attempt = 0) {
     },
     agentSessionId: () => agentSessionId(),
     startedByWakeTurn: () => insideCodexWakeTurn(process.pid, ps()),
-    loadCredentials: () => loadCredentials(),
+    // COG-80: the identity THIS agent saved, not whichever agent registered in this folder last.
+    loadCredentials: () => restoreCandidate(),
+    restoreSkip: () => lastRestoreSkip,
     cwd: () => process.cwd(),
     recheckSeconds: Math.round(standbyRecheckMs() / 1e3),
     goOnline: async ({ peerId, endpoint, sessionId, token, cwd, label, peerSecret }) => {
@@ -36027,7 +36118,7 @@ async function restorePeerPresence(attempt = 0) {
       await reinitCloudBackend(endpoint, sessionId, token);
       const backend = getBackend();
       await backend.registerPeer(...presenceRegisterArgs({ peerId, sessionId, cwd, label, peerSecret }));
-      const slot = await loadCredentials();
+      const slot = await restoreCandidate();
       if (!stillCurrent() || slot?.sessionId !== sessionId || slot?.endpoint !== endpoint) {
         throw new Error(PRESENCE_SUPERSEDED);
       }
@@ -36159,9 +36250,20 @@ async function resolvePendingLabel() {
     logger.warn(`Post-connect label upgrade failed (non-fatal): ${err}`);
   }
 }
+async function restoreCandidate() {
+  const choice = chooseRestoreCredentials(
+    await loadCredentials(),
+    await loadPeerRecords(),
+    agentSessionId(),
+    getConfig().COGENT_PLATFORM
+  );
+  lastRestoreSkip = choice.skip;
+  return choice.creds;
+}
 async function reinitCloudBackend(endpoint, sessionId, token) {
   const config2 = getConfig();
   cloudHttpClient = new HttpClient(endpoint, token);
+  setCurrentCloudConnection({ endpoint, sessionId, token });
   const newBackend = new HttpBackend(cloudHttpClient, sessionId);
   resetBackend();
   initBackend(newBackend);
@@ -36266,6 +36368,7 @@ async function runStartup() {
     cloudInbox = new MessageInbox();
     bindInboxNotifier();
     cloudHttpClient = new HttpClient(effectiveEndpoint, effectiveToken);
+    setCurrentCloudConnection({ endpoint: effectiveEndpoint, sessionId: effectiveSessionId, token: effectiveToken });
     cloudWsClient = createCloudWsClient(
       effectiveEndpoint,
       effectiveSessionId,
@@ -36300,7 +36403,7 @@ async function runPreflights() {
     await preflightClaude(config2.COGENT_CLAUDE_PATH);
   }
 }
-var UUID_V4_RE, execFileAsync3, PERSIST_PATH, legacyWarnEmitted, cloudWsClient, cloudInbox, cloudHttpClient, cloudModeActive, inboxNotifier, notifierBoundTo, reRegistrationInProgress, presenceRetry, ignoredHolders, presenceSupersedeBound, PRESENCE_SUPERSEDED, pendingLabelResolve;
+var UUID_V4_RE, execFileAsync3, PERSIST_PATH, legacyWarnEmitted, cloudWsClient, cloudInbox, cloudHttpClient, cloudModeActive, inboxNotifier, notifierBoundTo, reRegistrationInProgress, presenceRetry, ignoredHolders, presenceSupersedeBound, PRESENCE_SUPERSEDED, pendingLabelResolve, lastRestoreSkip;
 var init_startup = __esm({
   "src/startup.ts"() {
     "use strict";
@@ -36495,7 +36598,7 @@ function registerRegisterPeerTool(server) {
               new BridgeError(
                 "PEER_HELD_IN_FOLDER" /* PEER_HELD_IN_FOLDER */,
                 `'${peerId}' is held by another live connection in this folder (bridge pid ${holder.pid}, version ${registryText(holder.version)}); this bridge has NOT registered`,
-                heldNameAdvice(peerId)
+                heldNameAdvice(peerId, holder, { sessionId: own, platform: config2.COGENT_PLATFORM })
               )
             );
           }
@@ -36612,7 +36715,9 @@ function registerRegisterPeerTool(server) {
         let storedPeerSecret = argPeerSecret;
         if (storedPeerSecret === void 0 && isCloudMode()) {
           try {
-            storedPeerSecret = (await loadCredentials())?.peerSecret;
+            const own = await loadPeerRecord(peerId);
+            const folder = own ? null : await loadCredentials();
+            storedPeerSecret = own?.peerSecret ?? (!folder?.peerId || folder.peerId === peerId ? folder?.peerSecret : void 0);
           } catch {
             storedPeerSecret = void 0;
           }
@@ -36637,7 +36742,8 @@ function registerRegisterPeerTool(server) {
           let recovered;
           if (/PEER_NOT_YOURS/.test(msg) && isCloudMode()) {
             try {
-              const creds = await loadCredentials();
+              const folderCreds = await loadCredentials();
+              const creds = await loadPeerRecord(peerId) ?? (!folderCreds?.peerId || folderCreds.peerId === peerId ? folderCreds : null);
               if (creds?.ownerToken && creds.ownerToken !== creds.token && creds.endpoint && creds.sessionId) {
                 logger.warn(
                   `register_peer: '${peerId}' is owned by an earlier token (its peerSecret was lost by a pre-3.23.5 re-join). Re-proving ownership with the stored owner token.`
@@ -36659,7 +36765,7 @@ function registerRegisterPeerTool(server) {
                   recovered = await res.json();
                   const secret = recovered?.peerSecret;
                   if (secret) {
-                    await saveCredentials({ ...creds, peerId, peerSecret: secret, savedAt: (/* @__PURE__ */ new Date()).toISOString() });
+                    await savePeerRecord({ ...creds, peerId, peerSecret: secret, savedAt: (/* @__PURE__ */ new Date()).toISOString() });
                     logger.info(`register_peer: ownership reclaimed for '${peerId}'; a fresh peerSecret is stored.`);
                   }
                 }
@@ -36693,13 +36799,24 @@ function registerRegisterPeerTool(server) {
           try {
             const creds = await loadCredentials();
             const issuedSecret = peer?.peerSecret;
-            if (creds && (creds.peerId !== peerId || issuedSecret && creds.peerSecret !== issuedSecret)) {
-              await saveCredentials({
-                ...creds,
-                peerId,
-                ...issuedSecret ? { peerSecret: issuedSecret } : {},
+            const platform = getConfig().COGENT_PLATFORM;
+            const agent = { agentSession: (platform === "cc" ? agentSessionId() : void 0) ?? sessionId, platform };
+            if (creds) {
+              const channel = getCurrentCloudConnection() ?? { endpoint: creds.endpoint, sessionId: creds.sessionId, token: creds.token };
+              const mine = peerCredentials(creds, peerId);
+              const sameChannel = !!mine && mine.sessionId === channel.sessionId && mine.endpoint === channel.endpoint;
+              const secret = issuedSecret ?? (sameChannel ? mine.peerSecret : void 0);
+              const ownerToken = sameChannel ? mine.ownerToken ?? (mine.token !== channel.token ? mine.token : void 0) : void 0;
+              const label2 = creds.sessionId === channel.sessionId ? creds.label : sameChannel ? mine.label : void 0;
+              const entry = {
+                ...channel,
+                ...label2 ? { label: label2 } : {},
+                ...agent,
+                ...secret ? { peerSecret: secret } : {},
+                ...ownerToken ? { ownerToken } : {},
                 savedAt: (/* @__PURE__ */ new Date()).toISOString()
-              });
+              };
+              await saveCredentials({ ...entry, peerId, peers: { ...creds.peers ?? {}, [peerId]: entry } });
             }
           } catch (err) {
             logger.debug(
@@ -37819,7 +37936,8 @@ function registerDeregisterPeerTool(server) {
         const backend = getBackend();
         let ownershipProof;
         try {
-          ownershipProof = (await loadCredentials())?.peerSecret;
+          const folder = await loadCredentials();
+          ownershipProof = (await loadPeerRecord(peerId))?.peerSecret ?? (!folder?.peerId || folder.peerId === peerId ? folder?.peerSecret : void 0);
         } catch {
         }
         const { removed, mailboxDeprovisioned } = await backend.deregisterPeer(peerId, ownershipProof);
@@ -37840,6 +37958,7 @@ function registerDeregisterPeerTool(server) {
               await saveCredentials({ ...rest, savedAt: (/* @__PURE__ */ new Date()).toISOString() });
               logger.info("cleared stored peerId after deregister", { peerId });
             }
+            await deletePeerRecord(peerId);
           } catch (err) {
             logger.warn("failed to clear stored peerId after deregister", { error: err });
           }
