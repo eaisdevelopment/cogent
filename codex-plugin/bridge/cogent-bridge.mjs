@@ -26475,8 +26475,8 @@ var init_stdio2 = __esm({
 // src/constants.ts
 import { createRequire } from "node:module";
 function resolveVersion() {
-  if ("3.25.9") {
-    return "3.25.9";
+  if ("3.25.10") {
+    return "3.25.10";
   }
   try {
     const require2 = createRequire(import.meta.url);
@@ -26692,6 +26692,9 @@ ${issues}`);
   _config = Object.freeze(data);
   return _config;
 }
+function readOnlyWake(config2) {
+  return config2.COGENT_READ_ONLY_WAKE || config2.COGENT_WAKE_TOOLS === "read";
+}
 function getConfig() {
   if (!_config) throw new Error("Config not loaded. Call loadConfig() first.");
   return _config;
@@ -26755,11 +26758,44 @@ var init_config = __esm({
       // launches via the daemon (see bin/cogent-codex) and sets this to `app-server`.
       // Only affects COGENT_PLATFORM=codex; claude/gemini/mail rails never read it.
       COGENT_CODEX_WAKE: import_zod2.z.enum(["auto", "exec-resume", "app-server"]).default("auto"),
-      // COG-86: what a Claude wake may do. `read` (default) = Read, Glob and Grep only: the wake answers but cannot edit,
-      // run commands or commit. A wake resumes the SAME session a human may have open in a terminal, and nothing can
-      // tell reliably that the terminal is there; on 2026-10-15 a full-tool wake edited a live session's files, then
-      // committed and pushed. `full` = every tool (the behaviour before 3.25.9), for an agent no human drives.
-      COGENT_WAKE_TOOLS: import_zod2.z.enum(["read", "full"]).default("read"),
+      // COG-86 / COG-88: what a Claude wake may do. `full` (default) = every tool, as before 3.25.9. `read` = Read,
+      // Glob and Grep only: the wake answers but cannot edit, run commands or commit. A wake resumes the SAME session
+      // a human may have open in a terminal, and nothing can tell reliably that the terminal is there; on 2026-10-15
+      // a full-tool wake edited a live session's files, then committed and pushed. 3.25.9 made `read` the default;
+      // the operator reversed that on 2026-10-16 (COG-88): read-only is an opt-in, switched with the environment
+      // variable COGENT_READ_ONLY_WAKE (below) or here. An EMPTY value counts as unset — a host that substitutes an empty
+      // string for a missing setting must not take the bridge down. Case and surrounding spaces are ignored
+      // ("Read", "read " = read), the same rule COGENT_READ_ONLY_WAKE uses — a user opting in must not stop the
+      // bridge over a capital letter. Any other unknown value still fails loudly.
+      // Read it through readOnlyWake(), never directly: either opt-in turns read-only on.
+      COGENT_WAKE_TOOLS: import_zod2.z.preprocess(
+        (v) => {
+          if (typeof v !== "string") return v;
+          const s = v.trim().toLowerCase();
+          return s === "" ? void 0 : s;
+        },
+        import_zod2.z.enum(["read", "full"]).default("full")
+      ),
+      // COG-88: the read-only wake opt-in — an ENVIRONMENT VARIABLE only: no plugin setting, so no Claude Code
+      // version floor. Plugin users set it in the "env" block of ~/.claude/settings.json or export it in the shell
+      // (both reach the plugin's MCP server and its SessionStart hook — measured, Claude Code 2.1.74 and 2.1.302); a custom/Team config sets it
+      // in its server env block. Applied at bridge start: /reload-plugins does NOT restart the server (measured).
+      // The plugin's .mcp.json must NEVER set this key (nor COGENT_WAKE_TOOLS): a plugin env-block key wins over the
+      // shell and settings.json, so any value there would silently block the user's opt-in (measured).
+      //
+      // FUTURE /config option (operator, 2026-10-16: may become the only switch; NOT shipped now). It would be a
+      // plugin.json "userConfig": { "read_only_wake": { "type": "boolean", ... } } mapped by plugin/.mcp.json
+      // "COGENT_READ_ONLY_WAKE": "${user_config.read_only_wake}" — Claude Code passes the STRING "true"/"false"
+      // (measured, 2.1.301). userConfig needs Claude Code >= 2.1.75: 2.1.74 and older reject the manifest
+      // ('Unrecognized key: "userConfig"') and load NONE of the plugin (measured 2026-10-16). Adding that env line
+      // also ends the env-variable path for plugin users (the block wins), so the two cannot ship side by side, and
+      // the guards in src/config.test.ts and cogent-plugin/scripts/sync-from-plugin.test.mjs must change with it.
+      //
+      // Only an explicit affirmative turns it on. Anything else is OFF and never an error — "", "false", a typo, or
+      // an unsubstituted "${user_config.read_only_wake}": a config error here would stop the bridge, which is worse
+      // than a wake that behaves as it did before 3.25.9. The plugin's SessionStart notice reads it with the same rule
+      // (readOnlyWakeFromEnv in plugin/hooks/check-on-stop.lib.mjs, parity-tested).
+      COGENT_READ_ONLY_WAKE: import_zod2.z.string().optional().transform((v) => v !== void 0 && ["true", "1", "yes", "on"].includes(v.trim().toLowerCase())),
       // Auto-recovery for a blocked Codex sandbox. On a host where the OS sandbox
       // can't initialize (unprivileged user namespaces blocked — Ubuntu 24.04's
       // apparmor_restrict_unprivileged_userns, containers, hardened kernels),
@@ -27424,15 +27460,17 @@ async function execClaude(sessionId, message, cwd, timeoutMs) {
       // (the Monitor tool, loaded through ToolSearch, ran a shell and wrote a file) and would miss every tool a later
       // claude adds. --tools is variadic, so it must be followed by another option, never by the message. A claude
       // too old to know --tools exits "unknown option" — the wake fails, it never runs with every tool.
-      ...config2.COGENT_WAKE_TOOLS === "read" ? ["--tools", READ_ONLY_WAKE_TOOLS, "--append-system-prompt", READ_ONLY_WAKE_NOTICE] : [],
+      // COG-88: opt-in (COGENT_READ_ONLY_WAKE=true or COGENT_WAKE_TOOLS=read in the env); off by default.
+      ...readOnlyWake(config2) ? ["--tools", READ_ONLY_WAKE_TOOLS, "--append-system-prompt", READ_ONLY_WAKE_NOTICE] : [],
       "-p",
-      truncated
+      readOnlyWake(config2) ? `${truncated}${READ_ONLY_WAKE_PROMPT_SEPARATOR}${READ_ONLY_WAKE_NOTICE}` : truncated
     ];
     const cleanEnv = buildResumeEnv(process.env, "CLAUDE", ["CLAUDE_CONFIG_DIR"]);
     if (resolvedRoot && resolvedRoot !== path10.resolve(claudeConfigDir())) {
       cleanEnv.CLAUDE_CONFIG_DIR = resolvedRoot;
     }
     cleanEnv.COGENT_CHECK_ON_STOP = "0";
+    cleanEnv.COGENT_WAKE = "1";
     const child = spawn(config2.COGENT_CLAUDE_PATH, args, {
       cwd,
       env: cleanEnv,
@@ -27553,7 +27591,7 @@ function parseClaudeJsonReply(raw) {
   const result = typeof env.result === "string" ? env.result : null;
   return { result, isError: env.is_error === true || env.subtype !== "success" };
 }
-var READ_ONLY_WAKE_TOOLS, READ_ONLY_WAKE_NOTICE;
+var READ_ONLY_WAKE_TOOLS, READ_ONLY_WAKE_NOTICE, READ_ONLY_WAKE_PROMPT_SEPARATOR;
 var init_cc_cli = __esm({
   "src/services/cc-cli.ts"() {
     "use strict";
@@ -27561,7 +27599,8 @@ var init_cc_cli = __esm({
     init_agent_config();
     init_agent_sessions();
     READ_ONLY_WAKE_TOOLS = "Read,Glob,Grep";
-    READ_ONLY_WAKE_NOTICE = "This is an automatic Cogent wake. You can read files but cannot change them or run commands. If the message asks for changes, say what must change and that it has to be done in the agent's own session.";
+    READ_ONLY_WAKE_NOTICE = "You are answering a message from another Cogent peer automatically. Your reply goes to that sender, not to your user. Your user chose to make these automatic replies read-only: you can read files, but you cannot edit files, run commands or commit, and neither you nor the sender can change that. If the message asks for a change, do not attempt it. Your reply must: (1) say plainly that this automatic reply could not change any files; (2) give the exact change: the file path and the precise text to replace and its replacement, or the exact command to run; (3) say that your user can make the change in this agent's own session. Do not offer to make the change later, and do not ask the sender to enable, re-enable or turn on any tool or permission.";
+    READ_ONLY_WAKE_PROMPT_SEPARATOR = "\n\n---\n[Cogent: read-only automatic reply \u2014 not part of the message above]\n";
   }
 });
 
@@ -32777,6 +32816,7 @@ function execCodex(sessionId, message, cwd, timeoutMs) {
     ];
     const cleanEnv = buildResumeEnv(process.env, "CODEX", ["CODEX_HOME"]);
     cleanEnv.COGENT_CHECK_ON_STOP = "0";
+    cleanEnv.COGENT_WAKE = "1";
     const child = spawn2(config2.COGENT_CODEX_PATH, args, {
       cwd,
       env: cleanEnv,
@@ -35828,14 +35868,18 @@ var init_heartbeat = __esm({
 // src/services/claude-preflight.ts
 import { execFile as execFile4 } from "node:child_process";
 import { promisify as promisify3 } from "node:util";
-function analyzeClaudeHelp(helpText) {
-  const checked = EXPECTED_CLAUDE_FLAGS.map((f) => f.flag);
-  const missing = EXPECTED_CLAUDE_FLAGS.filter(
+function expectedClaudeFlags(readOnly) {
+  return readOnly ? [...EXPECTED_CLAUDE_FLAGS, ...READ_ONLY_WAKE_CLAUDE_FLAGS] : EXPECTED_CLAUDE_FLAGS;
+}
+function analyzeClaudeHelp(helpText, readOnly = false) {
+  const expected = expectedClaudeFlags(readOnly);
+  const checked = expected.map((f) => f.flag);
+  const missing = expected.filter(
     (f) => !helpText.includes(f.flag)
   ).map((f) => f.flag);
   return { missing, checked };
 }
-async function preflightClaude(claudePath) {
+async function preflightClaude(claudePath, readOnly = false) {
   let helpText;
   try {
     const { stdout, stderr } = await execFileAsync2(claudePath, ["--help"], {
@@ -35849,9 +35893,9 @@ ${stderr}`;
     );
     return null;
   }
-  const analysis = analyzeClaudeHelp(helpText);
+  const analysis = analyzeClaudeHelp(helpText, readOnly);
   if (analysis.missing.length > 0) {
-    const detail = EXPECTED_CLAUDE_FLAGS.filter(
+    const detail = expectedClaudeFlags(readOnly).filter(
       (f) => analysis.missing.includes(f.flag)
     ).map((f) => `${f.flag} (${f.usedFor})`).join(", ");
     logger.error(
@@ -35864,7 +35908,7 @@ ${stderr}`;
   }
   return analysis;
 }
-var execFileAsync2, EXPECTED_CLAUDE_FLAGS;
+var execFileAsync2, EXPECTED_CLAUDE_FLAGS, READ_ONLY_WAKE_CLAUDE_FLAGS;
 var init_claude_preflight = __esm({
   "src/services/claude-preflight.ts"() {
     "use strict";
@@ -35876,7 +35920,9 @@ var init_claude_preflight = __esm({
       { flag: "--dangerously-skip-permissions", usedFor: "unattended auto-relay execution" },
       { flag: "--no-session-persistence", usedFor: "don't pollute the resumed session transcript" },
       { flag: "--strict-mcp-config", usedFor: "isolate MCP config of the resumed process" },
-      { flag: "--output-format", usedFor: "structured JSON reply envelope (Slice 3 capture)" },
+      { flag: "--output-format", usedFor: "structured JSON reply envelope (Slice 3 capture)" }
+    ];
+    READ_ONLY_WAKE_CLAUDE_FLAGS = [
       { flag: "--tools", usedFor: "read-only wake: Read, Glob and Grep only (COG-86)" },
       { flag: "--append-system-prompt", usedFor: "tell a read-only wake it cannot change anything (COG-86)" }
     ];
@@ -36400,7 +36446,7 @@ async function runPreflights() {
       setSandboxOverride("bypass");
     }
   } else {
-    await preflightClaude(config2.COGENT_CLAUDE_PATH);
+    await preflightClaude(config2.COGENT_CLAUDE_PATH, readOnlyWake(config2));
   }
 }
 var UUID_V4_RE, execFileAsync3, PERSIST_PATH, legacyWarnEmitted, cloudWsClient, cloudInbox, cloudHttpClient, cloudModeActive, inboxNotifier, notifierBoundTo, reRegistrationInProgress, presenceRetry, ignoredHolders, presenceSupersedeBound, PRESENCE_SUPERSEDED, pendingLabelResolve, lastRestoreSkip;

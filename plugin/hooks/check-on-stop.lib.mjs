@@ -21,6 +21,16 @@ export function parseScope(csv) {
   };
 }
 
+/**
+ * COG-88: are this agent's Claude wakes read-only? MUST equal src/config.ts readOnlyWake(loadConfig(env)):
+ * COGENT_READ_ONLY_WAKE truthy ("true"/"1"/"yes"/"on") OR COGENT_WAKE_TOOLS = "read", each trimmed and
+ * case-folded. Parity is tested against the REAL loadConfig (plugin/hooks/record-session.runtime.test.mjs).
+ */
+export function readOnlyWakeFromEnv(env) {
+  const v = (k) => String(env[k] ?? "").trim().toLowerCase();
+  return ["true", "1", "yes", "on"].includes(v("COGENT_READ_ONLY_WAKE")) || v("COGENT_WAKE_TOOLS") === "read";
+}
+
 /** sha256(path.resolve(cwd))[..16] — MUST equal credential-store.defaultCredentialPath's hash. */
 export function credHashForCwd(cwd) {
   return crypto.createHash("sha256").update(path.resolve(cwd)).digest("hex").slice(0, 16);
