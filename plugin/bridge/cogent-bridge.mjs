@@ -26475,8 +26475,8 @@ var init_stdio2 = __esm({
 // src/constants.ts
 import { createRequire } from "node:module";
 function resolveVersion() {
-  if ("3.25.10") {
-    return "3.25.10";
+  if ("3.25.11") {
+    return "3.25.11";
   }
   try {
     const require2 = createRequire(import.meta.url);
@@ -33173,6 +33173,8 @@ async function _injectTurn(threadId, message, cwd, timeoutMs, deps = {}) {
     await client.waitOpen();
     await client.request("initialize", {
       clientInfo: { name: "cogent-bridge", version: "1" },
+      // Also required by thread/resume `excludeTurns` below: codex 0.145–0.150.1 reject it
+      // without this ("requires experimentalApi capability"); 0.151.0+ accept it either way.
       capabilities: { experimentalApi: true }
     });
   } catch (err) {
@@ -33184,7 +33186,7 @@ async function _injectTurn(threadId, message, cwd, timeoutMs, deps = {}) {
     };
   }
   try {
-    await client.request("thread/resume", { threadId, cwd });
+    await client.request("thread/resume", { threadId, cwd, excludeTurns: true });
     const buffered = [];
     let myTurnId;
     const isMine = (msg) => msg.method === "turn/completed" && (myTurnId !== void 0 ? msg.params?.turn?.id === myTurnId : msg.params?.threadId === threadId);
@@ -34359,7 +34361,10 @@ ${message}${formatAttachmentsBlock(attachments)}
 ---
 FYI ONLY \u2014 another agent addressed the whole channel. Take note for context, but do NOT reply and do NOT call any cogent_* tool in response. A human will drive any reply.`;
 }
-function describeWakeFailure(exitCode, stderr, stdout) {
+function wakeAgentFor(platform) {
+  return platform === "codex" ? "codex" : "claude";
+}
+function describeWakeFailure(agent, exitCode, stderr, stdout) {
   const raw = (stderr ?? "").trim();
   if (!raw && exitCode !== 0 && !stdout) return "";
   const firstLine = raw.split("\n").map((l) => l.trim()).find(Boolean) ?? "";
@@ -34371,7 +34376,7 @@ function describeWakeFailure(exitCode, stderr, stdout) {
   }
   if (/CLI_NOT_FOUND/.test(raw)) {
     return truncate(
-      `the claude executable was not found \u2014 install Claude Code or set COGENT_CLAUDE_PATH.`
+      agent === "codex" ? `the codex executable was not found \u2014 install the Codex CLI or set COGENT_CODEX_PATH.` : `the claude executable was not found \u2014 install Claude Code or set COGENT_CLAUDE_PATH.`
     );
   }
   const timedOut = /CLI_TIMEOUT: CLI subprocess timed out after (\d+)ms/.exec(raw);
@@ -34393,15 +34398,15 @@ function describeWakeFailure(exitCode, stderr, stdout) {
       }
       if (env.result) bits.push(env.result);
       if (!bits.length && env.isError) bits.push("the run reported is_error with no detail");
-      if (bits.length) return truncate(`claude exited ${code}: ${bits.join(" \u2014 ")}`);
+      if (bits.length) return truncate(`${agent} exited ${code}: ${bits.join(" \u2014 ")}`);
     }
     return truncate(
-      stdout?.trim() ? `claude exited ${code} with nothing on stderr; its stdout was not a readable result envelope` : `claude exited ${code} with no output at all on stdout or stderr`
+      stdout?.trim() ? `${agent} exited ${code} with nothing on stderr; its stdout was not a readable result envelope` : `${agent} exited ${code} with no output at all on stdout or stderr`
     );
   }
   if (firstLine) {
     const code = exitCode === null || exitCode === void 0 ? "?" : exitCode;
-    return truncate(`claude exited ${code}: ${firstLine}`);
+    return truncate(`${agent} exited ${code}: ${firstLine}`);
   }
   if (exitCode === 0) {
     return truncate(`the resume completed successfully but returned no text.`);
@@ -35307,7 +35312,7 @@ var init_auto_relay = __esm({
        */
       async _recordNoReplyFailure(msg, traceId, durationMs, opts) {
         const codexLive = opts?.codexLiveSession === true;
-        const message = codexLive ? `\u{1F4E8} Queued for "${this.localPeerId}": it's live in an interactive Codex session, so Cogent can't resume it in real time \u2014 it will see this at its next turn. For real-time replies, launch it via \`cogent-codex\` (COGENT_CODEX_WAKE=app-server). (trace ${traceId})` : `\u26A0\uFE0F Cogent could not capture a reply from "${this.localPeerId}". ${describeWakeFailure(opts?.exitCode, opts?.stderr, opts?.stdout) || "It may have been busy, or the resume produced no output."} Manual response required \u2014 the target agent must reply in its own session. (trace ${traceId})`;
+        const message = codexLive ? `\u{1F4E8} Queued for "${this.localPeerId}": it's live in an interactive Codex session, so Cogent can't resume it in real time \u2014 it will see this at its next turn. For real-time replies, launch it via \`cogent-codex\` (COGENT_CODEX_WAKE=app-server). (trace ${traceId})` : `\u26A0\uFE0F Cogent could not capture a reply from "${this.localPeerId}". ${describeWakeFailure(wakeAgentFor(getConfig().COGENT_PLATFORM), opts?.exitCode, opts?.stderr, opts?.stdout) || "It may have been busy, or the resume produced no output."} Manual response required \u2014 the target agent must reply in its own session. (trace ${traceId})`;
         try {
           await getBackend().recordMessage({
             fromPeerId: this.localPeerId,
