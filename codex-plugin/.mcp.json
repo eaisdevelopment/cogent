@@ -2,7 +2,8 @@
   "mcpServers": {
     "cogent": {
       "command": "npx",
-      "args": ["-y", "@essentialai/cogent-bridge-bundled@3.25.11"],
+      "args": ["-y", "@essentialai/cogent-bridge-bundled@3.25.12"],
+      "env_vars": ["COGENT_CODEX_SANDBOX"],
       "env": {
         "COGENT_ENDPOINT": "https://cogent.tools",
         "COGENT_PLATFORM": "codex",

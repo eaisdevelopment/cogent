@@ -26475,8 +26475,8 @@ var init_stdio2 = __esm({
 // src/constants.ts
 import { createRequire } from "node:module";
 function resolveVersion() {
-  if ("3.25.11") {
-    return "3.25.11";
+  if ("3.25.12") {
+    return "3.25.12";
   }
   try {
     const require2 = createRequire(import.meta.url);
@@ -26745,7 +26745,15 @@ var init_config = __esm({
       COGENT_WS_STALE_MS: import_zod2.z.coerce.number().int().positive().default(9e4),
       COGENT_PLATFORM: import_zod2.z.enum(["cc", "codex", "slack", "gchat", "web"]).default("cc"),
       COGENT_CODEX_PATH: import_zod2.z.string().default("codex"),
-      COGENT_CODEX_SANDBOX: import_zod2.z.enum(["full-auto", "read-only", "workspace-write", "danger-full-access", "bypass"]).default("full-auto"),
+      // COG-87 (operator decision 2026-10-22): default `bypass` (was `full-auto`). A codex wake runs
+      // on the human's OWN thread; on the app-server rail its sandbox persists there ("this turn and
+      // subsequent turns"), so a limited default quietly cut the human's own permissions. The rail
+      // now restores the owner's setting after every wake (codex-app-server.ts). For limited wakes
+      // set `full-auto`/`workspace-write`/`read-only` in the bridge's env, then restart codex. Plugin
+      // users: export COGENT_CODEX_SANDBOX in the shell that starts codex — it reaches the bridge only
+      // through the `env_vars` passthrough in codex-plugin/.mcp.json, never on its own. A custom
+      // `[mcp_servers.<name>]` config: its `env` table in ~/.codex/config.toml.
+      COGENT_CODEX_SANDBOX: import_zod2.z.enum(["full-auto", "read-only", "workspace-write", "danger-full-access", "bypass"]).default("bypass"),
       // Codex real-time-wake rail selector. codex >=0.145 has a SINGLE-WRITER
       // thread-store: a codex agent running in an interactive TUI holds an exclusive
       // writer on its own thread, so the current rail (`exec-resume` =
@@ -26753,9 +26761,10 @@ var init_config = __esm({
       // writer` and the peer never gets a real-time reply. The `app-server` rail
       // injects the peer's message as a turn THROUGH codex's app-server daemon (the
       // daemon is the single writer; the human's `codex --remote` TUI and the bridge
-      // are both just clients → no conflict). DEFAULT stays `exec-resume` so this is
-      // purely additive/opt-in: nothing changes for any agent until a codex user
-      // launches via the daemon (see bin/cogent-codex) and sets this to `app-server`.
+      // are both just clients → no conflict). DEFAULT is `auto` (since dfda334a,
+      // 2026-08-16): the app-server rail is taken whenever an app-server daemon is
+      // running on the machine or the bridge runs under one (exec-remote.ts
+      // execCodexWake); otherwise `exec-resume`. It is NOT opt-in.
       // Only affects COGENT_PLATFORM=codex; claude/gemini/mail rails never read it.
       COGENT_CODEX_WAKE: import_zod2.z.enum(["auto", "exec-resume", "app-server"]).default("auto"),
       // COG-86 / COG-88: what a Claude wake may do. `full` (default) = every tool, as before 3.25.9. `read` = Read,
@@ -27698,7 +27707,7 @@ async function preflightCodexSandbox(config2) {
   if (res.status === "blocked") {
     if (config2.COGENT_CODEX_SANDBOX_FALLBACK) {
       logger.warn(
-        `Codex sandbox preflight: the OS sandbox (mode "${config2.COGENT_CODEX_SANDBOX}") cannot initialize on this host \u2014 ${res.detail}. Auto-recovering: 'codex exec resume' will run with --dangerously-bypass-approvals-and-sandbox (FULL filesystem/network access, no approval gate) so Slack/A2A tasks complete instead of failing with "bwrap: setting up uid map: Permission denied" \u2014 this host cannot sandbox codex either way. To keep the sandbox STRICT set COGENT_CODEX_SANDBOX_FALLBACK=0 (tasks will then fail here), or enable unprivileged user namespaces to restore a real sandbox (sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0).`
+        `Codex sandbox preflight: the OS sandbox (mode "${config2.COGENT_CODEX_SANDBOX}") cannot initialize on this host \u2014 ${res.detail}. Auto-recovering: wakes on BOTH rails run without the sandbox \u2014 'codex exec resume' with --dangerously-bypass-approvals-and-sandbox, the app-server rail with sandboxPolicy dangerFullAccess (COG-87) \u2014 FULL filesystem/network access, no approval gate, so Slack/A2A tasks complete instead of failing with "bwrap: setting up uid map: Permission denied" \u2014 this host cannot sandbox codex either way. To keep the sandbox STRICT set COGENT_CODEX_SANDBOX_FALLBACK=0 (tasks will then fail here), or enable unprivileged user namespaces to restore a real sandbox (sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0).`
       );
     } else {
       logger.error(
@@ -33143,6 +33152,90 @@ function sandboxPolicyFor(mode, cwd) {
       };
   }
 }
+function ownerSandboxFrom(resume) {
+  const sandbox = resume?.sandbox && typeof resume.sandbox === "object" ? resume.sandbox : null;
+  const id = resume?.activePermissionProfile?.id;
+  const cwd = typeof resume?.cwd === "string" && resume.cwd ? resume.cwd : null;
+  return { sandbox, permissionProfileId: typeof id === "string" && id ? id : null, cwd };
+}
+function canonical(v) {
+  if (Array.isArray(v)) return `[${v.map(canonical).join(",")}]`;
+  if (v && typeof v === "object") {
+    return `{${Object.keys(v).sort().map((k) => `${JSON.stringify(k)}:${canonical(v[k])}`).join(",")}}`;
+  }
+  return JSON.stringify(v);
+}
+function asReported(policy, threadCwd) {
+  const p = policy;
+  if (!threadCwd || p?.type !== "workspaceWrite" || !Array.isArray(p.writableRoots)) return policy;
+  const cwd = threadCwd.replace(/\/+$/, "");
+  const roots = [];
+  for (const r of p.writableRoots) {
+    if (typeof r === "string" && r.replace(/\/+$/, "") === cwd || roots.includes(r)) continue;
+    roots.push(r);
+  }
+  return { ...p, writableRoots: roots };
+}
+function samePolicy(sent, reported, threadCwd) {
+  return canonical(asReported(sent, threadCwd)) === canonical(asReported(reported, threadCwd));
+}
+function restoreParamsFor(threadId, sent, owner) {
+  if (owner.permissionProfileId) return { threadId, permissions: owner.permissionProfileId };
+  if (!owner.sandbox) throw new Error("thread/resume returned no sandbox \u2014 the owner's setting is unknown");
+  if (samePolicy(sent, owner.sandbox, owner.cwd)) return null;
+  return { threadId, sandboxPolicy: owner.sandbox };
+}
+function joinThreadWake(threadId) {
+  let wakes = threadWakes.get(threadId);
+  if (!wakes) {
+    wakes = { inFlight: 0, owner: null, captured: false, policySent: false, sent: [], retained: false };
+    threadWakes.set(threadId, wakes);
+  }
+  wakes.inFlight++;
+  return wakes;
+}
+async function boundedRestore(work) {
+  let timer;
+  try {
+    return await Promise.race([
+      work,
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`no answer within ${RESTORE_TIMEOUT_MS}ms`)), RESTORE_TIMEOUT_MS);
+      })
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+async function restoreOwnerSandbox(client, threadId, sent, owner, dial, handshake) {
+  if (sent.length === 0) return null;
+  let params = null;
+  try {
+    if (!owner) throw new Error("thread/resume did not answer \u2014 the owner's setting is unknown");
+    for (const s of sent) params ??= restoreParamsFor(threadId, s, owner);
+    if (!params) return null;
+    await boundedRestore(client.request("thread/settings/update", params));
+    return null;
+  } catch (err) {
+    if (!params || !client.closed) return err.message;
+    const first = err.message;
+    let fresh;
+    try {
+      await boundedRestore(
+        (async () => {
+          fresh = dial();
+          await handshake(fresh);
+          await fresh.request("thread/settings/update", params);
+        })()
+      );
+      return null;
+    } catch (retryErr) {
+      return `${first}; the retry over a fresh connection failed: ${retryErr.message}`;
+    } finally {
+      fresh?.close();
+    }
+  }
+}
 function execCodexViaAppServer(threadId, message, cwd, timeoutMs, deps = {}) {
   const key = deps.idempotencyKey ? `${threadId}::${deps.idempotencyKey}` : null;
   if (!key) return _injectTurn(threadId, message, cwd, timeoutMs, deps);
@@ -33166,17 +33259,21 @@ async function _injectTurn(threadId, message, cwd, timeoutMs, deps = {}) {
   const truncated = config2.COGENT_CHAR_LIMIT > 0 && message.length > config2.COGENT_CHAR_LIMIT ? message.slice(0, config2.COGENT_CHAR_LIMIT) + "\n...[truncated]" : message;
   const sock = deps.socketPath ?? appServerSocketPath();
   const wsFactory = deps.wsFactory ?? defaultWsFactory;
-  let client;
-  try {
-    const ws = wsFactory(rpcUrl(sock), { perMessageDeflate: false, headers: { Host: "localhost" } });
-    client = new AppServerClient(ws);
-    await client.waitOpen();
-    await client.request("initialize", {
+  const handshake = async (c2) => {
+    await c2.waitOpen();
+    await c2.request("initialize", {
       clientInfo: { name: "cogent-bridge", version: "1" },
       // Also required by thread/resume `excludeTurns` below: codex 0.145–0.150.1 reject it
       // without this ("requires experimentalApi capability"); 0.151.0+ accept it either way.
       capabilities: { experimentalApi: true }
     });
+    return c2;
+  };
+  const dial = () => new AppServerClient(wsFactory(rpcUrl(sock), { perMessageDeflate: false, headers: { Host: "localhost" } }));
+  let client;
+  try {
+    client = dial();
+    await handshake(client);
   } catch (err) {
     return {
       stdout: "",
@@ -33185,8 +33282,24 @@ async function _injectTurn(threadId, message, cwd, timeoutMs, deps = {}) {
       appServerUnavailable: true
     };
   }
+  const wakes = joinThreadWake(threadId);
+  let sent = null;
+  let result;
   try {
-    await client.request("thread/resume", { threadId, cwd, excludeTurns: true });
+    const resumed = await client.request("thread/resume", { threadId, cwd, excludeTurns: true });
+    if (!wakes.captured && !wakes.policySent) {
+      wakes.owner = ownerSandboxFrom(resumed);
+      wakes.captured = true;
+    } else if (wakes.retained && !wakes.policySent) {
+      wakes.retained = false;
+      const fresh = ownerSandboxFrom(resumed);
+      const known = fresh.permissionProfileId !== null || fresh.sandbox !== null;
+      const ours = fresh.permissionProfileId === null && wakes.sent.some((p) => samePolicy(p, fresh.sandbox, fresh.cwd));
+      if (known && !ours) {
+        wakes.owner = fresh;
+        wakes.sent = [];
+      }
+    }
     const buffered = [];
     let myTurnId;
     const isMine = (msg) => msg.method === "turn/completed" && (myTurnId !== void 0 ? msg.params?.turn?.id === myTurnId : msg.params?.threadId === threadId);
@@ -33203,12 +33316,12 @@ async function _injectTurn(threadId, message, cwd, timeoutMs, deps = {}) {
         d(msg);
       }
     });
+    sent = sandboxPolicyFor(effectiveSandbox(config2), cwd);
+    wakes.policySent = true;
     const startResult = await client.request("turn/start", {
       threadId,
       input: [{ type: "text", text: truncated }],
-      // Bound the injected peer turn by the CONFIGURED sandbox (not the human
-      // session's privilege). See sandboxPolicyFor.
-      sandboxPolicy: sandboxPolicyFor(config2.COGENT_CODEX_SANDBOX, cwd),
+      sandboxPolicy: sent,
       // Native correlation id (daemon does NOT auto-dedupe on it — our own
       // idempotency guard does; this is for daemon-side correlation/telemetry).
       ...deps.idempotencyKey ? { clientUserMessageId: deps.idempotencyKey } : {}
@@ -33231,37 +33344,57 @@ async function _injectTurn(threadId, message, cwd, timeoutMs, deps = {}) {
     });
     off();
     if (!turnCompleted) {
-      return {
+      result = {
         stdout: "",
         stderr: `CLI_TIMEOUT: app-server turn did not complete within ${effectiveTimeout}ms`,
         exitCode: null
       };
+    } else {
+      result = {
+        stdout: extractAgentMessageText([turnCompleted]),
+        stderr: "",
+        exitCode: 0,
+        captureContract: "event_stream",
+        stable: true
+      };
     }
-    const text = extractAgentMessageText([turnCompleted]);
-    return {
-      stdout: text,
-      stderr: "",
-      exitCode: 0,
-      captureContract: "event_stream",
-      stable: true
-    };
   } catch (err) {
-    return {
+    result = {
       stdout: "",
       stderr: `CLI_EXEC_FAILED: app-server turn failed: ${err.message}`,
       exitCode: 1
     };
   } finally {
+    if (sent) wakes.sent.push(sent);
+    const last = --wakes.inFlight === 0;
+    const restoreError = last && !wakes.retained ? await restoreOwnerSandbox(client, threadId, wakes.sent, wakes.owner, dial, handshake) : null;
+    if (restoreError) {
+      const note = `COG-87: could not restore the owner's sandbox on codex thread ${threadId} after the wake: ${restoreError}. The human's next turns on this thread may run under the wake's sandbox (${wakes.sent[wakes.sent.length - 1]?.type ?? "unknown"}) until they change it.`;
+      logger.warn(note);
+      if (result) result.sandboxRestoreError = note;
+    }
+    const ownerKnown = !!(wakes.owner?.permissionProfileId || wakes.owner?.sandbox);
+    if (last && wakes.inFlight === 0 && threadWakes.get(threadId) === wakes) {
+      if (restoreError && ownerKnown || wakes.retained) {
+        wakes.retained = true;
+        wakes.policySent = false;
+      } else {
+        threadWakes.delete(threadId);
+      }
+    }
     client.close();
   }
+  return result;
 }
-var defaultWsFactory, _underDaemon, ensuredSock, defaultRun, defaultSocketExists, sleep2, AppServerClient, idempotencyCache, IDEMPOTENCY_TTL_MS;
+var defaultWsFactory, _underDaemon, ensuredSock, defaultRun, defaultSocketExists, sleep2, AppServerClient, RESTORE_TIMEOUT_MS, threadWakes, idempotencyCache, IDEMPOTENCY_TTL_MS;
 var init_codex_app_server = __esm({
   "src/services/codex-app-server.ts"() {
     "use strict";
     init_wrapper();
     init_config();
+    init_logger();
     init_agent_config();
+    init_codex_cli();
     defaultWsFactory = (url, opts) => new wrapper_default(url, opts);
     ensuredSock = null;
     defaultRun = (cmd, args, env) => new Promise((resolve) => {
@@ -33289,6 +33422,11 @@ var init_codex_app_server = __esm({
       notifyListeners = /* @__PURE__ */ new Set();
       opened;
       openResolved = false;
+      /**
+       * COG-87: the socket is gone. `ws` drops a send on a closed socket without an error, so a
+       * request on it would wait for an answer that cannot come — request() rejects at once instead.
+       */
+      closed = false;
       constructor(ws) {
         this.ws = ws;
         this.opened = new Promise((resolve, reject) => {
@@ -33304,6 +33442,7 @@ var init_codex_app_server = __esm({
             else this._failAll(err);
           });
           ws.on("close", () => {
+            this.closed = true;
             if (this.openResolved) this._failAll(new Error("app-server ws closed"));
           });
         });
@@ -33337,6 +33476,7 @@ var init_codex_app_server = __esm({
       }
       /** Issue a JSON-RPC request and resolve with its result (rejects on rpc error). */
       request(method, params) {
+        if (this.closed) return Promise.reject(new Error("app-server ws closed"));
         const id = this.nextId++;
         const p = new Promise((resolve, reject) => {
           this.pending.set(id, { resolve, reject });
@@ -33356,6 +33496,8 @@ var init_codex_app_server = __esm({
         }
       }
     };
+    RESTORE_TIMEOUT_MS = 1e4;
+    threadWakes = /* @__PURE__ */ new Map();
     idempotencyCache = /* @__PURE__ */ new Map();
     IDEMPOTENCY_TTL_MS = 3e5;
   }
@@ -35128,6 +35270,7 @@ var init_auto_relay = __esm({
         let wakeExitCode = null;
         let refused = false;
         let threw = false;
+        const sandboxRestoreErrors = [];
         let wakeLease = null;
         try {
           const res = await this.refreshSessionId();
@@ -35182,6 +35325,7 @@ var init_auto_relay = __esm({
           );
           const durationMs = Date.now() - startMs;
           wakeExitCode = result.exitCode;
+          if (result.sandboxRestoreError) sandboxRestoreErrors.push(result.sandboxRestoreError);
           if (result.exitCode === 0 && result.stdout) {
             await this._relayCapturedReply(msg, result, traceId, durationMs, false);
             replied = true;
@@ -35199,6 +35343,7 @@ var init_auto_relay = __esm({
                   `Auto-relay: Codex sandbox failed at runtime for "${this.localPeerId}" \u2014 auto-recovering: switching to --dangerously-bypass-approvals-and-sandbox and retrying once. Set COGENT_CODEX_SANDBOX_FALLBACK=0 to keep the sandbox strict.`
                 );
                 const bypassRetry = await execRemote(cfg.COGENT_PLATFORM, this.localSessionId, formatted, this.localCwd);
+                if (bypassRetry.sandboxRestoreError) sandboxRestoreErrors.push(bypassRetry.sandboxRestoreError);
                 if (bypassRetry.exitCode === 0 && bypassRetry.stdout) {
                   await this._relayCapturedReply(msg, bypassRetry, traceId, Date.now() - startMs, true);
                   replied = true;
@@ -35229,6 +35374,7 @@ var init_auto_relay = __esm({
               logger.info(`Auto-relay: retry with rotated session ${this.localSessionId} -> ${freshId}`);
               this.localSessionId = freshId;
               const retry = await execRemote(getConfig().COGENT_PLATFORM, this.localSessionId, formatted, this.localCwd, void 0, { idempotencyKey: msg.id });
+              if (retry.sandboxRestoreError) sandboxRestoreErrors.push(retry.sandboxRestoreError);
               if (retry.exitCode === 0 && retry.stdout) {
                 await this._relayCapturedReply(msg, retry, traceId, Date.now() - startMs, true);
                 replied = true;
@@ -35261,7 +35407,8 @@ var init_auto_relay = __esm({
             outcome: threw ? "threw" : refused ? "refused" : replied ? "replied" : "failed",
             exitCode: wakeExitCode,
             durationMs: Date.now() - startMs,
-            treeBefore
+            treeBefore,
+            sandboxRestoreError: sandboxRestoreErrors.length > 0 ? sandboxRestoreErrors.join("\n") : void 0
           });
         }
       }
@@ -35287,7 +35434,8 @@ var init_auto_relay = __esm({
               exitCode: outcome.exitCode,
               durationMs: outcome.durationMs,
               filesChanged,
-              messagePreview: msg.message ?? ""
+              messagePreview: msg.message ?? "",
+              ...outcome.sandboxRestoreError ? { sandboxRestoreError: outcome.sandboxRestoreError } : {}
             },
             cwd
           );
@@ -35330,6 +35478,24 @@ var init_auto_relay = __esm({
         }
       }
       /**
+       * COG-87: an inject (inject-only or broadcast awareness) is a real codex resume, so a failed
+       * restore of the owner's sandbox leaves the wake's policy on the human's thread exactly as a
+       * reply wake does. Injects never wrote wake records — they reply to nothing and the log is about
+       * wakes acting on a peer's message — so one is written ONLY when the restore failed, to put that
+       * failure in cogent_wake_log and not only in stderr. No tree snapshot was taken, so
+       * `filesChanged` is null ("cannot tell"), never a guess.
+       */
+      _recordInjectRestoreError(msg, startMs, result) {
+        if (!result.sandboxRestoreError) return;
+        this._recordWake(msg, msg.traceId ?? randomUUID2(), {
+          outcome: result.exitCode === 0 ? "injected" : "failed",
+          exitCode: result.exitCode,
+          durationMs: Date.now() - startMs,
+          treeBefore: null,
+          sandboxRestoreError: result.sandboxRestoreError
+        });
+      }
+      /**
        * Inject a message into the local session without relaying the response.
        * Used for expected responses to our own send_message calls.
        */
@@ -35346,6 +35512,7 @@ var init_auto_relay = __esm({
         }
         const formatted = formatInjectOnlyMessage(fromLabel, msg.fromPeerId, msg.message, msg.attachments);
         const lease = await acquireWakeLock(this.localCwd, this.localSessionId);
+        const startMs = Date.now();
         try {
           await this.refreshSessionId();
           const result = await execRemote(
@@ -35354,6 +35521,7 @@ var init_auto_relay = __esm({
             formatted,
             this.localCwd
           );
+          this._recordInjectRestoreError(msg, startMs, result);
           if (result.exitCode === 0) {
             logger.info(`Auto-relay: inject-only complete from ${msg.fromPeerId} (response discarded)`);
           } else {
@@ -35384,6 +35552,7 @@ var init_auto_relay = __esm({
         }
         const formatted = formatPeerBroadcastNotice(fromLabel, msg.fromPeerId, msg.message, msg.attachments);
         const lease = await acquireWakeLock(this.localCwd, this.localSessionId);
+        const startMs = Date.now();
         try {
           await this.refreshSessionId();
           const result = await execRemote(
@@ -35392,6 +35561,7 @@ var init_auto_relay = __esm({
             formatted,
             this.localCwd
           );
+          this._recordInjectRestoreError(msg, startMs, result);
           if (result.exitCode === 0) {
             logger.info(`Auto-relay: peer-broadcast awareness inject from ${msg.fromPeerId} (response discarded, no reply relayed)`);
           } else {
