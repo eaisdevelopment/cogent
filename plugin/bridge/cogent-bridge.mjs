@@ -1345,8 +1345,8 @@ var init_parseUtil = __esm({
     init_errors();
     init_en();
     makeIssue = (params) => {
-      const { data, path: path27, errorMaps, issueData } = params;
-      const fullPath = [...path27, ...issueData.path || []];
+      const { data, path: path28, errorMaps, issueData } = params;
+      const fullPath = [...path28, ...issueData.path || []];
       const fullIssue = {
         ...issueData,
         path: fullPath
@@ -1626,11 +1626,11 @@ var init_types = __esm({
     init_parseUtil();
     init_util();
     ParseInputLazyPath = class {
-      constructor(parent, value, path27, key) {
+      constructor(parent, value, path28, key) {
         this._cachedPath = [];
         this.parent = parent;
         this.data = value;
-        this._path = path27;
+        this._path = path28;
         this._key = key;
       }
       get path() {
@@ -5082,10 +5082,10 @@ function assignProp(target, prop, value) {
     configurable: true
   });
 }
-function getElementAtPath(obj, path27) {
-  if (!path27)
+function getElementAtPath(obj, path28) {
+  if (!path28)
     return obj;
-  return path27.reduce((acc, key) => acc?.[key], obj);
+  return path28.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -5334,11 +5334,11 @@ function aborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path27, issues) {
+function prefixIssues(path28, issues) {
   return issues.map((iss) => {
     var _a;
     (_a = iss).path ?? (_a.path = []);
-    iss.path.unshift(path27);
+    iss.path.unshift(path28);
     return iss;
   });
 }
@@ -17144,8 +17144,8 @@ var require_utils = __commonJS({
       }
       return ind;
     }
-    function removeDotSegments(path27) {
-      let input = path27;
+    function removeDotSegments(path28) {
+      let input = path28;
       const output = [];
       let nextSlash = -1;
       let len = 0;
@@ -17344,8 +17344,8 @@ var require_schemes = __commonJS({
         wsComponent.secure = void 0;
       }
       if (wsComponent.resourceName) {
-        const [path27, query] = wsComponent.resourceName.split("?");
-        wsComponent.path = path27 && path27 !== "/" ? path27 : void 0;
+        const [path28, query] = wsComponent.resourceName.split("?");
+        wsComponent.path = path28 && path28 !== "/" ? path28 : void 0;
         wsComponent.query = query;
         wsComponent.resourceName = void 0;
       }
@@ -20698,12 +20698,12 @@ var require_dist = __commonJS({
         throw new Error(`Unknown format "${name}"`);
       return f;
     };
-    function addFormats(ajv, list, fs25, exportName) {
+    function addFormats(ajv, list, fs26, exportName) {
       var _a;
       var _b;
       (_a = (_b = ajv.opts.code).formats) !== null && _a !== void 0 ? _a : _b.formats = (0, codegen_1._)`require("ajv-formats/dist/formats").${exportName}`;
       for (const f of list)
-        ajv.addFormat(f, fs25[f]);
+        ajv.addFormat(f, fs26[f]);
     }
     module.exports = exports = formatsPlugin;
     Object.defineProperty(exports, "__esModule", { value: true });
@@ -21815,8 +21815,8 @@ var require_parseUtil = __commonJS({
     var errors_js_1 = require_errors2();
     var en_js_1 = __importDefault(require_en());
     var makeIssue2 = (params) => {
-      const { data, path: path27, errorMaps, issueData } = params;
-      const fullPath = [...path27, ...issueData.path || []];
+      const { data, path: path28, errorMaps, issueData } = params;
+      const fullPath = [...path28, ...issueData.path || []];
       const fullIssue = {
         ...issueData,
         path: fullPath
@@ -21970,11 +21970,11 @@ var require_types2 = __commonJS({
     var parseUtil_js_1 = require_parseUtil();
     var util_js_1 = require_util2();
     var ParseInputLazyPath2 = class {
-      constructor(parent, value, path27, key) {
+      constructor(parent, value, path28, key) {
         this._cachedPath = [];
         this.parent = parent;
         this.data = value;
-        this._path = path27;
+        this._path = path28;
         this._key = key;
       }
       get path() {
@@ -26475,8 +26475,8 @@ var init_stdio2 = __esm({
 // src/constants.ts
 import { createRequire } from "node:module";
 function resolveVersion() {
-  if ("3.25.12") {
-    return "3.25.12";
+  if ("3.25.13") {
+    return "3.25.13";
   }
   try {
     const require2 = createRequire(import.meta.url);
@@ -27762,23 +27762,400 @@ var init_codex_preflight = __esm({
   }
 });
 
-// src/services/health-check.ts
-import fs10 from "node:fs/promises";
+// src/services/wake-experiment.ts
+import fs10 from "node:fs";
+import os8 from "node:os";
 import path11 from "node:path";
+function wakeExperimentPath() {
+  return pathOverride ?? path11.join(os8.homedir(), ".cogent", "wake-experiment.json");
+}
+function warnOnce(file, problem) {
+  if (warned) return;
+  warned = true;
+  logger.warn(`wake-experiment: ignoring ${file} (${problem}) \u2014 wakes run with the experiment OFF`);
+}
+function invalidReason(raw) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return "not a JSON object";
+  const o = raw;
+  if ("phase" in o && typeof o.phase !== "string") return "phase must be a string";
+  if ("lateAnswer" in o && typeof o.lateAnswer !== "boolean") return "lateAnswer must be true or false";
+  if ("lateAnswerMaxMs" in o && !Number.isInteger(o.lateAnswerMaxMs)) return "lateAnswerMaxMs must be an integer";
+  if ("codexSandbox" in o && !CODEX_SANDBOX_MODES.includes(o.codexSandbox)) {
+    return `codexSandbox must be one of ${CODEX_SANDBOX_MODES.join(", ")}`;
+  }
+  return null;
+}
+function readWakeExperiment() {
+  const file = wakeExperimentPath();
+  let text;
+  let fd;
+  try {
+    fd = fs10.openSync(file, fs10.constants.O_RDONLY | (fs10.constants.O_NONBLOCK ?? 0));
+    const st = fs10.fstatSync(fd);
+    if (!st.isFile()) {
+      warnOnce(file, "not a regular file");
+      return { ...OFF };
+    }
+    const uid = typeof process.getuid === "function" ? process.getuid() : null;
+    if (uid !== null && st.uid !== uid) {
+      warnOnce(file, `owned by uid ${st.uid}, not by this user (${uid})`);
+      return { ...OFF };
+    }
+    if (uid !== null && (st.mode & 18) !== 0) {
+      warnOnce(file, `group- or world-writable (mode ${(st.mode & 511).toString(8)}); run: chmod 600 ${file}`);
+      return { ...OFF };
+    }
+    text = fs10.readFileSync(fd, "utf-8");
+  } catch (err) {
+    if (err.code !== "ENOENT") warnOnce(file, `unreadable: ${err.message}`);
+    return { ...OFF };
+  } finally {
+    if (fd !== void 0) {
+      try {
+        fs10.closeSync(fd);
+      } catch {
+      }
+    }
+  }
+  let raw;
+  try {
+    raw = JSON.parse(text);
+  } catch (err) {
+    warnOnce(file, `invalid JSON: ${err.message}`);
+    return { ...OFF };
+  }
+  const problem = invalidReason(raw);
+  if (problem) {
+    warnOnce(file, problem);
+    return { ...OFF };
+  }
+  const o = raw;
+  const max = typeof o.lateAnswerMaxMs === "number" ? o.lateAnswerMaxMs : LATE_ANSWER_DEFAULT_MS;
+  return {
+    phase: typeof o.phase === "string" ? o.phase : null,
+    lateAnswer: o.lateAnswer === true,
+    lateAnswerMaxMs: Math.min(LATE_ANSWER_MAX_MS, Math.max(LATE_ANSWER_MIN_MS, max)),
+    codexSandbox: o.codexSandbox ?? null
+  };
+}
+var LATE_ANSWER_MIN_MS, LATE_ANSWER_MAX_MS, LATE_ANSWER_DEFAULT_MS, CODEX_SANDBOX_MODES, OFF, pathOverride, warned;
+var init_wake_experiment = __esm({
+  "src/services/wake-experiment.ts"() {
+    "use strict";
+    init_logger();
+    LATE_ANSWER_MIN_MS = 6e4;
+    LATE_ANSWER_MAX_MS = 144e5;
+    LATE_ANSWER_DEFAULT_MS = 36e5;
+    CODEX_SANDBOX_MODES = [
+      "full-auto",
+      "read-only",
+      "workspace-write",
+      "danger-full-access",
+      "bypass"
+    ];
+    OFF = {
+      phase: null,
+      lateAnswer: false,
+      lateAnswerMaxMs: LATE_ANSWER_DEFAULT_MS,
+      codexSandbox: null
+    };
+    pathOverride = null;
+    warned = false;
+  }
+});
+
+// src/services/codex-cli.ts
+import { spawn as spawn2 } from "node:child_process";
+import fs11 from "node:fs/promises";
+import os9 from "node:os";
+import path12 from "node:path";
+import { randomUUID } from "node:crypto";
+import { createReadStream } from "node:fs";
+import { createInterface as createInterface2 } from "node:readline";
+function sandboxArgs(mode) {
+  switch (mode) {
+    case "bypass":
+      return ["--dangerously-bypass-approvals-and-sandbox"];
+    case "read-only":
+    case "workspace-write":
+    case "danger-full-access":
+      return ["-c", `sandbox_mode=${mode}`];
+    case "full-auto":
+    default:
+      return ["-c", "sandbox_mode=workspace-write"];
+  }
+}
+function setSandboxOverride(mode) {
+  sandboxOverride = mode;
+}
+function configuredSandbox(config2, experimentSandbox) {
+  const experiment = experimentSandbox === void 0 ? readWakeExperiment().codexSandbox : experimentSandbox;
+  const configured = config2.COGENT_CODEX_SANDBOX;
+  if (!experiment || experiment === configured) return configured;
+  if (SANDBOX_STRICTNESS[experiment] < SANDBOX_STRICTNESS[configured]) {
+    warnSandboxOnce(`refused`, `wake-experiment: codexSandbox "${experiment}" is LOOSER than the configured "${configured}" \u2014 ignored; the experiment may only tighten the sandbox`);
+    return configured;
+  }
+  warnSandboxOnce(`applied:${experiment}`, `wake-experiment: codex wakes run with sandbox "${experiment}" instead of the configured "${configured}"`);
+  return experiment;
+}
+function warnSandboxOnce(key, text) {
+  if (sandboxWarned.has(key)) return;
+  sandboxWarned.add(key);
+  logger.warn(text);
+}
+function effectiveSandbox(config2, experimentSandbox) {
+  return sandboxOverride ?? configuredSandbox(config2, experimentSandbox);
+}
+function execCodex(sessionId, message, cwd, timeoutMs, sandbox) {
+  return new Promise((resolve) => {
+    const config2 = getConfig();
+    const effectiveTimeout = timeoutMs ?? config2.COGENT_TIMEOUT_MS;
+    const mode = sandbox ?? effectiveSandbox(config2);
+    const truncated = config2.COGENT_CHAR_LIMIT > 0 && message.length > config2.COGENT_CHAR_LIMIT ? message.slice(0, config2.COGENT_CHAR_LIMIT) + "\n...[truncated]" : message;
+    const lastMsgFile = path12.join(os9.tmpdir(), `cogent-codex-${randomUUID()}.txt`);
+    const args = [
+      "exec",
+      "resume",
+      sessionId,
+      ...sandboxArgs(mode),
+      "--skip-git-repo-check",
+      "-o",
+      lastMsgFile,
+      truncated
+    ];
+    const cleanEnv = buildResumeEnv(process.env, "CODEX", ["CODEX_HOME"]);
+    cleanEnv.COGENT_CHECK_ON_STOP = "0";
+    cleanEnv.COGENT_WAKE = "1";
+    const child = spawn2(config2.COGENT_CODEX_PATH, args, {
+      cwd,
+      env: cleanEnv,
+      stdio: ["ignore", "pipe", "pipe"]
+    });
+    let stdout = "";
+    let stderr = "";
+    let killed = false;
+    let resolved = false;
+    const safeResolve = (result) => {
+      if (!resolved) {
+        resolved = true;
+        resolve({ ...result, sandbox: mode });
+      }
+    };
+    const cleanupFile = () => fs11.rm(lastMsgFile, { force: true }).catch(() => {
+    });
+    const timer = setTimeout(async () => {
+      killed = true;
+      child.kill("SIGTERM");
+      await cleanupFile();
+      safeResolve({
+        stdout: "",
+        stderr: `CLI_TIMEOUT: CLI subprocess timed out after ${effectiveTimeout}ms`,
+        exitCode: null
+      });
+    }, effectiveTimeout);
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk.toString();
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk.toString();
+    });
+    child.on("error", async (err) => {
+      clearTimeout(timer);
+      await cleanupFile();
+      if (err.code === "ENOENT") {
+        safeResolve({
+          stdout: "",
+          stderr: `CLI_NOT_FOUND: '${config2.COGENT_CODEX_PATH}' not found. Install Codex CLI or set COGENT_CODEX_PATH.`,
+          exitCode: 127
+        });
+        return;
+      }
+      safeResolve({ stdout: "", stderr: `CLI_EXEC_FAILED: spawn error: ${err.message}`, exitCode: 1 });
+    });
+    child.on("close", async (code) => {
+      clearTimeout(timer);
+      if (killed) {
+        return;
+      }
+      if (code !== 0) {
+        await cleanupFile();
+        const sandboxBlocked = SANDBOX_FAILURE_RE.test(stderr);
+        const codexLiveSession = ACTIVE_WRITER_RE.test(stderr);
+        safeResolve({
+          stdout: "",
+          stderr: `CLI_EXEC_FAILED: codex exited with code ${code}. stderr: ${stderr}`,
+          exitCode: code,
+          ...sandboxBlocked ? { sandboxBlocked: true } : {},
+          ...codexLiveSession ? { codexLiveSession: true } : {}
+        });
+        return;
+      }
+      let fileMessage = "";
+      try {
+        fileMessage = await fs11.readFile(lastMsgFile, "utf8");
+      } catch {
+        fileMessage = "";
+      }
+      await cleanupFile();
+      const usedFile = fileMessage.trim().length > 0;
+      safeResolve({
+        stdout: (usedFile ? fileMessage : stdout).trim(),
+        stderr: stderr || "",
+        exitCode: 0,
+        captureContract: usedFile ? "event_stream" : "stdout_compat",
+        stable: usedFile
+      });
+    });
+  });
+}
+async function listRolloutFiles(root) {
+  const out = [];
+  async function walk(dir) {
+    let entries;
+    try {
+      entries = await fs11.readdir(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const e of entries) {
+      const full = path12.join(dir, e.name);
+      if (e.isDirectory()) await walk(full);
+      else if (e.isFile() && e.name.endsWith(".jsonl")) out.push(full);
+    }
+  }
+  await walk(root);
+  return out;
+}
+async function readSessionMeta(file) {
+  let stream = null;
+  try {
+    stream = createReadStream(file, { encoding: "utf8" });
+    const rl = createInterface2({ input: stream, crlfDelay: Infinity });
+    let firstLine = "";
+    for await (const line of rl) {
+      firstLine = line;
+      break;
+    }
+    rl.close();
+    const obj = JSON.parse(firstLine);
+    const sid = obj.payload?.session_id ?? obj.payload?.id;
+    if (obj?.type === "session_meta" && sid && obj.payload?.cwd) {
+      return { id: sid, cwd: obj.payload.cwd };
+    }
+    return null;
+  } catch {
+    return null;
+  } finally {
+    stream?.destroy();
+  }
+}
+function codexSessionsRoot() {
+  return path12.join(codexHomeDir(), "sessions");
+}
+async function cwdCanonicals(cwd) {
+  const resolved = path12.resolve(cwd);
+  const forms = /* @__PURE__ */ new Set([resolved]);
+  try {
+    forms.add(await fs11.realpath(resolved));
+  } catch {
+  }
+  return forms;
+}
+function metaCwdMatches(metaCwd, forms) {
+  return forms.has(path12.resolve(metaCwd));
+}
+async function detectCurrentCodexSession(cwd) {
+  try {
+    const forms = await cwdCanonicals(cwd);
+    const files = await listRolloutFiles(codexSessionsRoot());
+    const withStats = await Promise.all(
+      files.map(async (f) => {
+        const stat = await fs11.stat(f);
+        return { file: f, mtimeMs: stat.mtimeMs };
+      })
+    );
+    withStats.sort((a, b) => b.mtimeMs - a.mtimeMs);
+    for (const { file } of withStats) {
+      const meta = await readSessionMeta(file);
+      if (meta && metaCwdMatches(meta.cwd, forms)) return meta.id;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+async function listCodexCandidates(cwd) {
+  try {
+    const forms = await cwdCanonicals(cwd);
+    const files = await listRolloutFiles(codexSessionsRoot());
+    const withStats = await Promise.all(
+      files.map(async (f) => ({ file: f, mtimeMs: (await fs11.stat(f)).mtimeMs }))
+    );
+    const bySession = /* @__PURE__ */ new Map();
+    for (const { file, mtimeMs } of withStats) {
+      const meta = await readSessionMeta(file);
+      if (meta && metaCwdMatches(meta.cwd, forms)) {
+        const prev = bySession.get(meta.id);
+        if (prev === void 0 || mtimeMs > prev) bySession.set(meta.id, mtimeMs);
+      }
+    }
+    return [...bySession].map(([sessionId, mtimeMs]) => ({ sessionId, mtimeMs }));
+  } catch {
+    return [];
+  }
+}
+async function validateCodexSession(sessionId) {
+  try {
+    const files = await listRolloutFiles(codexSessionsRoot());
+    for (const file of files) {
+      const meta = await readSessionMeta(file);
+      if (meta && meta.id === sessionId) return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+var sandboxOverride, SANDBOX_STRICTNESS, sandboxWarned, SANDBOX_FAILURE_RE, ACTIVE_WRITER_RE;
+var init_codex_cli = __esm({
+  "src/services/codex-cli.ts"() {
+    "use strict";
+    init_config();
+    init_agent_config();
+    init_wake_experiment();
+    init_logger();
+    sandboxOverride = null;
+    SANDBOX_STRICTNESS = {
+      "read-only": 3,
+      "workspace-write": 2,
+      "full-auto": 2,
+      "danger-full-access": 1,
+      bypass: 0
+    };
+    sandboxWarned = /* @__PURE__ */ new Set();
+    SANDBOX_FAILURE_RE = /bwrap:|setting up uid ?map|\/proc\/self\/(uid|gid)_map|newuidmap|user namespaces?|RTM_NEWADDR|unshare[^\n]*(Operation not permitted|Permission denied)|clone3?[^\n]*(EPERM|not permitted)/i;
+    ACTIVE_WRITER_RE = /already has an active writer|thread-store conflict|-32600/i;
+  }
+});
+
+// src/services/health-check.ts
+import fs12 from "node:fs/promises";
+import path13 from "node:path";
 import { execFile as execFile3 } from "node:child_process";
 function getStatePath2() {
-  return path11.join(getConfig().COGENT_STATE_PATH, "cogent-state.json");
+  return path13.join(getConfig().COGENT_STATE_PATH, "cogent-state.json");
 }
 async function checkStateFile() {
   const statePath = getStatePath2();
-  const dir = path11.dirname(statePath);
+  const dir = path13.dirname(statePath);
   try {
-    await fs10.access(dir, fs10.constants.R_OK | fs10.constants.W_OK);
+    await fs12.access(dir, fs12.constants.R_OK | fs12.constants.W_OK);
   } catch {
     return { ok: false, message: `State directory not accessible: ${dir}` };
   }
   try {
-    const raw = await fs10.readFile(statePath, "utf-8");
+    const raw = await fs12.readFile(statePath, "utf-8");
     JSON.parse(raw);
     return { ok: true, message: "State file readable and valid JSON" };
   } catch (err) {
@@ -27794,9 +28171,9 @@ async function checkStateFile() {
 async function checkLockMechanism() {
   const healthLockPath = getStatePath2() + ".health-lock";
   try {
-    await fs10.writeFile(healthLockPath, String(process.pid), { flag: "wx" });
+    await fs12.writeFile(healthLockPath, String(process.pid), { flag: "wx" });
     try {
-      await fs10.unlink(healthLockPath);
+      await fs12.unlink(healthLockPath);
     } catch {
     }
     return { ok: true, message: "Lock acquire/release cycle succeeded" };
@@ -27824,7 +28201,7 @@ async function checkCodexSandbox() {
   if (config2.COGENT_PLATFORM !== "codex") {
     return { ok: true, message: "n/a (platform is not codex)" };
   }
-  const probe = await probeSandboxStatus(config2);
+  const probe = await probeSandboxStatus({ ...config2, COGENT_CODEX_SANDBOX: configuredSandbox(config2) });
   if (probe.status === "blocked") {
     if (config2.COGENT_CODEX_SANDBOX_FALLBACK) {
       return {
@@ -27852,7 +28229,7 @@ async function checkHealth() {
   return {
     healthy,
     mcpServerVersion: SERVER_VERSION,
-    statePath: path11.join(config2.COGENT_STATE_PATH, "cogent-state.json"),
+    statePath: path13.join(config2.COGENT_STATE_PATH, "cogent-state.json"),
     claudePath: config2.COGENT_CLAUDE_PATH,
     checks,
     timestamp: (/* @__PURE__ */ new Date()).toISOString()
@@ -27864,6 +28241,7 @@ var init_health_check = __esm({
     init_config();
     init_constants();
     init_codex_preflight();
+    init_codex_cli();
   }
 });
 
@@ -28011,7 +28389,7 @@ var init_http_backend = __esm({
        * in cloud mode we ignore it and use this.sessionId (the cloud session).
        */
       async registerPeer(peerId, _sessionId, cwd, label, clientVersion, mode, _channelSessionId, capabilities, workspaceId, threadId, peerSecret) {
-        const path27 = PATHS.peers.replace(":sessionId", this.sessionId);
+        const path28 = PATHS.peers.replace(":sessionId", this.sessionId);
         const body = {
           peerId,
           cwd,
@@ -28042,7 +28420,7 @@ var init_http_backend = __esm({
         if (peerSecret !== void 0 && await relaySupports(this.http, "peer-ownership")) {
           body.peerSecret = peerSecret;
         }
-        const peer = await this.http.post(path27, body);
+        const peer = await this.http.post(path28, body);
         const issued = peer?.peerSecret;
         if (issued) {
           try {
@@ -28062,9 +28440,9 @@ var init_http_backend = __esm({
        * local mail creds. A 404 (peer not found) resolves to `{ removed: false, ... }`, not a throw.
        */
       async deregisterPeer(peerId, peerSecret) {
-        const path27 = PATHS.peer.replace(":sessionId", this.sessionId).replace(":peerId", peerId);
+        const path28 = PATHS.peer.replace(":sessionId", this.sessionId).replace(":peerId", peerId);
         try {
-          const headers = await this.http.delete(path27, peerSecret ? { peerSecret } : {});
+          const headers = await this.http.delete(path28, peerSecret ? { peerSecret } : {});
           const mailboxDeprovisioned = headers.get(MAILBOX_DEPROVISIONED_HEADER) === "true";
           return { removed: true, mailboxDeprovisioned };
         } catch (err) {
@@ -28088,8 +28466,8 @@ var init_http_backend = __esm({
        * GET /api/sessions/:sessionId/peers
        */
       async listPeers() {
-        const path27 = PATHS.peers.replace(":sessionId", this.sessionId);
-        const result = await this.http.get(path27);
+        const path28 = PATHS.peers.replace(":sessionId", this.sessionId);
+        const result = await this.http.get(path28);
         return result.peers;
       }
       /**
@@ -28097,8 +28475,8 @@ var init_http_backend = __esm({
        * Calls the lightweight heartbeat endpoint on the cloud relay server.
        */
       async updateLastSeen(peerId) {
-        const path27 = PATHS.heartbeat.replace(":sessionId", this.sessionId);
-        await this.http.post(path27, { peerId });
+        const path28 = PATHS.heartbeat.replace(":sessionId", this.sessionId);
+        await this.http.post(path28, { peerId });
       }
       /**
        * Record a message in the cloud session.
@@ -28109,7 +28487,7 @@ var init_http_backend = __esm({
        * the input record to construct a full MessageRecord.
        */
       async recordMessage(record2) {
-        const path27 = PATHS.messages.replace(":sessionId", this.sessionId);
+        const path28 = PATHS.messages.replace(":sessionId", this.sessionId);
         const body = {
           fromPeerId: record2.fromPeerId,
           toPeerId: record2.toPeerId,
@@ -28135,7 +28513,7 @@ var init_http_backend = __esm({
         if (record2.replyExpected === false && await relaySupports(this.http, "terminal-messages")) {
           body.replyExpected = false;
         }
-        const resp = await this.http.post(path27, body);
+        const resp = await this.http.post(path28, body);
         return {
           ...record2,
           id: resp.id,
@@ -28149,7 +28527,7 @@ var init_http_backend = __esm({
        * Supports optional peerId filter and limit (default 300).
        */
       async getHistory(peerId, limit, includeRelayEchoes, metadataOnly, dedupInferredEchoes) {
-        const path27 = PATHS.messages.replace(":sessionId", this.sessionId);
+        const path28 = PATHS.messages.replace(":sessionId", this.sessionId);
         const query = {};
         if (peerId) {
           query.peerId = peerId;
@@ -28164,7 +28542,7 @@ var init_http_backend = __esm({
         if (dedupInferredEchoes) {
           query.dedupInferredEchoes = "true";
         }
-        const result = await this.http.get(path27, query);
+        const result = await this.http.get(path28, query);
         return result.messages;
       }
       /**
@@ -28175,12 +28553,12 @@ var init_http_backend = __esm({
        * so that get-history shows the actual response (not null).
        */
       async updateMessageResponse(messageId, response, durationMs, pending) {
-        const path27 = PATHS.message.replace(":sessionId", this.sessionId).replace(":messageId", messageId);
+        const path28 = PATHS.message.replace(":sessionId", this.sessionId).replace(":messageId", messageId);
         const body = { response, durationMs };
         if (pending === true) {
           body.pending = true;
         }
-        await this.http.patch(path27, body);
+        await this.http.patch(path28, body);
       }
       /**
        * Validate a session.
@@ -28354,8 +28732,8 @@ var init_http_client = __esm({
        * Perform an authenticated GET request.
        * Appends query parameters to the URL if provided.
        */
-      async get(path27, query) {
-        const url = new URL(path27, this.baseUrl);
+      async get(path28, query) {
+        const url = new URL(path28, this.baseUrl);
         if (query) {
           for (const [k, v] of Object.entries(query)) {
             url.searchParams.set(k, v);
@@ -28370,8 +28748,8 @@ var init_http_client = __esm({
       /**
        * Perform an authenticated POST request with a JSON body.
        */
-      async post(path27, body) {
-        const url = new URL(path27, this.baseUrl);
+      async post(path28, body) {
+        const url = new URL(path28, this.baseUrl);
         const resp = await this.fetchWithTimeout(url, {
           method: "POST",
           headers: this.headers(),
@@ -28389,8 +28767,8 @@ var init_http_client = __esm({
        * Perform an authenticated PATCH request with a JSON body.
        * Used to update existing resources (e.g., message response fields).
        */
-      async patch(path27, body) {
-        const url = new URL(path27, this.baseUrl);
+      async patch(path28, body) {
+        const url = new URL(path28, this.baseUrl);
         const resp = await this.fetchWithTimeout(url, {
           method: "PATCH",
           headers: this.headers(),
@@ -28415,8 +28793,8 @@ var init_http_client = __esm({
        * "Malformed JSON in request body" 400 from cogent-server <=3.1.2 when
        * any client (including third-party tools) DELETEd a peer without a body.
        */
-      async delete(path27, body) {
-        const url = new URL(path27, this.baseUrl);
+      async delete(path28, body) {
+        const url = new URL(path28, this.baseUrl);
         const headers = {
           "Authorization": `Bearer ${this.token}`
         };
@@ -32320,16 +32698,16 @@ var init_wrapper = __esm({
 });
 
 // src/cloud/poll-cursor.ts
-import fs11 from "node:fs";
-import os8 from "node:os";
-import path12 from "node:path";
+import fs13 from "node:fs";
+import os10 from "node:os";
+import path14 from "node:path";
 function pollCursorPath(sessionId, peerId) {
-  return path12.join(os8.homedir(), ".cogent", "poll-cursors", `${safe(sessionId)}.${safe(peerId)}.json`);
+  return path14.join(os10.homedir(), ".cogent", "poll-cursors", `${safe(sessionId)}.${safe(peerId)}.json`);
 }
 function loadPollCursor(sessionId, peerId) {
   if (!sessionId || !peerId) return null;
   try {
-    const raw = JSON.parse(fs11.readFileSync(pollCursorPath(sessionId, peerId), "utf-8"));
+    const raw = JSON.parse(fs13.readFileSync(pollCursorPath(sessionId, peerId), "utf-8"));
     return typeof raw?.lastMessageId === "string" && raw.lastMessageId ? raw.lastMessageId : null;
   } catch {
     return null;
@@ -32339,8 +32717,8 @@ function savePollCursor(sessionId, peerId, lastMessageId) {
   if (!sessionId || !peerId || !lastMessageId) return;
   const p = pollCursorPath(sessionId, peerId);
   try {
-    fs11.mkdirSync(path12.dirname(p), { recursive: true });
-    fs11.writeFileSync(
+    fs13.mkdirSync(path14.dirname(p), { recursive: true });
+    fs13.writeFileSync(
       p,
       JSON.stringify({ lastMessageId, updatedAt: (/* @__PURE__ */ new Date()).toISOString() })
     );
@@ -32717,14 +33095,14 @@ var init_ws_client = __esm({
         this.restoreCursor();
         const poll = async () => {
           try {
-            const path27 = `/api/sessions/${this.opts.sessionId}/poll`;
+            const path28 = `/api/sessions/${this.opts.sessionId}/poll`;
             const query = {
               peerId: this.opts.peerId
             };
             if (this.lastMessageId) {
               query.lastMessageId = this.lastMessageId;
             }
-            const result = await this.opts.http.get(path27, query);
+            const result = await this.opts.http.get(path28, query);
             if (result.messages && result.messages.length > 0) {
               this.opts.onMessages(result.messages);
               this.advanceCursor(result.messages[result.messages.length - 1].id);
@@ -32780,261 +33158,13 @@ var init_cloud = __esm({
   }
 });
 
-// src/services/codex-cli.ts
-import { spawn as spawn2 } from "node:child_process";
-import fs12 from "node:fs/promises";
-import os9 from "node:os";
-import path13 from "node:path";
-import { randomUUID } from "node:crypto";
-import { createReadStream } from "node:fs";
-import { createInterface as createInterface2 } from "node:readline";
-function sandboxArgs(mode) {
-  switch (mode) {
-    case "bypass":
-      return ["--dangerously-bypass-approvals-and-sandbox"];
-    case "read-only":
-    case "workspace-write":
-    case "danger-full-access":
-      return ["-c", `sandbox_mode=${mode}`];
-    case "full-auto":
-    default:
-      return ["-c", "sandbox_mode=workspace-write"];
-  }
-}
-function setSandboxOverride(mode) {
-  sandboxOverride = mode;
-}
-function effectiveSandbox(config2) {
-  return sandboxOverride ?? config2.COGENT_CODEX_SANDBOX;
-}
-function execCodex(sessionId, message, cwd, timeoutMs) {
-  return new Promise((resolve) => {
-    const config2 = getConfig();
-    const effectiveTimeout = timeoutMs ?? config2.COGENT_TIMEOUT_MS;
-    const truncated = config2.COGENT_CHAR_LIMIT > 0 && message.length > config2.COGENT_CHAR_LIMIT ? message.slice(0, config2.COGENT_CHAR_LIMIT) + "\n...[truncated]" : message;
-    const lastMsgFile = path13.join(os9.tmpdir(), `cogent-codex-${randomUUID()}.txt`);
-    const args = [
-      "exec",
-      "resume",
-      sessionId,
-      ...sandboxArgs(effectiveSandbox(config2)),
-      "--skip-git-repo-check",
-      "-o",
-      lastMsgFile,
-      truncated
-    ];
-    const cleanEnv = buildResumeEnv(process.env, "CODEX", ["CODEX_HOME"]);
-    cleanEnv.COGENT_CHECK_ON_STOP = "0";
-    cleanEnv.COGENT_WAKE = "1";
-    const child = spawn2(config2.COGENT_CODEX_PATH, args, {
-      cwd,
-      env: cleanEnv,
-      stdio: ["ignore", "pipe", "pipe"]
-    });
-    let stdout = "";
-    let stderr = "";
-    let killed = false;
-    let resolved = false;
-    const safeResolve = (result) => {
-      if (!resolved) {
-        resolved = true;
-        resolve(result);
-      }
-    };
-    const cleanupFile = () => fs12.rm(lastMsgFile, { force: true }).catch(() => {
-    });
-    const timer = setTimeout(async () => {
-      killed = true;
-      child.kill("SIGTERM");
-      await cleanupFile();
-      safeResolve({
-        stdout: "",
-        stderr: `CLI_TIMEOUT: CLI subprocess timed out after ${effectiveTimeout}ms`,
-        exitCode: null
-      });
-    }, effectiveTimeout);
-    child.stdout.on("data", (chunk) => {
-      stdout += chunk.toString();
-    });
-    child.stderr.on("data", (chunk) => {
-      stderr += chunk.toString();
-    });
-    child.on("error", async (err) => {
-      clearTimeout(timer);
-      await cleanupFile();
-      if (err.code === "ENOENT") {
-        safeResolve({
-          stdout: "",
-          stderr: `CLI_NOT_FOUND: '${config2.COGENT_CODEX_PATH}' not found. Install Codex CLI or set COGENT_CODEX_PATH.`,
-          exitCode: 127
-        });
-        return;
-      }
-      safeResolve({ stdout: "", stderr: `CLI_EXEC_FAILED: spawn error: ${err.message}`, exitCode: 1 });
-    });
-    child.on("close", async (code) => {
-      clearTimeout(timer);
-      if (killed) {
-        return;
-      }
-      if (code !== 0) {
-        await cleanupFile();
-        const sandboxBlocked = SANDBOX_FAILURE_RE.test(stderr);
-        const codexLiveSession = ACTIVE_WRITER_RE.test(stderr);
-        safeResolve({
-          stdout: "",
-          stderr: `CLI_EXEC_FAILED: codex exited with code ${code}. stderr: ${stderr}`,
-          exitCode: code,
-          ...sandboxBlocked ? { sandboxBlocked: true } : {},
-          ...codexLiveSession ? { codexLiveSession: true } : {}
-        });
-        return;
-      }
-      let fileMessage = "";
-      try {
-        fileMessage = await fs12.readFile(lastMsgFile, "utf8");
-      } catch {
-        fileMessage = "";
-      }
-      await cleanupFile();
-      const usedFile = fileMessage.trim().length > 0;
-      safeResolve({
-        stdout: (usedFile ? fileMessage : stdout).trim(),
-        stderr: stderr || "",
-        exitCode: 0,
-        captureContract: usedFile ? "event_stream" : "stdout_compat",
-        stable: usedFile
-      });
-    });
-  });
-}
-async function listRolloutFiles(root) {
-  const out = [];
-  async function walk(dir) {
-    let entries;
-    try {
-      entries = await fs12.readdir(dir, { withFileTypes: true });
-    } catch {
-      return;
-    }
-    for (const e of entries) {
-      const full = path13.join(dir, e.name);
-      if (e.isDirectory()) await walk(full);
-      else if (e.isFile() && e.name.endsWith(".jsonl")) out.push(full);
-    }
-  }
-  await walk(root);
-  return out;
-}
-async function readSessionMeta(file) {
-  let stream = null;
-  try {
-    stream = createReadStream(file, { encoding: "utf8" });
-    const rl = createInterface2({ input: stream, crlfDelay: Infinity });
-    let firstLine = "";
-    for await (const line of rl) {
-      firstLine = line;
-      break;
-    }
-    rl.close();
-    const obj = JSON.parse(firstLine);
-    const sid = obj.payload?.session_id ?? obj.payload?.id;
-    if (obj?.type === "session_meta" && sid && obj.payload?.cwd) {
-      return { id: sid, cwd: obj.payload.cwd };
-    }
-    return null;
-  } catch {
-    return null;
-  } finally {
-    stream?.destroy();
-  }
-}
-function codexSessionsRoot() {
-  return path13.join(codexHomeDir(), "sessions");
-}
-async function cwdCanonicals(cwd) {
-  const resolved = path13.resolve(cwd);
-  const forms = /* @__PURE__ */ new Set([resolved]);
-  try {
-    forms.add(await fs12.realpath(resolved));
-  } catch {
-  }
-  return forms;
-}
-function metaCwdMatches(metaCwd, forms) {
-  return forms.has(path13.resolve(metaCwd));
-}
-async function detectCurrentCodexSession(cwd) {
-  try {
-    const forms = await cwdCanonicals(cwd);
-    const files = await listRolloutFiles(codexSessionsRoot());
-    const withStats = await Promise.all(
-      files.map(async (f) => {
-        const stat = await fs12.stat(f);
-        return { file: f, mtimeMs: stat.mtimeMs };
-      })
-    );
-    withStats.sort((a, b) => b.mtimeMs - a.mtimeMs);
-    for (const { file } of withStats) {
-      const meta = await readSessionMeta(file);
-      if (meta && metaCwdMatches(meta.cwd, forms)) return meta.id;
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
-async function listCodexCandidates(cwd) {
-  try {
-    const forms = await cwdCanonicals(cwd);
-    const files = await listRolloutFiles(codexSessionsRoot());
-    const withStats = await Promise.all(
-      files.map(async (f) => ({ file: f, mtimeMs: (await fs12.stat(f)).mtimeMs }))
-    );
-    const bySession = /* @__PURE__ */ new Map();
-    for (const { file, mtimeMs } of withStats) {
-      const meta = await readSessionMeta(file);
-      if (meta && metaCwdMatches(meta.cwd, forms)) {
-        const prev = bySession.get(meta.id);
-        if (prev === void 0 || mtimeMs > prev) bySession.set(meta.id, mtimeMs);
-      }
-    }
-    return [...bySession].map(([sessionId, mtimeMs]) => ({ sessionId, mtimeMs }));
-  } catch {
-    return [];
-  }
-}
-async function validateCodexSession(sessionId) {
-  try {
-    const files = await listRolloutFiles(codexSessionsRoot());
-    for (const file of files) {
-      const meta = await readSessionMeta(file);
-      if (meta && meta.id === sessionId) return true;
-    }
-    return false;
-  } catch {
-    return false;
-  }
-}
-var sandboxOverride, SANDBOX_FAILURE_RE, ACTIVE_WRITER_RE;
-var init_codex_cli = __esm({
-  "src/services/codex-cli.ts"() {
-    "use strict";
-    init_config();
-    init_agent_config();
-    sandboxOverride = null;
-    SANDBOX_FAILURE_RE = /bwrap:|setting up uid ?map|\/proc\/self\/(uid|gid)_map|newuidmap|user namespaces?|RTM_NEWADDR|unshare[^\n]*(Operation not permitted|Permission denied)|clone3?[^\n]*(EPERM|not permitted)/i;
-    ACTIVE_WRITER_RE = /already has an active writer|thread-store conflict|-32600/i;
-  }
-});
-
 // src/services/codex-app-server.ts
-import path14 from "node:path";
+import path15 from "node:path";
 import { statSync } from "node:fs";
-import fs13 from "node:fs/promises";
+import fs14 from "node:fs/promises";
 import { spawn as spawn3, spawnSync } from "node:child_process";
 function appServerSocketPath(codexHome = codexHomeDir()) {
-  return path14.join(codexHome, "app-server-control", "app-server-control.sock");
+  return path15.join(codexHome, "app-server-control", "app-server-control.sock");
 }
 function appServerDaemonRunning(codexHome = codexHomeDir()) {
   try {
@@ -33236,6 +33366,45 @@ async function restoreOwnerSandbox(client, threadId, sent, owner, dial, handshak
     }
   }
 }
+async function bestEffort(work, ms) {
+  let timer;
+  try {
+    return await Promise.race([
+      work,
+      new Promise((resolve) => {
+        timer = setTimeout(() => resolve(void 0), ms);
+        timer.unref?.();
+      })
+    ]);
+  } catch {
+    return void 0;
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+function codexVersionFrom(init) {
+  if (!init || typeof init !== "object") return void 0;
+  const o = init;
+  for (const v of [o.version, o.codexVersion, o.serverVersion, o.serverInfo?.version]) {
+    if (typeof v === "string" && v) return v;
+  }
+  if (typeof o.userAgent === "string" && o.userAgent) {
+    return /\/(\d+\.\d+\.\d+[0-9A-Za-z.+-]*)/.exec(o.userAgent)?.[1] ?? o.userAgent.slice(0, 120);
+  }
+  return void 0;
+}
+function stopHookFrom(list) {
+  const groups = Array.isArray(list?.data) ? list.data : [];
+  for (const g of groups) {
+    for (const h of Array.isArray(g?.hooks) ? g.hooks : []) {
+      const cogentStop = h?.key === COGENT_STOP_HOOK_KEY || String(h?.eventName ?? "").toLowerCase() === "stop" && typeof h?.pluginId === "string" && h.pluginId.startsWith("cogent@");
+      if (cogentStop) {
+        return { enabled: h.enabled === true, trust: typeof h.trustStatus === "string" ? h.trustStatus : "unknown" };
+      }
+    }
+  }
+  return null;
+}
 function execCodexViaAppServer(threadId, message, cwd, timeoutMs, deps = {}) {
   const key = deps.idempotencyKey ? `${threadId}::${deps.idempotencyKey}` : null;
   if (!key) return _injectTurn(threadId, message, cwd, timeoutMs, deps);
@@ -33259,14 +33428,16 @@ async function _injectTurn(threadId, message, cwd, timeoutMs, deps = {}) {
   const truncated = config2.COGENT_CHAR_LIMIT > 0 && message.length > config2.COGENT_CHAR_LIMIT ? message.slice(0, config2.COGENT_CHAR_LIMIT) + "\n...[truncated]" : message;
   const sock = deps.socketPath ?? appServerSocketPath();
   const wsFactory = deps.wsFactory ?? defaultWsFactory;
+  let initAnswer;
   const handshake = async (c2) => {
     await c2.waitOpen();
-    await c2.request("initialize", {
+    const init = await c2.request("initialize", {
       clientInfo: { name: "cogent-bridge", version: "1" },
       // Also required by thread/resume `excludeTurns` below: codex 0.145–0.150.1 reject it
       // without this ("requires experimentalApi capability"); 0.151.0+ accept it either way.
       capabilities: { experimentalApi: true }
     });
+    if (initAnswer === void 0) initAnswer = init;
     return c2;
   };
   const dial = () => new AppServerClient(wsFactory(rpcUrl(sock), { perMessageDeflate: false, headers: { Host: "localhost" } }));
@@ -33282,9 +33453,29 @@ async function _injectTurn(threadId, message, cwd, timeoutMs, deps = {}) {
       appServerUnavailable: true
     };
   }
+  if (!loggedInitKeys && initAnswer && typeof initAnswer === "object") {
+    loggedInitKeys = true;
+    logger.debug(`codex app-server initialize answered with keys: ${Object.keys(initAnswer).join(", ")}`);
+  }
+  const codexVersion = codexVersionFrom(initAnswer);
+  let stopHook;
+  void bestEffort(client.request("hooks/list", { cwds: [cwd] }), PROBE_TIMEOUT_MS).then((list) => {
+    if (list !== void 0) stopHook = stopHookFrom(list);
+  });
+  let sandboxMode;
+  const instrumented = (r) => ({
+    ...r,
+    ...codexVersion ? { codexVersion } : {},
+    ...stopHook !== void 0 ? { stopHook } : {},
+    ...sandboxMode ? { sandbox: sandboxMode } : {}
+  });
   const wakes = joinThreadWake(threadId);
   let sent = null;
   let result;
+  let lateOwnsClient = false;
+  let releaseClient = () => {
+  };
+  const clientReleased = new Promise((resolve) => releaseClient = resolve);
   try {
     const resumed = await client.request("thread/resume", { threadId, cwd, excludeTurns: true });
     if (!wakes.captured && !wakes.policySent) {
@@ -33316,7 +33507,8 @@ async function _injectTurn(threadId, message, cwd, timeoutMs, deps = {}) {
         d(msg);
       }
     });
-    sent = sandboxPolicyFor(effectiveSandbox(config2), cwd);
+    sandboxMode = deps.sandbox ?? effectiveSandbox(config2);
+    sent = sandboxPolicyFor(sandboxMode, cwd);
     wakes.policySent = true;
     const startResult = await client.request("turn/start", {
       threadId,
@@ -33327,6 +33519,7 @@ async function _injectTurn(threadId, message, cwd, timeoutMs, deps = {}) {
       ...deps.idempotencyKey ? { clientUserMessageId: deps.idempotencyKey } : {}
     });
     myTurnId = startResult?.turn?.id;
+    let waitTimer;
     const turnCompleted = await new Promise((resolve) => {
       deliver = resolve;
       const early = buffered.find(isMine);
@@ -33335,35 +33528,44 @@ async function _injectTurn(threadId, message, cwd, timeoutMs, deps = {}) {
         resolve(early);
         return;
       }
-      setTimeout(() => {
+      waitTimer = setTimeout(() => {
         if (deliver) {
           deliver = null;
           resolve(null);
         }
       }, effectiveTimeout);
     });
-    off();
+    if (waitTimer) clearTimeout(waitTimer);
     if (!turnCompleted) {
-      result = {
+      result = instrumented({
         stdout: "",
         stderr: `CLI_TIMEOUT: app-server turn did not complete within ${effectiveTimeout}ms`,
-        exitCode: null
-      };
+        exitCode: null,
+        gaveUpAt: (/* @__PURE__ */ new Date()).toISOString()
+      });
+      if (deps.lateAnswerMaxMs !== void 0) {
+        if (myTurnId === void 0) result.lateSkipped = "no-turn-id";
+        else {
+          result.late = armLateWait(client, deps.lateAnswerMaxMs, (d) => deliver = d, off, clientReleased);
+          lateOwnsClient = true;
+        }
+      }
     } else {
-      result = {
+      result = instrumented({
         stdout: extractAgentMessageText([turnCompleted]),
         stderr: "",
         exitCode: 0,
         captureContract: "event_stream",
         stable: true
-      };
+      });
     }
+    if (!lateOwnsClient) off();
   } catch (err) {
-    result = {
+    result = instrumented({
       stdout: "",
       stderr: `CLI_EXEC_FAILED: app-server turn failed: ${err.message}`,
       exitCode: 1
-    };
+    });
   } finally {
     if (sent) wakes.sent.push(sent);
     const last = --wakes.inFlight === 0;
@@ -33382,11 +33584,49 @@ async function _injectTurn(threadId, message, cwd, timeoutMs, deps = {}) {
         threadWakes.delete(threadId);
       }
     }
-    client.close();
+    if (lateOwnsClient) releaseClient();
+    else client.close();
   }
   return result;
 }
-var defaultWsFactory, _underDaemon, ensuredSock, defaultRun, defaultSocketExists, sleep2, AppServerClient, RESTORE_TIMEOUT_MS, threadWakes, idempotencyCache, IDEMPOTENCY_TTL_MS;
+function armLateWait(client, windowMs, setDeliver, offNotifications, released) {
+  return new Promise((resolveLate) => {
+    let settled = false;
+    let windowTimer;
+    let offClose = () => {
+    };
+    const now = () => (/* @__PURE__ */ new Date()).toISOString();
+    const finish = (r) => {
+      if (settled) return;
+      settled = true;
+      setDeliver(null);
+      if (windowTimer) clearTimeout(windowTimer);
+      offNotifications();
+      offClose();
+      void released.then(() => client.close());
+      resolveLate(r);
+    };
+    try {
+      setDeliver((msg) => {
+        try {
+          finish(
+            msg ? { stdout: extractAgentMessageText([msg]), turnEndedAt: now() } : { stdout: null, reason: "error", at: now(), error: "no turn/completed frame" }
+          );
+        } catch (err) {
+          finish({ stdout: null, reason: "error", at: now(), error: err.message });
+        }
+      });
+      offClose = client.onClose(() => finish({ stdout: null, reason: "closed", at: now() }));
+      if (client.closed) finish({ stdout: null, reason: "closed", at: now() });
+      if (settled) return;
+      windowTimer = setTimeout(() => finish({ stdout: null, reason: "window", at: now() }), windowMs);
+      windowTimer.unref?.();
+    } catch (err) {
+      finish({ stdout: null, reason: "error", at: now(), error: err.message });
+    }
+  });
+}
+var defaultWsFactory, _underDaemon, ensuredSock, defaultRun, defaultSocketExists, sleep2, AppServerClient, RESTORE_TIMEOUT_MS, threadWakes, PROBE_TIMEOUT_MS, COGENT_STOP_HOOK_KEY, loggedInitKeys, idempotencyCache, IDEMPOTENCY_TTL_MS;
 var init_codex_app_server = __esm({
   "src/services/codex-app-server.ts"() {
     "use strict";
@@ -33408,7 +33648,7 @@ var init_codex_app_server = __esm({
     });
     defaultSocketExists = async (p) => {
       try {
-        await fs13.stat(p);
+        await fs14.stat(p);
         return true;
       } catch {
         return false;
@@ -33420,6 +33660,7 @@ var init_codex_app_server = __esm({
       nextId = 1;
       pending = /* @__PURE__ */ new Map();
       notifyListeners = /* @__PURE__ */ new Set();
+      closeListeners = /* @__PURE__ */ new Set();
       opened;
       openResolved = false;
       /**
@@ -33444,6 +33685,7 @@ var init_codex_app_server = __esm({
           ws.on("close", () => {
             this.closed = true;
             if (this.openResolved) this._failAll(new Error("app-server ws closed"));
+            for (const cb of this.closeListeners) cb();
           });
         });
         ws.on("message", (data) => this._onMessage(data));
@@ -33489,6 +33731,15 @@ var init_codex_app_server = __esm({
         this.notifyListeners.add(cb);
         return () => this.notifyListeners.delete(cb);
       }
+      /**
+       * COG-95: be told when the socket closes. A request in flight learns it by rejection, but the
+       * late-answer wait has no request in flight — without this it would sit out its whole window
+       * on a connection that can no longer deliver anything.
+       */
+      onClose(cb) {
+        this.closeListeners.add(cb);
+        return () => this.closeListeners.delete(cb);
+      }
       close() {
         try {
           this.ws.close();
@@ -33498,32 +33749,40 @@ var init_codex_app_server = __esm({
     };
     RESTORE_TIMEOUT_MS = 1e4;
     threadWakes = /* @__PURE__ */ new Map();
+    PROBE_TIMEOUT_MS = 2e3;
+    COGENT_STOP_HOOK_KEY = "cogent@cogent:hooks.json:stop:0:0";
+    loggedInitKeys = false;
     idempotencyCache = /* @__PURE__ */ new Map();
     IDEMPOTENCY_TTL_MS = 3e5;
   }
 });
 
 // src/services/exec-remote.ts
-async function execCodexWake(sessionId, message, cwd, timeoutMs, idempotencyKey) {
+async function execCodexWake(sessionId, message, cwd, timeoutMs, idempotencyKey, lateAnswerMaxMs, sandbox) {
   const wake = getConfig().COGENT_CODEX_WAKE;
   const useAppServer = wake === "app-server" || wake === "auto" && (runningUnderAppServerDaemon() || appServerDaemonRunning());
   if (useAppServer) {
     try {
       const sock = await ensureDaemon();
-      const result = await execCodexViaAppServer(sessionId, message, cwd, timeoutMs, { socketPath: sock, idempotencyKey });
-      if (!result.appServerUnavailable) return result;
+      const result = await execCodexViaAppServer(sessionId, message, cwd, timeoutMs, {
+        socketPath: sock,
+        idempotencyKey,
+        lateAnswerMaxMs,
+        ...sandbox ? { sandbox } : {}
+      });
+      if (!result.appServerUnavailable) return { ...result, rail: "app-server" };
     } catch {
     }
   }
-  return execCodex(sessionId, message, cwd, timeoutMs);
+  return { ...await execCodex(sessionId, message, cwd, timeoutMs, sandbox), rail: "exec-resume" };
 }
 function execRemote(platform, sessionId, message, cwd, timeoutMs, opts) {
   switch (platform) {
     case "codex":
-      return execCodexWake(sessionId, message, cwd, timeoutMs, opts?.idempotencyKey);
+      return execCodexWake(sessionId, message, cwd, timeoutMs, opts?.idempotencyKey, opts?.lateAnswerMaxMs, opts?.codexSandbox);
     case "cc":
     default:
-      return execClaude(sessionId, message, cwd, timeoutMs);
+      return execClaude(sessionId, message, cwd, timeoutMs).then((r) => ({ ...r, rail: "claude" }));
   }
 }
 function detectCurrentSessionFor(platform, cwd) {
@@ -33583,14 +33842,14 @@ var init_exec_remote = __esm({
 // src/services/wake-log.ts
 import { execFileSync } from "node:child_process";
 import crypto4 from "node:crypto";
-import fs14 from "node:fs";
-import os10 from "node:os";
-import path15 from "node:path";
+import fs15 from "node:fs";
+import os11 from "node:os";
+import path16 from "node:path";
 function hashCwd2(cwd) {
-  return crypto4.createHash("sha256").update(path15.resolve(cwd)).digest("hex").slice(0, 16);
+  return crypto4.createHash("sha256").update(path16.resolve(cwd)).digest("hex").slice(0, 16);
 }
 function wakeLogPath(cwd) {
-  return path15.join(os10.homedir(), ".cogent", "wake-log", `${hashCwd2(cwd)}.jsonl`);
+  return path16.join(os11.homedir(), ".cogent", "wake-log", `${hashCwd2(cwd)}.jsonl`);
 }
 function git(cwd, args) {
   return execFileSync("git", ["-C", cwd, ...args], {
@@ -33634,13 +33893,13 @@ function preview(message) {
 function appendWakeRecord(record2, cwd) {
   const target = wakeLogPath(cwd);
   try {
-    fs14.mkdirSync(path15.dirname(target), { recursive: true });
+    fs15.mkdirSync(path16.dirname(target), { recursive: true });
     const row = {
       ts: (/* @__PURE__ */ new Date()).toISOString(),
       ...record2,
       messagePreview: preview(record2.messagePreview ?? "")
     };
-    fs14.appendFileSync(target, `${JSON.stringify(row)}
+    fs15.appendFileSync(target, `${JSON.stringify(row)}
 `);
     pruneIfNeeded(target);
   } catch {
@@ -33648,20 +33907,20 @@ function appendWakeRecord(record2, cwd) {
 }
 function pruneIfNeeded(target) {
   try {
-    const lines = fs14.readFileSync(target, "utf-8").split("\n").filter((l) => l.length > 0);
+    const lines = fs15.readFileSync(target, "utf-8").split("\n").filter((l) => l.length > 0);
     if (lines.length <= WAKE_LOG_MAX_RECORDS) return;
     const kept = lines.slice(lines.length - WAKE_LOG_MAX_RECORDS);
     const tmp = `${target}.tmp-${process.pid}`;
-    fs14.writeFileSync(tmp, `${kept.join("\n")}
+    fs15.writeFileSync(tmp, `${kept.join("\n")}
 `);
-    fs14.renameSync(tmp, target);
+    fs15.renameSync(tmp, target);
   } catch {
   }
 }
 function readWakeLog(cwd, limit) {
   let lines;
   try {
-    lines = fs14.readFileSync(wakeLogPath(cwd), "utf-8").split("\n").filter((l) => l.length > 0);
+    lines = fs15.readFileSync(wakeLogPath(cwd), "utf-8").split("\n").filter((l) => l.length > 0);
   } catch {
     return [];
   }
@@ -33774,18 +34033,18 @@ var init_session_resolver = __esm({
 
 // src/services/wake-inflight.ts
 import crypto5 from "node:crypto";
-import fs15 from "node:fs";
-import os11 from "node:os";
-import path16 from "node:path";
+import fs16 from "node:fs";
+import os12 from "node:os";
+import path17 from "node:path";
 function drainCapMs(timeoutMs) {
   const t = Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : 3e5;
   return Math.min(INFLIGHT_TIMEOUT_FACTOR * t, INFLIGHT_MAX_MS);
 }
 function hashCwd3(cwd) {
-  return crypto5.createHash("sha256").update(path16.resolve(cwd)).digest("hex").slice(0, 16);
+  return crypto5.createHash("sha256").update(path17.resolve(cwd)).digest("hex").slice(0, 16);
 }
 function wakeInflightPath(peerId, cwd = process.cwd()) {
-  return path16.join(os11.homedir(), ".cogent", "wake-inflight", `${hashCwd3(cwd)}.${safe2(peerId)}.json`);
+  return path17.join(os12.homedir(), ".cogent", "wake-inflight", `${hashCwd3(cwd)}.${safe2(peerId)}.json`);
 }
 function ttlMs() {
   let timeout = 3e5;
@@ -33798,17 +34057,17 @@ function ttlMs() {
 }
 function readFileSafe(p) {
   try {
-    const parsed = JSON.parse(fs15.readFileSync(p, "utf-8"));
+    const parsed = JSON.parse(fs16.readFileSync(p, "utf-8"));
     return parsed && typeof parsed === "object" && parsed.messages ? parsed : { messages: {} };
   } catch {
     return { messages: {} };
   }
 }
 function writeAtomic(p, data) {
-  fs15.mkdirSync(path16.dirname(p), { recursive: true });
+  fs16.mkdirSync(path17.dirname(p), { recursive: true });
   const tmp = `${p}.${process.pid}.tmp`;
-  fs15.writeFileSync(tmp, JSON.stringify(data, null, 2) + "\n", "utf-8");
-  fs15.renameSync(tmp, p);
+  fs16.writeFileSync(tmp, JSON.stringify(data, null, 2) + "\n", "utf-8");
+  fs16.renameSync(tmp, p);
 }
 function prune(f, now) {
   for (const [id, rec] of Object.entries(f.messages)) {
@@ -33826,6 +34085,24 @@ function markWakeInFlight(peerId, messageId, traceId, cwd = process.cwd()) {
     writeAtomic(p, cur);
   } catch (err) {
     logger.debug(`wake-inflight: could not mark ${messageId}: ${err}`);
+  }
+}
+function extendWakeInFlight(peerId, messageId, untilMs, cwd = process.cwd()) {
+  try {
+    const now = Date.now();
+    const p = wakeInflightPath(peerId, cwd);
+    const cur = readFileSafe(p);
+    prune(cur, now);
+    const prev = cur.messages[messageId];
+    const startedAt = prev?.startedAt ?? now;
+    cur.messages[messageId] = {
+      ...prev,
+      startedAt,
+      expiresAt: Math.min(untilMs, startedAt + INFLIGHT_LATE_HOLD_MAX_MS)
+    };
+    writeAtomic(p, cur);
+  } catch (err) {
+    logger.debug(`wake-inflight: could not extend ${messageId}: ${err}`);
   }
 }
 function listWakeInFlight(peerId, cwd = process.cwd()) {
@@ -33848,13 +34125,14 @@ function clearWakeInFlight(peerId, messageId, cwd = process.cwd()) {
     logger.debug(`wake-inflight: could not clear ${messageId}: ${err}`);
   }
 }
-var INFLIGHT_MAX_MS, INFLIGHT_TIMEOUT_FACTOR, safe2;
+var INFLIGHT_MAX_MS, INFLIGHT_LATE_HOLD_MAX_MS, INFLIGHT_TIMEOUT_FACTOR, safe2;
 var init_wake_inflight = __esm({
   "src/services/wake-inflight.ts"() {
     "use strict";
     init_config();
     init_logger();
     INFLIGHT_MAX_MS = 18e5;
+    INFLIGHT_LATE_HOLD_MAX_MS = 18e6;
     INFLIGHT_TIMEOUT_FACTOR = 3;
     safe2 = (s) => String(s).replace(/[^A-Za-z0-9._-]/g, "_");
   }
@@ -33862,15 +34140,15 @@ var init_wake_inflight = __esm({
 
 // src/services/wake-claim.ts
 import crypto6 from "node:crypto";
-import fs16 from "node:fs";
-import os12 from "node:os";
-import path17 from "node:path";
+import fs17 from "node:fs";
+import os13 from "node:os";
+import path18 from "node:path";
 function hashCwd4(cwd) {
-  return crypto6.createHash("sha256").update(path17.resolve(cwd)).digest("hex").slice(0, 16);
+  return crypto6.createHash("sha256").update(path18.resolve(cwd)).digest("hex").slice(0, 16);
 }
 function wakeClaimPath(peerId, messageId, cwd = process.cwd()) {
-  return path17.join(
-    os12.homedir(),
+  return path18.join(
+    os13.homedir(),
     ".cogent",
     "wake-claims",
     `${hashCwd4(cwd)}.${safe3(peerId)}.${safe3(messageId)}.json`
@@ -33900,22 +34178,22 @@ function claimWake(peerId, messageId, cwd = process.cwd()) {
   const now = Date.now();
   const body = () => JSON.stringify({ pid: process.pid, startedAt: now, expiresAt: now + ttlMs2() });
   try {
-    fs16.mkdirSync(path17.dirname(p), { recursive: true });
+    fs17.mkdirSync(path18.dirname(p), { recursive: true });
     try {
-      fs16.writeFileSync(p, body(), { flag: "wx" });
+      fs17.writeFileSync(p, body(), { flag: "wx" });
       return true;
     } catch (err) {
       if (err?.code !== "EEXIST") throw err;
     }
     let held = null;
     try {
-      held = JSON.parse(fs16.readFileSync(p, "utf-8"));
+      held = JSON.parse(fs17.readFileSync(p, "utf-8"));
     } catch {
       held = null;
     }
     const expired = !held || typeof held.expiresAt !== "number" || held.expiresAt <= now;
     if (!held || expired || !holderAlive(held.pid)) {
-      fs16.writeFileSync(p, body());
+      fs17.writeFileSync(p, body());
       logger.debug(`wake-claim: took over an abandoned claim for ${messageId}`);
       return true;
     }
@@ -33930,7 +34208,7 @@ function claimWake(peerId, messageId, cwd = process.cwd()) {
 }
 function releaseWake(peerId, messageId, cwd = process.cwd()) {
   try {
-    fs16.unlinkSync(wakeClaimPath(peerId, messageId, cwd));
+    fs17.unlinkSync(wakeClaimPath(peerId, messageId, cwd));
   } catch {
   }
 }
@@ -33948,14 +34226,14 @@ var init_wake_claim = __esm({
 
 // src/services/wake-lock.ts
 import crypto7 from "node:crypto";
-import fs17 from "node:fs";
-import os13 from "node:os";
-import path18 from "node:path";
+import fs18 from "node:fs";
+import os14 from "node:os";
+import path19 from "node:path";
 function hashCwd5(cwd) {
-  return crypto7.createHash("sha256").update(path18.resolve(cwd)).digest("hex").slice(0, 16);
+  return crypto7.createHash("sha256").update(path19.resolve(cwd)).digest("hex").slice(0, 16);
 }
 function wakeLockPath(cwd = process.cwd()) {
-  return path18.join(os13.homedir(), ".cogent", "wake-locks", `${hashCwd5(cwd)}.json`);
+  return path19.join(os14.homedir(), ".cogent", "wake-locks", `${hashCwd5(cwd)}.json`);
 }
 function leaseTtlMs() {
   let timeout = 3e5;
@@ -33986,7 +34264,7 @@ function holderAlive2(pid) {
 }
 function readHolder(p) {
   try {
-    const held = JSON.parse(fs17.readFileSync(p, "utf-8"));
+    const held = JSON.parse(fs18.readFileSync(p, "utf-8"));
     if (!held || typeof held.expiresAt !== "number") return null;
     return held;
   } catch {
@@ -34033,7 +34311,7 @@ async function acquireWakeLock(cwd = process.cwd(), sessionId = "unknown", opts 
     } };
   };
   try {
-    fs17.mkdirSync(path18.dirname(p), { recursive: true });
+    fs18.mkdirSync(path19.dirname(p), { recursive: true });
   } catch (err) {
     return failOpen(`cannot create lock dir (${err.message})`);
   }
@@ -34046,7 +34324,7 @@ async function acquireWakeLock(cwd = process.cwd(), sessionId = "unknown", opts 
       expiresAt: now + leaseTtlMs()
     });
     try {
-      fs17.writeFileSync(p, body, { flag: "wx" });
+      fs18.writeFileSync(p, body, { flag: "wx" });
       if (contended) {
         logger.info(
           `Auto-relay: waited ${Date.now() - started}ms for another bridge process to finish its turn in this checkout before resuming \u2014 turns are serialised, not overlapping.`
@@ -34061,7 +34339,7 @@ async function acquireWakeLock(cwd = process.cwd(), sessionId = "unknown", opts 
     const held = readHolder(p);
     if (!held || held.expiresAt <= now || !holderAlive2(held.pid)) {
       try {
-        fs17.writeFileSync(p, body);
+        fs18.writeFileSync(p, body);
       } catch (err) {
         return failOpen(`cannot steal abandoned lock (${err.message})`);
       }
@@ -34084,7 +34362,7 @@ async function acquireWakeLock(cwd = process.cwd(), sessionId = "unknown", opts 
 }
 function releaseWakeLock(cwd = process.cwd()) {
   try {
-    fs17.unlinkSync(wakeLockPath(cwd));
+    fs18.unlinkSync(wakeLockPath(cwd));
   } catch {
   }
 }
@@ -34104,9 +34382,9 @@ var init_wake_lock = __esm({
 
 // src/services/wake-ownership.ts
 import crypto8 from "node:crypto";
-import fs18 from "node:fs";
-import os14 from "node:os";
-import path19 from "node:path";
+import fs19 from "node:fs";
+import os15 from "node:os";
+import path20 from "node:path";
 function agentSessionId(env = process.env) {
   if (env.COGENT_PLATFORM && env.COGENT_PLATFORM !== "cc") return void 0;
   const id = env.CLAUDE_CODE_SESSION_ID?.trim();
@@ -34115,7 +34393,7 @@ function agentSessionId(env = process.env) {
 function startedWithoutClient() {
   if (withoutClient === void 0) {
     try {
-      withoutClient = fs18.fstatSync(0).isCharacterDevice();
+      withoutClient = fs19.fstatSync(0).isCharacterDevice();
     } catch {
       withoutClient = false;
     }
@@ -34123,10 +34401,10 @@ function startedWithoutClient() {
   return withoutClient;
 }
 function hashCwd6(cwd) {
-  return crypto8.createHash("sha256").update(path19.resolve(cwd)).digest("hex").slice(0, 16);
+  return crypto8.createHash("sha256").update(path20.resolve(cwd)).digest("hex").slice(0, 16);
 }
 function bridgeDirFor(cwd, peerId) {
-  return path19.join(os14.homedir(), ".cogent", "bridges", `${hashCwd6(cwd)}.${safe4(peerId)}`);
+  return path20.join(os15.homedir(), ".cogent", "bridges", `${hashCwd6(cwd)}.${safe4(peerId)}`);
 }
 function isReservedPeerName(peerId) {
   return safe4(peerId).toLowerCase() === safe4(PROCESS_MARK).toLowerCase();
@@ -34150,14 +34428,14 @@ function pidAlive(pid) {
 function announceBridge(cwd, peerId, version2, endpoint, sessionId = agentSessionId()) {
   const dir = bridgeDirFor(cwd, peerId);
   try {
-    fs18.mkdirSync(dir, { recursive: true });
+    fs19.mkdirSync(dir, { recursive: true });
     const entry = {
       pid: process.pid,
       startedAt: PROCESS_STARTED_AT,
       version: version2,
       peerId,
       endpoint,
-      cwd: path19.resolve(cwd),
+      cwd: path20.resolve(cwd),
       parentPid: process.ppid,
       ...sessionId ? { sessionId } : {},
       platform: process.env.COGENT_PLATFORM || "cc",
@@ -34165,16 +34443,16 @@ function announceBridge(cwd, peerId, version2, endpoint, sessionId = agentSessio
       // shell exited, the changed parent read as "client gone" and any bridge that started took its name.
       ...startedWithoutClient() ? { noClient: true } : {}
     };
-    fs18.writeFileSync(path19.join(dir, `${process.pid}.json`), JSON.stringify(entry));
+    fs19.writeFileSync(path20.join(dir, `${process.pid}.json`), JSON.stringify(entry));
   } catch (err) {
     logger.debug(`wake-ownership: could not announce this bridge (${err.message})`);
   }
 }
 function markBridgeDraining(cwd, peerId) {
-  const file = path19.join(bridgeDirFor(cwd, peerId), `${process.pid}.json`);
+  const file = path20.join(bridgeDirFor(cwd, peerId), `${process.pid}.json`);
   try {
-    const entry = JSON.parse(fs18.readFileSync(file, "utf-8"));
-    fs18.writeFileSync(file, JSON.stringify({ ...entry, draining: true }));
+    const entry = JSON.parse(fs19.readFileSync(file, "utf-8"));
+    fs19.writeFileSync(file, JSON.stringify({ ...entry, draining: true }));
   } catch {
   }
 }
@@ -34184,7 +34462,7 @@ function markBridgeProcess(cwd, version2) {
 }
 function withdrawBridge(cwd, peerId) {
   try {
-    fs18.unlinkSync(path19.join(bridgeDirFor(cwd, peerId), `${process.pid}.json`));
+    fs19.unlinkSync(path20.join(bridgeDirFor(cwd, peerId), `${process.pid}.json`));
   } catch {
   }
 }
@@ -34192,23 +34470,23 @@ function listLiveBridges(cwd, peerId) {
   const dir = bridgeDirFor(cwd, peerId);
   let names;
   try {
-    names = fs18.readdirSync(dir);
+    names = fs19.readdirSync(dir);
   } catch {
     return [];
   }
   const live = [];
   for (const name of names) {
     if (!name.endsWith(".json")) continue;
-    const p = path19.join(dir, name);
+    const p = path20.join(dir, name);
     let entry = null;
     try {
-      entry = JSON.parse(fs18.readFileSync(p, "utf-8"));
+      entry = JSON.parse(fs19.readFileSync(p, "utf-8"));
     } catch {
       entry = null;
     }
     if (!entry || !pidAlive(entry.pid) || typeof entry.startedAt !== "number") {
       try {
-        fs18.unlinkSync(p);
+        fs19.unlinkSync(p);
       } catch {
       }
       continue;
@@ -34222,7 +34500,7 @@ function listLiveBridgesInFolder(cwd) {
   const prefix = `${hashCwd6(cwd)}.`;
   let dirs;
   try {
-    dirs = fs18.readdirSync(path19.join(os14.homedir(), ".cogent", "bridges"));
+    dirs = fs19.readdirSync(path20.join(os15.homedir(), ".cogent", "bridges"));
   } catch {
     return [];
   }
@@ -34261,8 +34539,8 @@ var init_wake_ownership = __esm({
 
 // src/services/stale-bridge-reaper.ts
 import { execFileSync as execFileSync2 } from "node:child_process";
-import fs19 from "node:fs";
-import path20 from "node:path";
+import fs20 from "node:fs";
+import path21 from "node:path";
 function isBridgeCommand(argv) {
   if (!argv) return false;
   if (/\.test\.|-test\.mjs|scripts\//.test(argv)) return false;
@@ -34284,16 +34562,16 @@ function versionAtLeast(a, b) {
   }
   return true;
 }
-function bridgeVersion(argv, readFile = (p) => fs19.readFileSync(p, "utf-8")) {
+function bridgeVersion(argv, readFile = (p) => fs20.readFileSync(p, "utf-8")) {
   const fromPath = versionFromArgv(argv);
   if (fromPath) return fromPath;
   const candidates = [];
   const pkg = argv.match(/(\S*\/@essentialai\/cogent-bridge(?:-bundled)?)\/dist\/(?:cli|index)\.js(?:\s|$)/);
-  if (pkg) candidates.push(path20.join(pkg[1], "package.json"));
+  if (pkg) candidates.push(path21.join(pkg[1], "package.json"));
   const bin = argv.match(/(\S*\/node_modules)\/\.bin\/cogent-bridge(?:\s|$)/);
   if (bin) {
     for (const name of ["cogent-bridge", "cogent-bridge-bundled"]) {
-      candidates.push(path20.join(bin[1], "@essentialai", name, "package.json"));
+      candidates.push(path21.join(bin[1], "@essentialai", name, "package.json"));
     }
   }
   for (const file of candidates) {
@@ -34336,7 +34614,7 @@ function listProcesses() {
 function processCwd(pid) {
   try {
     if (process.platform === "linux") {
-      return path20.resolve(fs19.readlinkSync(`/proc/${pid}/cwd`));
+      return path21.resolve(fs20.readlinkSync(`/proc/${pid}/cwd`));
     }
     if (process.platform === "darwin") {
       const out = execFileSync2("lsof", ["-a", "-d", "cwd", "-p", String(pid), "-Fn"], {
@@ -34345,7 +34623,7 @@ function processCwd(pid) {
         stdio: ["ignore", "pipe", "ignore"]
       });
       const line = out.split("\n").find((l) => l.startsWith("n"));
-      return line ? path20.resolve(line.slice(1)) : null;
+      return line ? path21.resolve(line.slice(1)) : null;
     }
   } catch {
   }
@@ -34353,9 +34631,9 @@ function processCwd(pid) {
 }
 function canonicalPath(p) {
   try {
-    return fs19.realpathSync(path20.resolve(p));
+    return fs20.realpathSync(path21.resolve(p));
   } catch {
-    return path20.resolve(p);
+    return path21.resolve(p);
   }
 }
 function ancestorsOf(pid, procs) {
@@ -34441,10 +34719,14 @@ var init_stale_bridge_reaper = __esm({
 
 // src/services/auto-relay.ts
 import { randomUUID as randomUUID2 } from "node:crypto";
-import fs20 from "node:fs";
-import path21 from "node:path";
-function buildStatusNotice(status, peerId, traceId) {
+import fs21 from "node:fs";
+import path22 from "node:path";
+function buildStatusNotice(status, peerId, traceId, opts) {
   const tail = traceId ? ` (trace ${traceId})` : "";
+  if (status === RELAY_STATUS.PROCESSING) {
+    const over = opts?.overSeconds !== void 0 ? ` (over ${opts.overSeconds} s)` : "";
+    return `[cogent:processing] \u23F3 "${peerId}" is busy working on your message${over}. Its answer will arrive as a separate message when its current turn ends; there is no need to resend.${tail}`;
+  }
   if (status === RELAY_STATUS.QUEUED) {
     return `[cogent:queued] \u23F3 "${peerId}" is busy with another request \u2014 your message is queued and will be answered when it is free.${tail}`;
   }
@@ -34521,7 +34803,7 @@ function describeWakeFailure(agent, exitCode, stderr, stdout) {
       agent === "codex" ? `the codex executable was not found \u2014 install the Codex CLI or set COGENT_CODEX_PATH.` : `the claude executable was not found \u2014 install Claude Code or set COGENT_CLAUDE_PATH.`
     );
   }
-  const timedOut = /CLI_TIMEOUT: CLI subprocess timed out after (\d+)ms/.exec(raw);
+  const timedOut = /CLI_TIMEOUT: (?:CLI subprocess timed out after|app-server turn did not complete within) (\d+)ms/.exec(raw);
   if (timedOut) {
     return truncate(
       `the resume timed out after ${timedOut[1]}ms (COGENT_TIMEOUT_MS) \u2014 the agent was still working, not idle.`
@@ -34572,27 +34854,46 @@ function truncate(s) {
   const flat = s.replace(/\s+/g, " ").trim();
   return flat.length > DIAGNOSTIC_MAX ? `${flat.slice(0, DIAGNOSTIC_MAX - 1)}\u2026` : flat;
 }
+function timeoutSecondsOf(result) {
+  const fromText = /within (\d+)ms/.exec(result?.stderr ?? "")?.[1];
+  const ms = fromText !== void 0 ? Number(fromText) : Number(getConfig().COGENT_TIMEOUT_MS);
+  return Number.isFinite(ms) ? Math.round(ms / 1e3) : 0;
+}
+function lateFailureReason(r, lateAnswerMaxMs, timeoutSeconds) {
+  if (r.stdout !== null) return "its turn ended without any answer text.";
+  switch (r.reason) {
+    case "window":
+      return `its turn did not end within ${Math.round(lateAnswerMaxMs / 6e4)} min after Cogent's ${timeoutSeconds} s wait.`;
+    case "closed":
+      return "the connection to the Codex app-server closed before the turn ended.";
+    default: {
+      const why = (r.error ?? r.reason).trim();
+      return truncate(/[.!?]$/.test(why) ? why : `${why}.`);
+    }
+  }
+}
 function isInsideOwnFolder(dir) {
   try {
-    const real = fs20.realpathSync.native(dir);
-    return real === process.cwd() || real.startsWith(process.cwd() + path21.sep);
+    const real = fs21.realpathSync.native(dir);
+    return real === process.cwd() || real.startsWith(process.cwd() + path22.sep);
   } catch {
     return false;
   }
 }
 function isOwnFolder(dir) {
   try {
-    return fs20.realpathSync.native(dir) === fs20.realpathSync.native(process.cwd());
+    return fs21.realpathSync.native(dir) === fs21.realpathSync.native(process.cwd());
   } catch {
     return false;
   }
 }
-var RELAY_STATUS, STATUS_MARKER_RE, DIAGNOSTIC_MAX, EARLY_ACK_TTL_MS, EARLY_ACK_MAX, AutoRelayService, autoRelay;
+var RELAY_STATUS, STATUS_MARKER_RE, DIAGNOSTIC_MAX, LATE_HOLD_GRACE_MS, EARLY_ACK_TTL_MS, EARLY_ACK_MAX, AutoRelayService, autoRelay;
 var init_auto_relay = __esm({
   "src/services/auto-relay.ts"() {
     "use strict";
     init_exec_remote();
     init_wake_log();
+    init_wake_experiment();
     init_session_resolver();
     init_config();
     init_backend();
@@ -34614,6 +34915,7 @@ var init_auto_relay = __esm({
     };
     STATUS_MARKER_RE = /^\[cogent:(queued|processing|delivered|needs-manual|failed)\]/;
     DIAGNOSTIC_MAX = 220;
+    LATE_HOLD_GRACE_MS = 6e4;
     EARLY_ACK_TTL_MS = 12e4;
     EARLY_ACK_MAX = 256;
     AutoRelayService = class {
@@ -34660,6 +34962,17 @@ var init_auto_relay = __esm({
       // full-wake+reply. Shares the `processing` lock + `queue` so an awareness inject
       // never runs a second `--resume` on the local session concurrently with a wake.
       awarenessOnly = /* @__PURE__ */ new Set();
+      /**
+       * COG-95 option A: message ids already handed to a late-answer wait in this process. A message
+       * gets at most ONE — a redelivery of it coalesces onto the same codex turn (the app-server
+       * idempotency cache returns the same `late` promise), and a second wait would post its answer twice.
+       */
+      lateDeliveries = /* @__PURE__ */ new Set();
+      /**
+       * COG-95: message ids whose in-flight marker is HELD (until the value, epoch ms) for a pending
+       * late wait. _dispatch's finally leaves their marker alone; the late wait clears it when it ends.
+       */
+      lateHolds = /* @__PURE__ */ new Map();
       expectingResponseFrom = /* @__PURE__ */ new Set();
       // FIFO queue of waiters per peer. Multiple in-flight send-messages to the
       // same peer each get their own waiter; inbound messages from that peer
@@ -34702,8 +35015,8 @@ var init_auto_relay = __esm({
         logger.info(
           `Auto-relay configured for peer ${peerId} (session: ${sessionId}, pinned: ${this.pinnedSessionId}, mode: ${this.localMode}, label: ${this.localLabel})`
         );
-        const dirs = /* @__PURE__ */ new Set([path21.resolve(cwd)]);
-        if (isInsideOwnFolder(path21.resolve(cwd))) dirs.add(process.cwd());
+        const dirs = /* @__PURE__ */ new Set([path22.resolve(cwd)]);
+        if (isInsideOwnFolder(path22.resolve(cwd))) dirs.add(process.cwd());
         for (const dir of dirs) {
           this.announcedCwds.add(dir);
           announceBridge(dir, peerId, CLIENT_VERSION, getConfig().COGENT_ENDPOINT ?? "local");
@@ -35081,8 +35394,12 @@ var init_auto_relay = __esm({
             );
           }
         }
+        if (this.lateDeliveries.has(msg.id)) {
+          this._trace(traceId, "late_duplicate", { messageId: msg.id, stage: "accept" });
+          return;
+        }
         if (this.localPeerId && this.localCwd) {
-          const dirs = /* @__PURE__ */ new Set([path21.resolve(this.localCwd), ...isOwnFolder(this.localCwd) ? [process.cwd()] : []]);
+          const dirs = /* @__PURE__ */ new Set([path22.resolve(this.localCwd), ...isOwnFolder(this.localCwd) ? [process.cwd()] : []]);
           for (const dir of dirs) {
             const own = checkWakeOwnership(dir, this.localPeerId);
             if (!own.isOwner) {
@@ -35171,7 +35488,7 @@ var init_auto_relay = __esm({
           await this._processMessage(msg);
         } finally {
           if (inflightPeer) {
-            clearWakeInFlight(inflightPeer, msg.id);
+            if (!this.lateHolds.has(msg.id)) clearWakeInFlight(inflightPeer, msg.id);
             releaseWake(inflightPeer, msg.id, claimCwd);
           }
         }
@@ -35184,13 +35501,13 @@ var init_auto_relay = __esm({
        * `isRelayEcho` so server 3.1.6+ filters it from history like other echoes.
        * Best-effort: a failure here must never break the busy-queue path.
        */
-      async _emitStatusNotice(toPeerId, status, traceId) {
+      async _emitStatusNotice(toPeerId, status, traceId, opts) {
         if (!this.localPeerId) return;
         try {
           await getBackend().recordMessage({
             fromPeerId: this.localPeerId,
             toPeerId,
-            message: buildStatusNotice(status, this.localPeerId, traceId),
+            message: buildStatusNotice(status, this.localPeerId, traceId, opts),
             response: null,
             durationMs: null,
             success: true,
@@ -35272,6 +35589,14 @@ var init_auto_relay = __esm({
         let threw = false;
         const sandboxRestoreErrors = [];
         let wakeLease = null;
+        const experiment = readWakeExperiment();
+        const lateAnswerMaxMs = experiment.lateAnswer && getConfig().COGENT_PLATFORM === "codex" ? experiment.lateAnswerMaxMs : void 0;
+        let primary = null;
+        let notice = "none";
+        let delivery = "none";
+        let lateHandoff = null;
+        let lateWho = null;
+        let lateDuplicate = false;
         try {
           const res = await this.refreshSessionId();
           this._trace(traceId, "resolved", {
@@ -35290,6 +35615,7 @@ var init_auto_relay = __esm({
               `Auto-relay: REFUSED wake for ${msg.fromPeerId} \u2014 ${res.fallbackReason}`
             );
             try {
+              notice = "failure";
               await backend.recordMessage({
                 fromPeerId: this.localPeerId,
                 toPeerId: msg.fromPeerId,
@@ -35312,6 +35638,7 @@ var init_auto_relay = __esm({
           });
           wakeLease = await acquireWakeLock(this.localCwd, this.localSessionId);
           treeBefore = captureTreeState(this.localCwd);
+          const codexSandbox = getConfig().COGENT_PLATFORM === "codex" ? effectiveSandbox(getConfig(), experiment.codexSandbox) : void 0;
           const result = await execRemote(
             getConfig().COGENT_PLATFORM,
             this.localSessionId,
@@ -35321,14 +35648,30 @@ var init_auto_relay = __esm({
             // Idempotency: the codex app-server rail runs turns on the daemon
             // independent of our client, so a redelivery of this same message must
             // not start a second turn. Keyed by the stable relay message id.
-            { idempotencyKey: msg.id }
+            {
+              idempotencyKey: msg.id,
+              ...lateAnswerMaxMs !== void 0 ? { lateAnswerMaxMs } : {},
+              ...codexSandbox ? { codexSandbox } : {}
+            }
           );
+          primary = result;
           const durationMs = Date.now() - startMs;
           wakeExitCode = result.exitCode;
           if (result.sandboxRestoreError) sandboxRestoreErrors.push(result.sandboxRestoreError);
           if (result.exitCode === 0 && result.stdout) {
             await this._relayCapturedReply(msg, result, traceId, durationMs, false);
             replied = true;
+          } else if (result.late && lateAnswerMaxMs !== void 0) {
+            this._trace(traceId, "late_wait", { durationMs, lateAnswerMaxMs });
+            lateWho = { peerId: this.localPeerId, cwd: this.localCwd, sessionId: this.localSessionId ?? "" };
+            if (await this._handOffLate(msg, result, traceId, lateAnswerMaxMs)) {
+              lateHandoff = result.late;
+              notice = "processing";
+              delivery = "pending-late";
+            } else {
+              lateDuplicate = true;
+              delivery = this.lateHolds.has(msg.id) ? "pending-late" : "none";
+            }
           } else {
             this._trace(traceId, "failed", { exitCode: result.exitCode, sandboxBlocked: result.sandboxBlocked, durationMs });
             logger.warn(
@@ -35352,6 +35695,7 @@ var init_auto_relay = __esm({
                 logger.warn(`Auto-relay: sandbox-bypass retry also failed (exit=${bypassRetry.exitCode})`);
               }
               const remedy = fallbackOn ? `auto-recovery bypassed the sandbox but the task still failed \u2014 this looks like a different problem; check the agent host log` : `auto-recovery is disabled here (COGENT_CODEX_SANDBOX_FALLBACK is off). Remedy on the agent host: unset COGENT_CODEX_SANDBOX_FALLBACK (default on) or set COGENT_CODEX_SANDBOX=bypass, or enable unprivileged userns (sysctl kernel.apparmor_restrict_unprivileged_userns=0)`;
+              notice = "failure";
               try {
                 await backend.recordMessage({
                   fromPeerId: this.localPeerId,
@@ -35373,7 +35717,10 @@ var init_auto_relay = __esm({
             if (freshId && freshId !== this.localSessionId) {
               logger.info(`Auto-relay: retry with rotated session ${this.localSessionId} -> ${freshId}`);
               this.localSessionId = freshId;
-              const retry = await execRemote(getConfig().COGENT_PLATFORM, this.localSessionId, formatted, this.localCwd, void 0, { idempotencyKey: msg.id });
+              const retry = await execRemote(getConfig().COGENT_PLATFORM, this.localSessionId, formatted, this.localCwd, void 0, {
+                idempotencyKey: msg.id,
+                ...codexSandbox ? { codexSandbox } : {}
+              });
               if (retry.sandboxRestoreError) sandboxRestoreErrors.push(retry.sandboxRestoreError);
               if (retry.exitCode === 0 && retry.stdout) {
                 await this._relayCapturedReply(msg, retry, traceId, Date.now() - startMs, true);
@@ -35383,8 +35730,8 @@ var init_auto_relay = __esm({
               }
             }
           }
-          if (!replied) {
-            await this._recordNoReplyFailure(msg, traceId, Date.now() - startMs, {
+          if (!replied && !lateHandoff && !lateDuplicate) {
+            notice = await this._recordNoReplyFailure(msg, traceId, Date.now() - startMs, {
               codexLiveSession: result.codexLiveSession === true,
               exitCode: result.exitCode,
               stderr: result.stderr,
@@ -35397,28 +35744,159 @@ var init_auto_relay = __esm({
           this._trace(traceId, "failed", { threw: true, durationMs });
           logger.error(`Auto-relay: execRemote threw after ${durationMs}ms: ${err}`);
           if (!replied) {
-            await this._recordNoReplyFailure(msg, traceId, durationMs, {
+            notice = await this._recordNoReplyFailure(msg, traceId, durationMs, {
               stderr: `EXEC_THREW: ${err}`
             });
           }
         } finally {
           wakeLease?.release();
-          this._recordWake(msg, traceId, {
-            outcome: threw ? "threw" : refused ? "refused" : replied ? "replied" : "failed",
-            exitCode: wakeExitCode,
-            durationMs: Date.now() - startMs,
-            treeBefore,
-            sandboxRestoreError: sandboxRestoreErrors.length > 0 ? sandboxRestoreErrors.join("\n") : void 0
-          });
+          if (replied) delivery = "in-time";
+          const fields = this._experimentFields(experiment, lateAnswerMaxMs, primary);
+          this._recordWake(
+            msg,
+            traceId,
+            {
+              outcome: threw ? "threw" : refused ? "refused" : replied ? "replied" : "failed",
+              exitCode: wakeExitCode,
+              durationMs: Date.now() - startMs,
+              treeBefore,
+              sandboxRestoreError: sandboxRestoreErrors.length > 0 ? sandboxRestoreErrors.join("\n") : void 0
+            },
+            { ...fields, notice, delivery }
+          );
+          if (lateHandoff && lateWho) {
+            void this._awaitLate(msg, lateHandoff, {
+              traceId,
+              startMs,
+              peerId: lateWho.peerId,
+              who: { cwd: lateWho.cwd, sessionId: lateWho.sessionId },
+              lateAnswerMaxMs,
+              timeoutSeconds: timeoutSecondsOf(primary),
+              fields
+            });
+          }
+        }
+      }
+      /**
+       * COG-95: the experiment fields every wake row carries (docs/experiments/2026-10-codex-wake-A-vs-C).
+       * `rail`, `codexVersion` and `stopHook` come from what actually ran; absent when nothing ran.
+       */
+      _experimentFields(experiment, lateAnswerMaxMs, result) {
+        const cfg = getConfig();
+        return {
+          ...result?.rail ? { rail: result.rail } : {},
+          // What the primary run STARTED with, as its rail reports it — not a fresh read: the switch may
+          // have flipped since, and a sandbox-blocked self-heal sets a bypass override for the retry.
+          sandbox: cfg.COGENT_PLATFORM === "codex" ? result?.sandbox ?? null : null,
+          phase: experiment.phase,
+          lateAnswer: lateAnswerMaxMs !== void 0,
+          bridgeVersion: SERVER_VERSION,
+          timeoutMs: typeof cfg.COGENT_TIMEOUT_MS === "number" ? cfg.COGENT_TIMEOUT_MS : null,
+          ...result?.codexVersion ? { codexVersion: result.codexVersion } : {},
+          ...result && result.stopHook !== void 0 ? { stopHook: result.stopHook } : {},
+          ...result?.gaveUpAt ? { gaveUpAt: result.gaveUpAt } : {},
+          ...result?.lateSkipped ? { lateReason: result.lateSkipped } : {}
+        };
+      }
+      /**
+       * COG-95: hand a timed-out codex app-server turn to a late wait. Holds the in-flight marker for
+       * the whole window (+ grace) so rail C stays quiet, and sends the asker ONE processing notice.
+       * Returns false — sending nothing — when this message already has a late wait in this process:
+       * a duplicate accepted BEFORE the hand-off (queued behind the first copy because the claim failed
+       * open; later ones stop in handleIncoming) coalesces onto the same daemon turn, and must not post
+       * its answer twice.
+       */
+      async _handOffLate(msg, result, traceId, lateAnswerMaxMs) {
+        const peerId = this.localPeerId;
+        if (this.lateDeliveries.has(msg.id)) {
+          const until2 = this.lateHolds.get(msg.id);
+          if (until2 !== void 0) extendWakeInFlight(peerId, msg.id, until2);
+          this._trace(traceId, "late_duplicate", { messageId: msg.id });
+          return false;
+        }
+        this.lateDeliveries.add(msg.id);
+        const until = Date.now() + lateAnswerMaxMs + LATE_HOLD_GRACE_MS;
+        this.lateHolds.set(msg.id, until);
+        extendWakeInFlight(peerId, msg.id, until);
+        await this._emitStatusNotice(msg.fromPeerId, RELAY_STATUS.PROCESSING, traceId, {
+          overSeconds: timeoutSecondsOf(result)
+        });
+        return true;
+      }
+      /**
+       * COG-95: wait (detached) for the late turn, then deliver its answer exactly once — with the same
+       * reply-scope mirror as an in-time answer — or an honest failure notice. Always releases the
+       * in-flight hold and appends the second wake-log row. Never throws.
+       */
+      async _awaitLate(msg, late2, ctx) {
+        let outcome = "late-none";
+        let notice = "none";
+        let delivery = "none";
+        let turnEndedAt;
+        let deliveredAt;
+        let lateReason;
+        try {
+          let r;
+          try {
+            r = await late2;
+          } catch (err) {
+            r = { stdout: null, reason: "error", at: (/* @__PURE__ */ new Date()).toISOString(), error: String(err) };
+          }
+          if (r.stdout !== null) turnEndedAt = r.turnEndedAt;
+          if (this.localPeerId !== ctx.peerId) {
+            lateReason = "unregistered";
+            logger.warn(`Auto-relay: late answer for ${msg.id} dropped \u2014 "${ctx.peerId}" is no longer registered here`);
+          } else if (r.stdout !== null && r.stdout.trim()) {
+            await this._relayCapturedReply(
+              msg,
+              { stdout: r.stdout, exitCode: 0, captureContract: "event_stream", stable: true, stderr: "" },
+              ctx.traceId,
+              Date.now() - ctx.startMs,
+              false
+            );
+            outcome = "late-replied";
+            delivery = "late-by-bridge";
+            deliveredAt = (/* @__PURE__ */ new Date()).toISOString();
+          } else {
+            lateReason = r.stdout !== null ? "empty" : r.reason;
+            notice = await this._recordNoReplyFailure(msg, ctx.traceId, Date.now() - ctx.startMs, {
+              reason: lateFailureReason(r, ctx.lateAnswerMaxMs, ctx.timeoutSeconds)
+            });
+          }
+        } catch (err) {
+          logger.error(`Auto-relay: late delivery for ${msg.id} failed: ${err}`);
+        } finally {
+          this.lateHolds.delete(msg.id);
+          clearWakeInFlight(ctx.peerId, msg.id);
+          this._recordWake(
+            msg,
+            ctx.traceId,
+            {
+              outcome,
+              exitCode: outcome === "late-replied" ? 0 : null,
+              durationMs: Date.now() - ctx.startMs,
+              treeBefore: null
+              // no tree snapshot spans the late window → filesChanged null ("cannot tell")
+            },
+            {
+              ...ctx.fields,
+              notice,
+              delivery,
+              ...turnEndedAt ? { turnEndedAt } : {},
+              ...deliveredAt ? { deliveredAt } : {},
+              ...lateReason ? { lateReason } : {}
+            },
+            { ...ctx.who, peerId: ctx.peerId }
+          );
         }
       }
       /**
        * Write the durable wake record. Wrapped whole: visibility must never be able to fail a
        * wake that would otherwise have succeeded, so every error here is swallowed and logged.
        */
-      _recordWake(msg, traceId, outcome) {
+      _recordWake(msg, traceId, outcome, extra = {}, who) {
         try {
-          const cwd = this.localCwd;
+          const cwd = who?.cwd ?? this.localCwd;
           if (!cwd) return;
           const filesChanged = outcome.treeBefore ? diffTreeState(outcome.treeBefore, captureTreeState(cwd)) : null;
           appendWakeRecord(
@@ -35426,16 +35904,17 @@ var init_auto_relay = __esm({
               traceId,
               messageId: msg.id,
               fromPeerId: msg.fromPeerId,
-              toPeerId: this.localPeerId ?? "",
+              toPeerId: who?.peerId ?? this.localPeerId ?? "",
               cwd,
-              sessionId: this.localSessionId ?? "",
+              sessionId: who?.sessionId ?? this.localSessionId ?? "",
               platform: getConfig().COGENT_PLATFORM,
               outcome: outcome.outcome,
               exitCode: outcome.exitCode,
               durationMs: outcome.durationMs,
               filesChanged,
               messagePreview: msg.message ?? "",
-              ...outcome.sandboxRestoreError ? { sandboxRestoreError: outcome.sandboxRestoreError } : {}
+              ...outcome.sandboxRestoreError ? { sandboxRestoreError: outcome.sandboxRestoreError } : {},
+              ...extra
             },
             cwd
           );
@@ -35460,7 +35939,7 @@ var init_auto_relay = __esm({
        */
       async _recordNoReplyFailure(msg, traceId, durationMs, opts) {
         const codexLive = opts?.codexLiveSession === true;
-        const message = codexLive ? `\u{1F4E8} Queued for "${this.localPeerId}": it's live in an interactive Codex session, so Cogent can't resume it in real time \u2014 it will see this at its next turn. For real-time replies, launch it via \`cogent-codex\` (COGENT_CODEX_WAKE=app-server). (trace ${traceId})` : `\u26A0\uFE0F Cogent could not capture a reply from "${this.localPeerId}". ${describeWakeFailure(wakeAgentFor(getConfig().COGENT_PLATFORM), opts?.exitCode, opts?.stderr, opts?.stdout) || "It may have been busy, or the resume produced no output."} Manual response required \u2014 the target agent must reply in its own session. (trace ${traceId})`;
+        const message = codexLive ? `\u{1F4E8} Queued for "${this.localPeerId}": it's live in an interactive Codex session, so Cogent can't resume it in real time \u2014 it will see this at its next turn. For real-time replies, launch it via \`cogent-codex\` (COGENT_CODEX_WAKE=app-server). (trace ${traceId})` : `\u26A0\uFE0F Cogent could not capture a reply from "${this.localPeerId}". ${opts?.reason ?? (describeWakeFailure(wakeAgentFor(getConfig().COGENT_PLATFORM), opts?.exitCode, opts?.stderr, opts?.stdout) || "It may have been busy, or the resume produced no output.")} Manual response required \u2014 the target agent must reply in its own session. (trace ${traceId})`;
         try {
           await getBackend().recordMessage({
             fromPeerId: this.localPeerId,
@@ -35476,6 +35955,7 @@ var init_auto_relay = __esm({
         } catch (recordErr) {
           logger.error(`Auto-relay: failed to record no-reply failure: ${recordErr}`);
         }
+        return codexLive ? "queued-live" : "failure";
       }
       /**
        * COG-87: an inject (inject-only or broadcast awareness) is a real codex resume, so a failed
@@ -35629,6 +36109,10 @@ var init_auto_relay = __esm({
         }
         this.deliveryAckWaiters.clear();
         this.recentAcks.clear();
+        if (this.localPeerId) {
+          for (const id of this.lateHolds.keys()) clearWakeInFlight(this.localPeerId, id);
+        }
+        this.lateHolds.clear();
         this.withdrawAnnouncement();
         this.queue = [];
         this.awarenessOnly.clear();
@@ -36124,9 +36608,9 @@ __export(startup_exports, {
   setInboxNotifier: () => setInboxNotifier,
   triggerReRegistration: () => triggerReRegistration
 });
-import os15 from "node:os";
-import path22 from "node:path";
-import fs21 from "node:fs/promises";
+import os16 from "node:os";
+import path23 from "node:path";
+import fs22 from "node:fs/promises";
 import readline2 from "node:readline";
 import { execFile as execFile5 } from "node:child_process";
 import { promisify as promisify4 } from "node:util";
@@ -36144,7 +36628,7 @@ function bindInboxNotifier() {
 }
 async function loadPersistedConfig() {
   try {
-    const raw = await fs21.readFile(PERSIST_PATH, "utf-8");
+    const raw = await fs22.readFile(PERSIST_PATH, "utf-8");
     return JSON.parse(raw);
   } catch {
     return {};
@@ -36152,7 +36636,7 @@ async function loadPersistedConfig() {
 }
 async function savePersistedConfig(config2) {
   try {
-    await fs21.writeFile(PERSIST_PATH, JSON.stringify(config2, null, 2) + "\n", "utf-8");
+    await fs22.writeFile(PERSIST_PATH, JSON.stringify(config2, null, 2) + "\n", "utf-8");
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     logger.warn(`Could not save config to ${PERSIST_PATH}: ${msg}`);
@@ -36187,11 +36671,11 @@ First run detected. Where should cogent-bridge store its data?
   });
 }
 async function validateStateDir(statePath) {
-  await fs21.mkdir(statePath, { recursive: true });
-  const testFile = path22.join(statePath, ".write-test");
+  await fs22.mkdir(statePath, { recursive: true });
+  const testFile = path23.join(statePath, ".write-test");
   try {
-    await fs21.writeFile(testFile, "test", "utf-8");
-    await fs21.unlink(testFile);
+    await fs22.writeFile(testFile, "test", "utf-8");
+    await fs22.unlink(testFile);
   } catch {
     throw new BridgeError(
       "STARTUP_FAILED" /* STARTUP_FAILED */,
@@ -36516,10 +37000,10 @@ async function runStartup() {
   if (envStatePath) {
     statePath = envStatePath;
   } else {
-    const defaultPath = path22.join(os15.homedir(), ".cogent");
+    const defaultPath = path23.join(os16.homedir(), ".cogent");
     statePath = await firstRunPrompt(defaultPath);
   }
-  if (!envStatePath && statePath !== path22.join(os15.homedir(), ".cogent")) {
+  if (!envStatePath && statePath !== path23.join(os16.homedir(), ".cogent")) {
     process.env.COGENT_STATE_PATH = statePath;
   } else if (!envStatePath) {
     process.env.COGENT_STATE_PATH = statePath;
@@ -36583,7 +37067,7 @@ async function runStartup() {
   }
   initLogger(
     config2.COGENT_LOG_LEVEL,
-    path22.join(config2.COGENT_STATE_PATH, "logs")
+    path23.join(config2.COGENT_STATE_PATH, "logs")
   );
   if (isCloud && effectiveSessionId && effectiveToken) {
     cloudInbox = new MessageInbox();
@@ -36616,7 +37100,7 @@ async function runPreflights() {
   if (config2.COGENT_PLATFORM === "codex") {
     await preflightCodex(config2.COGENT_CODEX_PATH);
     await preflightCodexServerCollision();
-    const sandbox = await preflightCodexSandbox(config2);
+    const sandbox = await preflightCodexSandbox({ ...config2, COGENT_CODEX_SANDBOX: configuredSandbox(config2) });
     if (sandbox.status === "blocked" && config2.COGENT_CODEX_SANDBOX_FALLBACK) {
       setSandboxOverride("bypass");
     }
@@ -36649,7 +37133,7 @@ var init_startup = __esm({
     init_auto_relay();
     UUID_V4_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     execFileAsync3 = promisify4(execFile5);
-    PERSIST_PATH = path22.join(os15.homedir(), ".cogent-config.json");
+    PERSIST_PATH = path23.join(os16.homedir(), ".cogent-config.json");
     legacyWarnEmitted = false;
     cloudWsClient = null;
     cloudInbox = null;
@@ -36668,12 +37152,12 @@ var init_startup = __esm({
 
 // src/cloud/mail-credential-store.ts
 import crypto9 from "node:crypto";
-import fs22 from "node:fs/promises";
-import path23 from "node:path";
-import os16 from "node:os";
+import fs23 from "node:fs/promises";
+import path24 from "node:path";
+import os17 from "node:os";
 function defaultMailCredentialPath(cwd = process.cwd()) {
-  const hash = crypto9.createHash("sha256").update(path23.resolve(cwd)).digest("hex").slice(0, 16);
-  return path23.join(os16.homedir(), ".cogent", "mail-credentials", `${hash}.json`);
+  const hash = crypto9.createHash("sha256").update(path24.resolve(cwd)).digest("hex").slice(0, 16);
+  return path24.join(os17.homedir(), ".cogent", "mail-credentials", `${hash}.json`);
 }
 function resolveMailCredentialPath(credentialPath) {
   if (credentialPath) return credentialPath;
@@ -36684,16 +37168,16 @@ function resolveMailCredentialPath(credentialPath) {
 async function loadMailCredentials(credentialPath) {
   const filePath = resolveMailCredentialPath(credentialPath);
   try {
-    return JSON.parse(await fs22.readFile(filePath, "utf-8"));
+    return JSON.parse(await fs23.readFile(filePath, "utf-8"));
   } catch {
     return null;
   }
 }
 async function saveMailCredentials(creds, credentialPath) {
   const filePath = resolveMailCredentialPath(credentialPath);
-  await fs22.mkdir(path23.dirname(filePath), { recursive: true, mode: 448 });
-  await fs22.writeFile(filePath, JSON.stringify(creds, null, 2) + "\n", { encoding: "utf-8", mode: 384 });
-  await fs22.chmod(filePath, 384);
+  await fs23.mkdir(path24.dirname(filePath), { recursive: true, mode: 448 });
+  await fs23.writeFile(filePath, JSON.stringify(creds, null, 2) + "\n", { encoding: "utf-8", mode: 384 });
+  await fs23.chmod(filePath, 384);
 }
 async function persistProvisionedMailbox(mailbox, credentialPath) {
   if (!mailbox?.address || !mailbox.password) return false;
@@ -36714,7 +37198,7 @@ async function persistProvisionedMailbox(mailbox, credentialPath) {
 async function clearMailCredentials(credentialPath) {
   const filePath = resolveMailCredentialPath(credentialPath);
   try {
-    await fs22.unlink(filePath);
+    await fs23.unlink(filePath);
   } catch (err) {
     if (err.code !== "ENOENT") throw err;
   }
@@ -39008,8 +39492,8 @@ var require_cookies = __commonJS({
         if (urlparts.hostname !== cookie.domain && (cookie.domain.charAt(0) !== "." || ("." + urlparts.hostname).substr(-cookie.domain.length) !== cookie.domain)) {
           return false;
         }
-        let path27 = this.getPath(urlparts.pathname);
-        if (path27.substr(0, cookie.path.length) !== cookie.path) {
+        let path28 = this.getPath(urlparts.pathname);
+        if (path28.substr(0, cookie.path.length) !== cookie.path) {
           return false;
         }
         if (cookie.secure && urlparts.protocol !== "https:") {
@@ -39069,16 +39553,16 @@ var require_cookies = __commonJS({
        * @returns {String} Normalized path
        */
       getPath(pathname) {
-        let path27 = (pathname || "/").split("/");
-        path27.pop();
-        path27 = path27.join("/").trim();
-        if (path27.charAt(0) !== "/") {
-          path27 = "/" + path27;
+        let path28 = (pathname || "/").split("/");
+        path28.pop();
+        path28 = path28.join("/").trim();
+        if (path28.charAt(0) !== "/") {
+          path28 = "/" + path28;
         }
-        if (path27.substr(-1) !== "/") {
-          path27 += "/";
+        if (path28.substr(-1) !== "/") {
+          path28 += "/";
         }
-        return path27;
+        return path28;
       }
     };
     module.exports = Cookies;
@@ -39379,15 +39863,15 @@ var require_shared = __commonJS({
     "use strict";
     var urllib = __require("url");
     var util2 = __require("util");
-    var fs25 = __require("fs");
+    var fs26 = __require("fs");
     var nmfetch = require_fetch();
     var dns = __require("dns");
     var net = __require("net");
-    var os18 = __require("os");
+    var os19 = __require("os");
     var DNS_TTL = 5 * 60 * 1e3;
     var networkInterfaces;
     try {
-      networkInterfaces = os18.networkInterfaces();
+      networkInterfaces = os19.networkInterfaces();
     } catch (err) {
     }
     module.exports.networkInterfaces = networkInterfaces;
@@ -39765,7 +40249,7 @@ var require_shared = __commonJS({
           }
           return callback(null, parsedDataUri.data);
         } else if (content.path) {
-          return resolveStream(fs25.createReadStream(content.path), callback);
+          return resolveStream(fs26.createReadStream(content.path), callback);
         }
       }
       if (typeof data[key].content === "string" && !["utf8", "usascii", "ascii"].includes(encoding)) {
@@ -39889,7 +40373,7 @@ var require_shared = __commonJS({
 var require_mime_types = __commonJS({
   "node_modules/nodemailer/lib/mime-funcs/mime-types.js"(exports, module) {
     "use strict";
-    var path27 = __require("path");
+    var path28 = __require("path");
     var defaultMimeType = "application/octet-stream";
     var defaultExtension = "bin";
     var mimeTypes = /* @__PURE__ */ new Map([
@@ -41947,7 +42431,7 @@ var require_mime_types = __commonJS({
         if (!filename) {
           return defaultMimeType;
         }
-        let parsed = path27.parse(filename);
+        let parsed = path28.parse(filename);
         let extension = (parsed.ext.substr(1) || parsed.name || "").split("?").shift().trim().toLowerCase();
         let value = defaultMimeType;
         if (extensions.has(extension)) {
@@ -43349,7 +43833,7 @@ var require_mime_node = __commonJS({
   "node_modules/nodemailer/lib/mime-node/index.js"(exports, module) {
     "use strict";
     var crypto12 = __require("crypto");
-    var fs25 = __require("fs");
+    var fs26 = __require("fs");
     var punycode = require_punycode();
     var PassThrough = __require("stream").PassThrough;
     var shared = require_shared();
@@ -44064,7 +44548,7 @@ var require_mime_node = __commonJS({
             setImmediate(() => contentStream.emit("error", new Error("File access rejected for " + content.path)));
             return contentStream;
           }
-          return fs25.createReadStream(content.path);
+          return fs26.createReadStream(content.path);
         } else if (content && typeof content.href === "string") {
           if (this.disableUrlAccess) {
             contentStream = new PassThrough();
@@ -45085,8 +45569,8 @@ var require_dkim = __commonJS({
     var RelaxedBody = require_relaxed_body();
     var sign = require_sign();
     var PassThrough = __require("stream").PassThrough;
-    var fs25 = __require("fs");
-    var path27 = __require("path");
+    var fs26 = __require("fs");
+    var path28 = __require("path");
     var crypto12 = __require("crypto");
     var DKIM_ALGO = "sha256";
     var MAX_MESSAGE_SIZE = 128 * 1024;
@@ -45100,7 +45584,7 @@ var require_dkim = __commonJS({
         this.chunks = [];
         this.chunklen = 0;
         this.readPos = 0;
-        this.cachePath = this.cacheDir ? path27.join(this.cacheDir, "message." + Date.now() + "-" + crypto12.randomBytes(14).toString("hex")) : false;
+        this.cachePath = this.cacheDir ? path28.join(this.cacheDir, "message." + Date.now() + "-" + crypto12.randomBytes(14).toString("hex")) : false;
         this.cache = false;
         this.headers = false;
         this.bodyHash = false;
@@ -45120,10 +45604,10 @@ var require_dkim = __commonJS({
         if (!this.cache || !this.cachePath) {
           return;
         }
-        fs25.unlink(this.cachePath, () => false);
+        fs26.unlink(this.cachePath, () => false);
       }
       createReadCache() {
-        this.cache = fs25.createReadStream(this.cachePath);
+        this.cache = fs26.createReadStream(this.cachePath);
         this.cache.once("error", (err) => {
           this.cleanup();
           this.output.emit("error", err);
@@ -45179,7 +45663,7 @@ var require_dkim = __commonJS({
       }
       createWriteCache() {
         this.output.usingCache = true;
-        this.cache = fs25.createWriteStream(this.cachePath);
+        this.cache = fs26.createWriteStream(this.cachePath);
         this.cache.once("error", (err) => {
           this.cleanup();
           this.relaxedBody.unpipe(this.cache);
@@ -46106,7 +46590,7 @@ var require_smtp_connection = __commonJS({
     var EventEmitter = __require("events").EventEmitter;
     var net = __require("net");
     var tls = __require("tls");
-    var os18 = __require("os");
+    var os19 = __require("os");
     var crypto12 = __require("crypto");
     var DataStream = require_data_stream();
     var PassThrough = __require("stream").PassThrough;
@@ -47499,7 +47983,7 @@ var require_smtp_connection = __commonJS({
       _getHostname() {
         let defaultHostname;
         try {
-          defaultHostname = os18.hostname() || "";
+          defaultHostname = os19.hostname() || "";
         } catch (err) {
           defaultHostname = "localhost";
         }
@@ -50068,13 +50552,13 @@ var require_nodemailer = __commonJS({
 });
 
 // src/mail/mail-sender.ts
-import fs23 from "node:fs/promises";
-import path24 from "node:path";
+import fs24 from "node:fs/promises";
+import path25 from "node:path";
 async function buildAndSendMail(sender, creds, params) {
   const attachments = [];
   for (const p of params.attachmentPaths ?? []) {
-    const content = await fs23.readFile(p);
-    attachments.push({ filename: path24.basename(p), content });
+    const content = await fs24.readFile(p);
+    attachments.push({ filename: path25.basename(p), content });
   }
   const { messageId } = await sender.send({
     from: creds.address,
@@ -50463,8 +50947,8 @@ var require_req = __commonJS({
       if (req.originalUrl) {
         _req.url = req.originalUrl;
       } else {
-        const path27 = req.path;
-        _req.url = typeof path27 === "string" ? path27 : req.url ? req.url.path || req.url : void 0;
+        const path28 = req.path;
+        _req.url = typeof path28 === "string" ? path28 : req.url ? req.url.path || req.url : void 0;
       }
       if (req.query) {
         _req.query = req.query;
@@ -50629,14 +51113,14 @@ var require_redact = __commonJS({
       }
       return obj;
     }
-    function parsePath(path27) {
+    function parsePath(path28) {
       const parts = [];
       let current = "";
       let inBrackets = false;
       let inQuotes = false;
       let quoteChar = "";
-      for (let i = 0; i < path27.length; i++) {
-        const char = path27[i];
+      for (let i = 0; i < path28.length; i++) {
+        const char = path28[i];
         if (!inBrackets && char === ".") {
           if (current) {
             parts.push(current);
@@ -50767,10 +51251,10 @@ var require_redact = __commonJS({
       return current;
     }
     function redactPaths(obj, paths, censor, remove = false) {
-      for (const path27 of paths) {
-        const parts = parsePath(path27);
+      for (const path28 of paths) {
+        const parts = parsePath(path28);
         if (parts.includes("*")) {
-          redactWildcardPath(obj, parts, censor, path27, remove);
+          redactWildcardPath(obj, parts, censor, path28, remove);
         } else {
           if (remove) {
             removeKey(obj, parts);
@@ -50855,8 +51339,8 @@ var require_redact = __commonJS({
           }
         } else {
           if (afterWildcard.includes("*")) {
-            const wrappedCensor = typeof censor === "function" ? (value, path27) => {
-              const fullPath = [...pathArray.slice(0, pathLength), ...path27];
+            const wrappedCensor = typeof censor === "function" ? (value, path28) => {
+              const fullPath = [...pathArray.slice(0, pathLength), ...path28];
               return censor(value, fullPath);
             } : censor;
             redactWildcardPath(current, afterWildcard, wrappedCensor, originalPath, remove);
@@ -50891,8 +51375,8 @@ var require_redact = __commonJS({
         return null;
       }
       const pathStructure = /* @__PURE__ */ new Map();
-      for (const path27 of pathsToClone) {
-        const parts = parsePath(path27);
+      for (const path28 of pathsToClone) {
+        const parts = parsePath(path28);
         let current = pathStructure;
         for (let i = 0; i < parts.length; i++) {
           const part = parts[i];
@@ -50944,24 +51428,24 @@ var require_redact = __commonJS({
       }
       return cloneSelectively(obj, pathStructure);
     }
-    function validatePath(path27) {
-      if (typeof path27 !== "string") {
+    function validatePath(path28) {
+      if (typeof path28 !== "string") {
         throw new Error("Paths must be (non-empty) strings");
       }
-      if (path27 === "") {
+      if (path28 === "") {
         throw new Error("Invalid redaction path ()");
       }
-      if (path27.includes("..")) {
-        throw new Error(`Invalid redaction path (${path27})`);
+      if (path28.includes("..")) {
+        throw new Error(`Invalid redaction path (${path28})`);
       }
-      if (path27.includes(",")) {
-        throw new Error(`Invalid redaction path (${path27})`);
+      if (path28.includes(",")) {
+        throw new Error(`Invalid redaction path (${path28})`);
       }
       let bracketCount = 0;
       let inQuotes = false;
       let quoteChar = "";
-      for (let i = 0; i < path27.length; i++) {
-        const char = path27[i];
+      for (let i = 0; i < path28.length; i++) {
+        const char = path28[i];
         if ((char === '"' || char === "'") && bracketCount > 0) {
           if (!inQuotes) {
             inQuotes = true;
@@ -50975,20 +51459,20 @@ var require_redact = __commonJS({
         } else if (char === "]" && !inQuotes) {
           bracketCount--;
           if (bracketCount < 0) {
-            throw new Error(`Invalid redaction path (${path27})`);
+            throw new Error(`Invalid redaction path (${path28})`);
           }
         }
       }
       if (bracketCount !== 0) {
-        throw new Error(`Invalid redaction path (${path27})`);
+        throw new Error(`Invalid redaction path (${path28})`);
       }
     }
     function validatePaths(paths) {
       if (!Array.isArray(paths)) {
         throw new TypeError("paths must be an array");
       }
-      for (const path27 of paths) {
-        validatePath(path27);
+      for (const path28 of paths) {
+        validatePath(path28);
       }
     }
     function slowRedact(options = {}) {
@@ -51156,8 +51640,8 @@ var require_redaction = __commonJS({
         if (shape[k] === null) {
           o[k] = (value) => topCensor(value, [k]);
         } else {
-          const wrappedCensor = typeof censor === "function" ? (value, path27) => {
-            return censor(value, [k, ...path27]);
+          const wrappedCensor = typeof censor === "function" ? (value, path28) => {
+            return censor(value, [k, ...path28]);
           } : censor;
           o[k] = Redact({
             paths: shape[k],
@@ -51375,10 +51859,10 @@ var require_atomic_sleep = __commonJS({
 var require_sonic_boom = __commonJS({
   "node_modules/sonic-boom/index.js"(exports, module) {
     "use strict";
-    var fs25 = __require("fs");
+    var fs26 = __require("fs");
     var EventEmitter = __require("events");
     var inherits = __require("util").inherits;
-    var path27 = __require("path");
+    var path28 = __require("path");
     var sleep4 = require_atomic_sleep();
     var assert2 = __require("assert");
     var BUSY_WRITE_TIMEOUT = 100;
@@ -51432,20 +51916,20 @@ var require_sonic_boom = __commonJS({
       const mode = sonic.mode;
       if (sonic.sync) {
         try {
-          if (sonic.mkdir) fs25.mkdirSync(path27.dirname(file), { recursive: true });
-          const fd = fs25.openSync(file, flags, mode);
+          if (sonic.mkdir) fs26.mkdirSync(path28.dirname(file), { recursive: true });
+          const fd = fs26.openSync(file, flags, mode);
           fileOpened(null, fd);
         } catch (err) {
           fileOpened(err);
           throw err;
         }
       } else if (sonic.mkdir) {
-        fs25.mkdir(path27.dirname(file), { recursive: true }, (err) => {
+        fs26.mkdir(path28.dirname(file), { recursive: true }, (err) => {
           if (err) return fileOpened(err);
-          fs25.open(file, flags, mode, fileOpened);
+          fs26.open(file, flags, mode, fileOpened);
         });
       } else {
-        fs25.open(file, flags, mode, fileOpened);
+        fs26.open(file, flags, mode, fileOpened);
       }
     }
     function SonicBoom(opts) {
@@ -51486,8 +51970,8 @@ var require_sonic_boom = __commonJS({
         this.flush = flushBuffer;
         this.flushSync = flushBufferSync;
         this._actualWrite = actualWriteBuffer;
-        fsWriteSync = () => fs25.writeSync(this.fd, this._writingBuf);
-        fsWrite = () => fs25.write(this.fd, this._writingBuf, this.release);
+        fsWriteSync = () => fs26.writeSync(this.fd, this._writingBuf);
+        fsWrite = () => fs26.write(this.fd, this._writingBuf, this.release);
       } else if (contentMode === void 0 || contentMode === kContentModeUtf8) {
         this._writingBuf = "";
         this.write = write;
@@ -51496,15 +51980,15 @@ var require_sonic_boom = __commonJS({
         this._actualWrite = actualWrite;
         fsWriteSync = () => {
           if (Buffer.isBuffer(this._writingBuf)) {
-            return fs25.writeSync(this.fd, this._writingBuf);
+            return fs26.writeSync(this.fd, this._writingBuf);
           }
-          return fs25.writeSync(this.fd, this._writingBuf, "utf8");
+          return fs26.writeSync(this.fd, this._writingBuf, "utf8");
         };
         fsWrite = () => {
           if (Buffer.isBuffer(this._writingBuf)) {
-            return fs25.write(this.fd, this._writingBuf, this.release);
+            return fs26.write(this.fd, this._writingBuf, this.release);
           }
-          return fs25.write(this.fd, this._writingBuf, "utf8", this.release);
+          return fs26.write(this.fd, this._writingBuf, "utf8", this.release);
         };
       } else {
         throw new Error(`SonicBoom supports "${kContentModeUtf8}" and "${kContentModeBuffer}", but passed ${contentMode}`);
@@ -51561,7 +52045,7 @@ var require_sonic_boom = __commonJS({
           }
         }
         if (this._fsync) {
-          fs25.fsyncSync(this.fd);
+          fs26.fsyncSync(this.fd);
         }
         const len = this._len;
         if (this._reopening) {
@@ -51675,7 +52159,7 @@ var require_sonic_boom = __commonJS({
       const onDrain = () => {
         if (!this._fsync) {
           try {
-            fs25.fsync(this.fd, (err) => {
+            fs26.fsync(this.fd, (err) => {
               this._flushPending = false;
               cb(err);
             });
@@ -51777,7 +52261,7 @@ var require_sonic_boom = __commonJS({
       const fd = this.fd;
       this.once("ready", () => {
         if (fd !== this.fd) {
-          fs25.close(fd, (err) => {
+          fs26.close(fd, (err) => {
             if (err) {
               return this.emit("error", err);
             }
@@ -51826,7 +52310,7 @@ var require_sonic_boom = __commonJS({
           buf = this._bufs[0];
         }
         try {
-          const n = Buffer.isBuffer(buf) ? fs25.writeSync(this.fd, buf) : fs25.writeSync(this.fd, buf, "utf8");
+          const n = Buffer.isBuffer(buf) ? fs26.writeSync(this.fd, buf) : fs26.writeSync(this.fd, buf, "utf8");
           const releasedBufObj = releaseWritingBuf(buf, this._len, n);
           buf = releasedBufObj.writingBuf;
           this._len = releasedBufObj.len;
@@ -51842,7 +52326,7 @@ var require_sonic_boom = __commonJS({
         }
       }
       try {
-        fs25.fsyncSync(this.fd);
+        fs26.fsyncSync(this.fd);
       } catch {
       }
     }
@@ -51863,7 +52347,7 @@ var require_sonic_boom = __commonJS({
           buf = mergeBuf(this._bufs[0], this._lens[0]);
         }
         try {
-          const n = fs25.writeSync(this.fd, buf);
+          const n = fs26.writeSync(this.fd, buf);
           buf = buf.subarray(n);
           this._len = Math.max(this._len - n, 0);
           if (buf.length <= 0) {
@@ -51891,13 +52375,13 @@ var require_sonic_boom = __commonJS({
       this._writingBuf = this._writingBuf.length ? this._writingBuf : this._bufs.shift() || "";
       if (this.sync) {
         try {
-          const written = Buffer.isBuffer(this._writingBuf) ? fs25.writeSync(this.fd, this._writingBuf) : fs25.writeSync(this.fd, this._writingBuf, "utf8");
+          const written = Buffer.isBuffer(this._writingBuf) ? fs26.writeSync(this.fd, this._writingBuf) : fs26.writeSync(this.fd, this._writingBuf, "utf8");
           release(null, written);
         } catch (err) {
           release(err);
         }
       } else {
-        fs25.write(this.fd, this._writingBuf, release);
+        fs26.write(this.fd, this._writingBuf, release);
       }
     }
     function actualWriteBuffer() {
@@ -51906,7 +52390,7 @@ var require_sonic_boom = __commonJS({
       this._writingBuf = this._writingBuf.length ? this._writingBuf : mergeBuf(this._bufs.shift(), this._lens.shift());
       if (this.sync) {
         try {
-          const written = fs25.writeSync(this.fd, this._writingBuf);
+          const written = fs26.writeSync(this.fd, this._writingBuf);
           release(null, written);
         } catch (err) {
           release(err);
@@ -51915,7 +52399,7 @@ var require_sonic_boom = __commonJS({
         if (kCopyBuffer) {
           this._writingBuf = Buffer.from(this._writingBuf);
         }
-        fs25.write(this.fd, this._writingBuf, release);
+        fs26.write(this.fd, this._writingBuf, release);
       }
     }
     function actualClose(sonic) {
@@ -51931,12 +52415,12 @@ var require_sonic_boom = __commonJS({
       sonic._lens = [];
       assert2(typeof sonic.fd === "number", `sonic.fd must be a number, got ${typeof sonic.fd}`);
       try {
-        fs25.fsync(sonic.fd, closeWrapped);
+        fs26.fsync(sonic.fd, closeWrapped);
       } catch {
       }
       function closeWrapped() {
         if (sonic.fd !== 1 && sonic.fd !== 2) {
-          fs25.close(sonic.fd, done);
+          fs26.close(sonic.fd, done);
         } else {
           done();
         }
@@ -52772,15 +53256,15 @@ var require_transport = __commonJS({
       if (!unquoted) {
         return false;
       }
-      let path27 = unquoted;
-      if (path27.startsWith("file://")) {
+      let path28 = unquoted;
+      if (path28.startsWith("file://")) {
         try {
-          path27 = fileURLToPath(path27);
+          path28 = fileURLToPath(path28);
         } catch {
           return false;
         }
       }
-      return isAbsolute(path27) && !existsSync(path27);
+      return isAbsolute(path28) && !existsSync(path28);
     }
     function stripQuotes(value) {
       const first = value[0];
@@ -54474,7 +54958,7 @@ var require_multistream = __commonJS({
 var require_pino = __commonJS({
   "node_modules/pino/pino.js"(exports, module) {
     "use strict";
-    var os18 = __require("node:os");
+    var os19 = __require("node:os");
     var stdSerializers = require_pino_std_serializers();
     var caller = require_caller();
     var redaction = require_redaction();
@@ -54521,7 +55005,7 @@ var require_pino = __commonJS({
     } = symbols;
     var { epochTime, nullTime } = time3;
     var { pid } = process;
-    var hostname2 = os18.hostname();
+    var hostname2 = os19.hostname();
     var defaultErrorSerializer = stdSerializers.err;
     var defaultOptions2 = {
       level: "info",
@@ -86847,15 +87331,15 @@ var require_tools2 = __commonJS({
        * @param {String} path - Mailbox path to encode
        * @returns {String} Encoded mailbox path
        */
-      encodePath(connection, path27) {
-        path27 = (path27 || "").toString();
-        if (!connection.enabled.has("UTF8=ACCEPT") && !tools.isRev2Active(connection) && /[&\x00-\x08\x0b-\x0c\x0e-\x1f\u0080-\uffff]/.test(path27)) {
+      encodePath(connection, path28) {
+        path28 = (path28 || "").toString();
+        if (!connection.enabled.has("UTF8=ACCEPT") && !tools.isRev2Active(connection) && /[&\x00-\x08\x0b-\x0c\x0e-\x1f\u0080-\uffff]/.test(path28)) {
           try {
-            path27 = iconv.encode(path27, "utf-7-imap").toString();
+            path28 = iconv.encode(path28, "utf-7-imap").toString();
           } catch {
           }
         }
-        return path27;
+        return path28;
       },
       /**
        * Decodes a mailbox path from modified UTF-7 if the server does not support UTF8=ACCEPT.
@@ -86864,15 +87348,15 @@ var require_tools2 = __commonJS({
        * @param {String} path - Mailbox path to decode
        * @returns {String} Decoded mailbox path
        */
-      decodePath(connection, path27) {
-        path27 = (path27 || "").toString();
-        if (!connection.enabled.has("UTF8=ACCEPT") && !tools.isRev2Active(connection) && /[&]/.test(path27)) {
+      decodePath(connection, path28) {
+        path28 = (path28 || "").toString();
+        if (!connection.enabled.has("UTF8=ACCEPT") && !tools.isRev2Active(connection) && /[&]/.test(path28)) {
           try {
-            path27 = iconv.decode(Buffer.from(path27), "utf-7-imap").toString();
+            path28 = iconv.decode(Buffer.from(path28), "utf-7-imap").toString();
           } catch {
           }
         }
-        return path27;
+        return path28;
       },
       /**
        * Normalizes a mailbox path by joining array segments with the namespace delimiter,
@@ -86883,17 +87367,17 @@ var require_tools2 = __commonJS({
        * @param {Boolean} [skipNamespace] - If true, skips prepending the namespace prefix
        * @returns {String} Normalized mailbox path
        */
-      normalizePath(connection, path27, skipNamespace) {
-        if (Array.isArray(path27)) {
-          path27 = path27.join(connection.namespace && connection.namespace.delimiter || "");
+      normalizePath(connection, path28, skipNamespace) {
+        if (Array.isArray(path28)) {
+          path28 = path28.join(connection.namespace && connection.namespace.delimiter || "");
         }
-        if (path27.toUpperCase() === "INBOX") {
+        if (path28.toUpperCase() === "INBOX") {
           return "INBOX";
         }
-        if (!skipNamespace && connection.namespace && connection.namespace.prefix && !path27.startsWith(connection.namespace.prefix)) {
-          path27 = connection.namespace.prefix + path27;
+        if (!skipNamespace && connection.namespace && connection.namespace.prefix && !path28.startsWith(connection.namespace.prefix)) {
+          path28 = connection.namespace.prefix + path28;
         }
-        return path27;
+        return path28;
       },
       /**
        * Compares two mailbox paths for equality after normalization.
@@ -87224,14 +87708,14 @@ var require_tools2 = __commonJS({
           }
         }
         if (map.emailId || map.uid) {
-          let path27 = mailbox.path;
-          if (/[\u0080-\uffff]/.test(path27)) {
+          let path28 = mailbox.path;
+          if (/[\u0080-\uffff]/.test(path28)) {
             try {
-              path27 = iconv.encode(path27, "utf-7-imap").toString();
+              path28 = iconv.encode(path28, "utf-7-imap").toString();
             } catch {
             }
           }
-          map.id = map.emailId || createHash2("md5").update([path27, mailbox.uidValidity?.toString() || "", map.uid.toString()].join(":")).digest("hex");
+          map.id = map.emailId || createHash2("md5").update([path28, mailbox.uidValidity?.toString() || "", map.uid.toString()].join(":")).digest("hex");
         }
         if (map.flags) {
           let flagColor = tools.getFlagColor(map.flags);
@@ -87406,16 +87890,16 @@ var require_tools2 = __commonJS({
        * @returns {Object} Parsed body structure tree with part numbers, types, parameters, and child nodes
        */
       parseBodystructure(entry) {
-        let walk = (node, path27) => {
-          path27 = path27 || [];
+        let walk = (node, path28) => {
+          path28 = path28 || [];
           let curNode = {}, i = 0, part = 0;
-          if (path27.length) {
-            curNode.part = path27.join(".");
+          if (path28.length) {
+            curNode.part = path28.join(".");
           }
           if (Array.isArray(node[0])) {
             curNode.childNodes = [];
             while (Array.isArray(node[i])) {
-              curNode.childNodes.push(walk(node[i], path27.concat(++part)));
+              curNode.childNodes.push(walk(node[i], path28.concat(++part)));
               i++;
             }
             curNode.type = "multipart/" + ((node[i++] || {}).value || "").toString().toLowerCase();
@@ -87458,7 +87942,7 @@ var require_tools2 = __commonJS({
                   // the encapsulated message shares the part number with its wrapper.
                   // Distinction is via suffixes: path.MIME = wrapper headers,
                   // path.HEADER = encapsulated message headers.
-                  walk(node[i], path27)
+                  walk(node[i], path28)
                 ];
               }
               i++;
@@ -89420,14 +89904,14 @@ var require_select = __commonJS({
       // update into a silent no-op for the rest of the session.
       permanentflags: { key: "permanentFlags", parse: (value) => Array.isArray(value) && new Set(value) }
     });
-    module.exports = async (connection, path27, options) => {
+    module.exports = async (connection, path28, options) => {
       if (![connection.states.AUTHENTICATED, connection.states.SELECTED].includes(connection.state)) {
         return;
       }
       options = options || {};
-      path27 = normalizePath(connection, path27);
-      if (!connection.folders.has(path27)) {
-        let folders = await connection.run("LIST", "", path27);
+      path28 = normalizePath(connection, path28);
+      if (!connection.folders.has(path28)) {
+        let folders = await connection.run("LIST", "", path28);
         if (!folders) {
           throw new Error("Failed to fetch folders");
         }
@@ -89435,10 +89919,10 @@ var require_select = __commonJS({
           connection.folders.set(folder.path, folder);
         });
       }
-      let folderListData = connection.folders.has(path27) ? connection.folders.get(path27) : false;
+      let folderListData = connection.folders.has(path28) ? connection.folders.get(path28) : false;
       let response;
       try {
-        let map = { path: path27 };
+        let map = { path: path28 };
         if (folderListData) {
           ["delimiter", "specialUse", "subscribed", "listed"].forEach((key) => {
             if (folderListData[key]) {
@@ -89457,7 +89941,7 @@ var require_select = __commonJS({
           ]);
           map.qresync = true;
         }
-        let encodedPath = encodePath(connection, path27);
+        let encodedPath = encodePath(connection, path28);
         let selectCommand = {
           command: !options.readOnly ? "SELECT" : "EXAMINE",
           /* c8 ignore next */
@@ -89517,12 +90001,12 @@ var require_select = __commonJS({
             // since the client's last known state. Only received when QRESYNC was requested.
             // A dummy mailbox object is passed because the mailbox isn't officially open yet.
             VANISHED: async (untagged) => {
-              await connection.untaggedVanished(untagged, { path: path27, uidNext: false, uidValidity: false });
+              await connection.untaggedVanished(untagged, { path: path28, uidNext: false, uidValidity: false });
             },
             // Untagged FETCH during SELECT/EXAMINE: only occurs with QRESYNC, delivering
             // updated flags for messages that changed since the client's last modseq.
             FETCH: async (untagged) => {
-              await connection.untaggedFetch(untagged, { path: path27, uidNext: false, uidValidity: false });
+              await connection.untaggedFetch(untagged, { path: path28, uidNext: false, uidValidity: false });
             }
           }
         });
@@ -89536,13 +90020,13 @@ var require_select = __commonJS({
         }
         let currentMailbox = connection.mailbox;
         connection.mailbox = false;
-        if (currentMailbox && currentMailbox.path !== path27) {
+        if (currentMailbox && currentMailbox.path !== path28) {
           connection.emit("mailboxClose", currentMailbox);
         }
         connection.mailbox = map;
         connection.currentSelectCommand = selectCommand;
         connection.state = connection.states.SELECTED;
-        if (!currentMailbox || currentMailbox.path !== path27) {
+        if (!currentMailbox || currentMailbox.path !== path28) {
           connection.emit("mailboxOpen", connection.mailbox);
         }
         response.next();
@@ -89757,17 +90241,17 @@ var require_create = __commonJS({
   "node_modules/imapflow/lib/commands/create.js"(exports, module) {
     "use strict";
     var { encodePath, normalizePath, getStatusCode, enhanceCommandError } = require_tools2();
-    module.exports = async (connection, path27) => {
+    module.exports = async (connection, path28) => {
       if (![connection.states.AUTHENTICATED, connection.states.SELECTED].includes(connection.state)) {
         return;
       }
-      path27 = normalizePath(connection, path27);
+      path28 = normalizePath(connection, path28);
       let response;
       try {
         let map = {
-          path: path27
+          path: path28
         };
-        response = await connection.exec("CREATE", [{ type: "ATOM", value: encodePath(connection, path27) }]);
+        response = await connection.exec("CREATE", [{ type: "ATOM", value: encodePath(connection, path28) }]);
         let section = response.response.attributes && response.response.attributes[0] && response.response.attributes[0].section && response.response.attributes[0].section.length ? response.response.attributes[0].section : false;
         if (section) {
           let key;
@@ -89793,13 +90277,13 @@ var require_create = __commonJS({
         }
         map.created = true;
         response.next();
-        await connection.run("SUBSCRIBE", path27);
+        await connection.run("SUBSCRIBE", path28);
         return map;
       } catch (err) {
         let errorCode = getStatusCode(err.response);
         if (errorCode === "ALREADYEXISTS") {
           return {
-            path: path27,
+            path: path28,
             created: false
           };
         }
@@ -89816,20 +90300,20 @@ var require_delete = __commonJS({
   "node_modules/imapflow/lib/commands/delete.js"(exports, module) {
     "use strict";
     var { encodePath, normalizePath, enhanceCommandError } = require_tools2();
-    module.exports = async (connection, path27) => {
+    module.exports = async (connection, path28) => {
       if (![connection.states.AUTHENTICATED, connection.states.SELECTED].includes(connection.state)) {
         return;
       }
-      path27 = normalizePath(connection, path27);
-      if (connection.state === connection.states.SELECTED && connection.mailbox.path === path27) {
+      path28 = normalizePath(connection, path28);
+      if (connection.state === connection.states.SELECTED && connection.mailbox.path === path28) {
         await connection.run("CLOSE");
       }
       let response;
       try {
         let map = {
-          path: path27
+          path: path28
         };
-        response = await connection.exec("DELETE", [{ type: "ATOM", value: encodePath(connection, path27) }]);
+        response = await connection.exec("DELETE", [{ type: "ATOM", value: encodePath(connection, path28) }]);
         response.next();
         return map;
       } catch (err) {
@@ -89846,23 +90330,23 @@ var require_rename = __commonJS({
   "node_modules/imapflow/lib/commands/rename.js"(exports, module) {
     "use strict";
     var { encodePath, normalizePath, enhanceCommandError } = require_tools2();
-    module.exports = async (connection, path27, newPath) => {
+    module.exports = async (connection, path28, newPath) => {
       if (![connection.states.AUTHENTICATED, connection.states.SELECTED].includes(connection.state)) {
         return;
       }
-      path27 = normalizePath(connection, path27);
+      path28 = normalizePath(connection, path28);
       newPath = normalizePath(connection, newPath);
-      if (connection.state === connection.states.SELECTED && connection.mailbox.path === path27) {
+      if (connection.state === connection.states.SELECTED && connection.mailbox.path === path28) {
         await connection.run("CLOSE");
       }
       let response;
       try {
         let map = {
-          path: path27,
+          path: path28,
           newPath
         };
         response = await connection.exec("RENAME", [
-          { type: "ATOM", value: encodePath(connection, path27) },
+          { type: "ATOM", value: encodePath(connection, path28) },
           { type: "ATOM", value: encodePath(connection, newPath) }
         ]);
         response.next();
@@ -89909,14 +90393,14 @@ var require_subscribe = __commonJS({
   "node_modules/imapflow/lib/commands/subscribe.js"(exports, module) {
     "use strict";
     var { encodePath, normalizePath, enhanceCommandError } = require_tools2();
-    module.exports = async (connection, path27) => {
+    module.exports = async (connection, path28) => {
       if (![connection.states.AUTHENTICATED, connection.states.SELECTED].includes(connection.state)) {
         return;
       }
-      path27 = normalizePath(connection, path27);
+      path28 = normalizePath(connection, path28);
       let response;
       try {
-        response = await connection.exec("SUBSCRIBE", [{ type: "ATOM", value: encodePath(connection, path27) }]);
+        response = await connection.exec("SUBSCRIBE", [{ type: "ATOM", value: encodePath(connection, path28) }]);
         response.next();
         return true;
       } catch (err) {
@@ -89933,14 +90417,14 @@ var require_unsubscribe = __commonJS({
   "node_modules/imapflow/lib/commands/unsubscribe.js"(exports, module) {
     "use strict";
     var { encodePath, normalizePath, enhanceCommandError } = require_tools2();
-    module.exports = async (connection, path27) => {
+    module.exports = async (connection, path28) => {
       if (![connection.states.AUTHENTICATED, connection.states.SELECTED].includes(connection.state)) {
         return;
       }
-      path27 = normalizePath(connection, path27);
+      path28 = normalizePath(connection, path28);
       let response;
       try {
-        response = await connection.exec("UNSUBSCRIBE", [{ type: "ATOM", value: encodePath(connection, path27) }]);
+        response = await connection.exec("UNSUBSCRIBE", [{ type: "ATOM", value: encodePath(connection, path28) }]);
         response.next();
         return true;
       } catch (err) {
@@ -90746,11 +91230,11 @@ var require_status = __commonJS({
     var { encodePath, normalizePath, buildStatusQueryAttributes, isRev2Active } = require_tools2();
     var { parseStatusList } = require_status_fields();
     var MAILBOX_UPDATERS = {
-      messages: (value, connection, path27) => {
+      messages: (value, connection, path28) => {
         let prevCount = connection.mailbox.exists;
         if (prevCount !== value) {
           connection.mailbox.exists = value;
-          connection.emit("exists", { path: path27, count: value, prevCount });
+          connection.emit("exists", { path: path28, count: value, prevCount });
         }
       },
       uidNext: (value, connection) => {
@@ -90760,28 +91244,28 @@ var require_status = __commonJS({
         connection.mailbox.highestModseq = value;
       }
     };
-    module.exports = async (connection, path27, query) => {
-      if (![connection.states.AUTHENTICATED, connection.states.SELECTED].includes(connection.state) || !path27) {
+    module.exports = async (connection, path28, query) => {
+      if (![connection.states.AUTHENTICATED, connection.states.SELECTED].includes(connection.state) || !path28) {
         return false;
       }
-      path27 = normalizePath(connection, path27);
-      let encodedPath = encodePath(connection, path27);
+      path28 = normalizePath(connection, path28);
+      let encodedPath = encodePath(connection, path28);
       let attributes = [{ type: encodedPath.indexOf("&") >= 0 ? "STRING" : "ATOM", value: encodedPath }];
       let queryAttributes = buildStatusQueryAttributes(connection, query);
       let syntheticRecent = query && query.recent && isRev2Active(connection);
       if (!queryAttributes.length) {
-        return syntheticRecent ? { path: path27, recent: 0 } : false;
+        return syntheticRecent ? { path: path28, recent: 0 } : false;
       }
       attributes.push(queryAttributes);
       let response;
       try {
-        let map = { path: path27 };
+        let map = { path: path28 };
         response = await connection.exec("STATUS", attributes, {
           untagged: {
             // STATUS response: * STATUS <mailbox> (<key> <value> <key> <value> ...)
             // Parsed as alternating key-value pairs (i % 2 pattern).
             STATUS: async (untagged) => {
-              let updateCurrent = connection.state === connection.states.SELECTED && path27 === connection.mailbox.path;
+              let updateCurrent = connection.state === connection.states.SELECTED && path28 === connection.mailbox.path;
               let list = untagged.attributes && Array.isArray(untagged.attributes[1]) ? untagged.attributes[1] : false;
               if (!list) {
                 return;
@@ -90789,7 +91273,7 @@ var require_status = __commonJS({
               parseStatusList(list, (key, value) => {
                 map[key] = value;
                 if (updateCurrent && MAILBOX_UPDATERS[key]) {
-                  MAILBOX_UPDATERS[key](value, connection, path27);
+                  MAILBOX_UPDATERS[key](value, connection, path28);
                 }
               });
             }
@@ -90802,9 +91286,9 @@ var require_status = __commonJS({
         return map;
       } catch (err) {
         if (err.responseStatus === "NO") {
-          let folders = await connection.run("LIST", "", path27, { listOnly: true });
+          let folders = await connection.run("LIST", "", path28, { listOnly: true });
           if (folders && !folders.length) {
-            let error2 = new Error(`Mailbox doesn't exist: ${path27}`);
+            let error2 = new Error(`Mailbox doesn't exist: ${path28}`);
             error2.code = "NotFound";
             error2.response = err;
             throw error2;
@@ -90951,15 +91435,15 @@ var require_quota = __commonJS({
   "node_modules/imapflow/lib/commands/quota.js"(exports, module) {
     "use strict";
     var { encodePath, normalizePath, enhanceCommandError, parseUintValue, isUnsafeKey } = require_tools2();
-    module.exports = async (connection, path27) => {
-      if (![connection.states.AUTHENTICATED, connection.states.SELECTED].includes(connection.state) || !path27) {
+    module.exports = async (connection, path28) => {
+      if (![connection.states.AUTHENTICATED, connection.states.SELECTED].includes(connection.state) || !path28) {
         return;
       }
       if (!connection.capabilities.has("QUOTA")) {
         return false;
       }
-      path27 = normalizePath(connection, path27);
-      let map = { path: path27 };
+      path28 = normalizePath(connection, path28);
+      let map = { path: path28 };
       let processQuotaResponse = (untagged) => {
         let attributes = untagged.attributes && untagged.attributes[1];
         if (!attributes || !attributes.length) {
@@ -90999,7 +91483,7 @@ var require_quota = __commonJS({
       let quotaFound = false;
       let response;
       try {
-        response = await connection.exec("GETQUOTAROOT", [{ type: "ATOM", value: encodePath(connection, path27) }], {
+        response = await connection.exec("GETQUOTAROOT", [{ type: "ATOM", value: encodePath(connection, path28) }], {
           untagged: {
             // QUOTAROOT response tells us which quota root applies to this mailbox.
             // A mailbox may have zero or one quota root.
@@ -91142,15 +91626,15 @@ var require_idle = __commonJS({
       }
     }
     async function pollOnce2(connection, session) {
-      let path27 = connection.mailbox && connection.mailbox.path;
+      let path28 = connection.mailbox && connection.mailbox.path;
       switch (connection.missingIdleCommand) {
         case "SELECT":
           connection.log.debug({ src: "c", msg: `Running SELECT to detect changes in folder`, cid: connection.id });
-          await connection.runInternal("SELECT", path27, { readOnly: session.selectCommand.command === "EXAMINE" });
+          await connection.runInternal("SELECT", path28, { readOnly: session.selectCommand.command === "EXAMINE" });
           break;
         case "STATUS": {
           connection.log.debug({ src: "c", msg: `Running STATUS to detect changes in folder`, cid: connection.id });
-          let status = await connection.runInternal("STATUS", path27, {
+          let status = await connection.runInternal("STATUS", path28, {
             messages: true,
             uidNext: true,
             uidValidity: true,
@@ -92837,12 +93321,12 @@ var require_imap_flow = __commonJS({
           this.emit("flags", updateEvent);
         }
       }
-      async ensureSelectedMailbox(path27) {
-        if (!path27) {
+      async ensureSelectedMailbox(path28) {
+        if (!path28) {
           return false;
         }
-        if (!this.mailbox || !comparePaths(this, this.mailbox.path, path27)) {
-          return await this.mailboxOpen(path27);
+        if (!this.mailbox || !comparePaths(this, this.mailbox.path, path28)) {
+          return await this.mailboxOpen(path28);
         }
         return true;
       }
@@ -93257,9 +93741,9 @@ var require_imap_flow = __commonJS({
        * let quota = await client.getQuota();
        * console.log(quota.storage.used, quota.storage.limit)
        */
-      async getQuota(path27) {
-        path27 = path27 || "INBOX";
-        return await this.run("QUOTA", path27);
+      async getQuota(path28) {
+        path28 = path28 || "INBOX";
+        return await this.run("QUOTA", path28);
       }
       /**
        * @typedef {Object} ListResponse
@@ -93369,8 +93853,8 @@ var require_imap_flow = __commonJS({
        * console.log(info.path);
        * // "INBOX.parent.child" // assumes "INBOX." as namespace prefix and "." as delimiter
        */
-      async mailboxCreate(path27) {
-        return await this.run("CREATE", path27);
+      async mailboxCreate(path28) {
+        return await this.run("CREATE", path28);
       }
       /**
        * @typedef {Object} MailboxRenameResponse
@@ -93391,8 +93875,8 @@ var require_imap_flow = __commonJS({
        * console.log(info.newPath);
        * // "INBOX.Important stuff ❗️" // assumes "INBOX." as namespace prefix
        */
-      async mailboxRename(path27, newPath) {
-        return await this.run("RENAME", path27, newPath);
+      async mailboxRename(path28, newPath) {
+        return await this.run("RENAME", path28, newPath);
       }
       /**
        * @typedef {Object} MailboxDeleteResponse
@@ -93411,8 +93895,8 @@ var require_imap_flow = __commonJS({
        * console.log(info.path);
        * // "INBOX.Important stuff ❗️" // assumes "INBOX." as namespace prefix
        */
-      async mailboxDelete(path27) {
-        return await this.run("DELETE", path27);
+      async mailboxDelete(path28) {
+        return await this.run("DELETE", path28);
       }
       /**
        * Subscribes to a mailbox
@@ -93423,8 +93907,8 @@ var require_imap_flow = __commonJS({
        * @example
        * await client.mailboxSubscribe('Important stuff ❗️');
        */
-      async mailboxSubscribe(path27) {
-        return await this.run("SUBSCRIBE", path27);
+      async mailboxSubscribe(path28) {
+        return await this.run("SUBSCRIBE", path28);
       }
       /**
        * Unsubscribes from a mailbox
@@ -93435,8 +93919,8 @@ var require_imap_flow = __commonJS({
        * @example
        * await client.mailboxUnsubscribe('Important stuff ❗️');
        */
-      async mailboxUnsubscribe(path27) {
-        return await this.run("UNSUBSCRIBE", path27);
+      async mailboxUnsubscribe(path28) {
+        return await this.run("UNSUBSCRIBE", path28);
       }
       /**
        * Opens a mailbox to access messages. You can perform message operations only against an opened mailbox.
@@ -93454,8 +93938,8 @@ var require_imap_flow = __commonJS({
        * console.log(mailbox.exists);
        * // 125
        */
-      async mailboxOpen(path27, options) {
-        return await this.run("SELECT", path27, options);
+      async mailboxOpen(path28, options) {
+        return await this.run("SELECT", path28, options);
       }
       /**
        * Closes a previously opened mailbox
@@ -93502,8 +93986,8 @@ var require_imap_flow = __commonJS({
        * console.log(status.unseen);
        * // 123
        */
-      async status(path27, query) {
-        return await this.run("STATUS", path27, query);
+      async status(path28, query) {
+        return await this.run("STATUS", path28, query);
       }
       /**
        * Starts listening for new or deleted messages from the currently opened mailbox. Only required if {@link ImapFlow#disableAutoIdle} is set to `true`
@@ -93757,8 +94241,8 @@ var require_imap_flow = __commonJS({
        * @example
        * await client.append('INBOX', rawMessageBuffer, ['\\Seen'], new Date(2000, 1, 1));
        */
-      async append(path27, content, flags, idate) {
-        return await this.run("APPEND", path27, content, flags, idate) || false;
+      async append(path28, content, flags, idate) {
+        return await this.run("APPEND", path28, content, flags, idate) || false;
       }
       /**
        * @typedef {Object} CopyResponseObject
@@ -94602,7 +95086,7 @@ var require_imap_flow = __commonJS({
               await new Promise((resolve2) => setImmediate(resolve2));
             }
             const lock = this.locks.shift();
-            const { resolve, reject, path: path27, options, lockId } = lock;
+            const { resolve, reject, path: path28, options, lockId } = lock;
             if (lock.acquireTimer) {
               clearTimeout(lock.acquireTimer);
               lock.acquireTimer = null;
@@ -94618,7 +95102,7 @@ var require_imap_flow = __commonJS({
                 this.log.warn({
                   msg: "Mailbox lock held for a long time",
                   lockId: lock.lockId,
-                  path: path27,
+                  path: path28,
                   heldFor: Date.now() - lock.heldAt,
                   /* c8 ignore next */
                   // the held-lock-warning diagnostic with a description set is a timing-dependent log detail
@@ -94654,52 +95138,52 @@ var require_imap_flow = __commonJS({
               }
             };
             if (!this.usable || !this.socket || this.socket.destroyed) {
-              this.log.trace({ msg: "Failed to acquire mailbox lock", path: path27, lockId, idling: this.idling });
+              this.log.trace({ msg: "Failed to acquire mailbox lock", path: path28, lockId, idling: this.idling });
               let error2 = new Error("Connection not available");
               error2.code = "NoConnection";
               reject(error2);
               continue;
             }
-            if (this.mailbox && this.mailbox.path === path27 && !!this.mailbox.readOnly === !!options.readOnly) {
+            if (this.mailbox && this.mailbox.path === path28 && !!this.mailbox.readOnly === !!options.readOnly) {
               this.log.trace({
                 msg: "Mailbox lock acquired [existing]",
-                path: path27,
+                path: path28,
                 lockId,
                 idling: this.idling,
                 ...options.description && { description: options.description }
               });
               this.currentLock = lock;
               armHeldTimer();
-              resolve({ path: path27, release });
+              resolve({ path: path28, release });
               break;
             }
             try {
-              await this.mailboxOpen(path27, options);
+              await this.mailboxOpen(path28, options);
               this.log.trace({
                 msg: "Mailbox lock acquired [selected]",
-                path: path27,
+                path: path28,
                 lockId,
                 idling: this.idling,
                 ...options.description && { description: options.description }
               });
               this.currentLock = lock;
               armHeldTimer();
-              resolve({ path: path27, release });
+              resolve({ path: path28, release });
               break;
             } catch (err) {
               if (err.responseStatus === "NO") {
                 try {
-                  let folders = await this.run("LIST", "", path27, { listOnly: true });
+                  let folders = await this.run("LIST", "", path28, { listOnly: true });
                   if (!folders || !folders.length) {
                     err.mailboxMissing = true;
                   }
                 } catch (E) {
-                  this.log.trace({ msg: "Failed to verify failed mailbox", path: path27, err: E });
+                  this.log.trace({ msg: "Failed to verify failed mailbox", path: path28, err: E });
                 }
               }
               this.log.trace({
                 msg: "Failed to acquire mailbox lock",
-                path: path27,
+                path: path28,
                 lockId,
                 idling: this.idling,
                 ...options.description && { description: options.description },
@@ -94738,13 +95222,13 @@ var require_imap_flow = __commonJS({
        *   lock.release();
        * }
        */
-      getMailboxLock(path27, options) {
+      getMailboxLock(path28, options) {
         options = options || {};
-        path27 = normalizePath(this, path27);
+        path28 = normalizePath(this, path28);
         let lockId = ++this.lockCounter;
         this.log.trace({
           msg: "Requesting lock",
-          path: path27,
+          path: path28,
           lockId,
           ...options.description && { description: options.description },
           activeLock: this.currentLock ? {
@@ -94753,7 +95237,7 @@ var require_imap_flow = __commonJS({
           } : null
         });
         let lockPromise = new Promise((resolve, reject) => {
-          let lockEntry = { resolve, reject, path: path27, options, lockId };
+          let lockEntry = { resolve, reject, path: path28, options, lockId };
           this.locks.push(lockEntry);
           if (Number(options.acquireTimeout) > 0) {
             lockEntry.acquireTimer = setTimeout(() => {
@@ -94842,16 +95326,16 @@ var require_imap_flow = __commonJS({
 });
 
 // src/mail/mail-fetcher.ts
-import fs24 from "node:fs/promises";
-import path25 from "node:path";
+import fs25 from "node:fs/promises";
+import path26 from "node:path";
 async function saveAttachments(attachments, downloadDir) {
   if (attachments.length === 0) return [];
-  await fs24.mkdir(downloadDir, { recursive: true });
+  await fs25.mkdir(downloadDir, { recursive: true });
   const saved = [];
   for (const a of attachments) {
-    const name = path25.basename(a.filename) || "attachment";
-    const savedPath = path25.join(downloadDir, name);
-    await fs24.writeFile(savedPath, a.content);
+    const name = path26.basename(a.filename) || "attachment";
+    const savedPath = path26.join(downloadDir, name);
+    await fs25.writeFile(savedPath, a.content);
     saved.push({ filename: name, savedPath, size: a.content.length });
   }
   return saved;
@@ -94981,8 +95465,8 @@ var init_mail_fetcher = __esm({
 });
 
 // src/tools/fetch-mail.ts
-import os17 from "node:os";
-import path26 from "node:path";
+import os18 from "node:os";
+import path27 from "node:path";
 function registerFetchMailTool(server, deps = {}) {
   const makeFetcher = deps.fetcherFactory ?? ((creds) => new ImapflowMailFetcher(creds));
   server.registerTool(
@@ -95044,7 +95528,7 @@ var init_fetch_mail = __esm({
     init_mail_fetcher();
     init_auth_error();
     init_validate();
-    DEFAULT_DOWNLOAD_DIR = path26.join(os17.homedir(), ".cogent", "mail-downloads");
+    DEFAULT_DOWNLOAD_DIR = path27.join(os18.homedir(), ".cogent", "mail-downloads");
   }
 });
 

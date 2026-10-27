@@ -293,9 +293,14 @@ export function isMetaNonAnswer(text) {
 
 /**
  * Hard ceiling on how long ANY marker may suppress this hook, whatever the writer stamped.
- * MUST equal wake-inflight.ts INFLIGHT_MAX_MS.
+ * MUST equal wake-inflight.ts INFLIGHT_LATE_HOLD_MAX_MS.
+ *
+ * COG-95: was 30 min. The bridge now holds a marker while it waits for a codex turn's LATE answer
+ * (up to 4 h after its wake timed out). A 30-min cap cut that hold short: this hook then told the
+ * agent its message was unanswered, and the agent answered a second time beside the late delivery.
+ * 5 h = the 4 h window + the message's queue wait + the wake's own timeout + the writer's grace.
  */
-export const INFLIGHT_MAX_MS = 1_800_000; // 30 min
+export const INFLIGHT_MAX_MS = 18_000_000; // 5 h
 
 /**
  * Message ids that rail B is CURRENTLY handling — read from the wake-inflight marker
