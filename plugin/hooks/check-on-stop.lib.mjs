@@ -369,3 +369,74 @@ export function buildBlockReason(items, { firstUse }) {
   }
   return reason;
 }
+
+/**
+ * COG-93: `~/.cogent/wake-log/<sha256(cwd)[..16]>.jsonl` — MUST equal src/services/wake-log.ts
+ * wakeLogPath(). HOMEDIR-based like the in-flight marker, for the same reason (see check-on-stop.mjs).
+ */
+export function wakeLogPathFor(cwd) {
+  return path.join(os.homedir(), ".cogent", "wake-log", `${credHashForCwd(cwd)}.jsonl`);
+}
+
+/** Wake-log rows from the JSONL text; a line that does not parse is skipped, never fatal. */
+export function parseWakeLog(text) {
+  const rows = [];
+  for (const line of String(text || "").split("\n")) {
+    if (!line.trim()) continue;
+    try {
+      const r = JSON.parse(line);
+      if (r && typeof r === "object") rows.push(r);
+    } catch {
+      /* torn or foreign line */
+    }
+  }
+  return rows;
+}
+
+/** The newest `ts` among `rows`, or `floor` when none is newer (ISO strings order as text). */
+export function newestWakeTs(rows, floor = "") {
+  let newest = floor || "";
+  for (const r of rows) if (typeof r?.ts === "string" && r.ts > newest) newest = r.ts;
+  return newest;
+}
+
+/** Wake outcomes that delivered no answer — src/services/wake-log.ts WakeOutcome. */
+export const FAILED_WAKE_OUTCOMES = new Set(["failed", "threw", "late-none"]);
+
+/**
+ * COG-93: wakes for `me`, written after `sinceTs`, that delivered no answer AND changed files in this
+ * checkout. A wake runs without a transcript in this session, so nothing else tells the agent that its
+ * worktree now holds a half-done edit. A row handed to a late wait (`delivery` "pending-late") is not a
+ * failure yet: its outcome comes in the late row.
+ */
+export function selectFailedEditWakes(rows, { me, sinceTs }) {
+  return rows.filter(
+    (r) =>
+      r &&
+      r.toPeerId === me &&
+      FAILED_WAKE_OUTCOMES.has(r.outcome) &&
+      r.delivery !== "pending-late" &&
+      Array.isArray(r.filesChanged) &&
+      r.filesChanged.length > 0 &&
+      typeof r.ts === "string" &&
+      r.ts > sinceTs,
+  );
+}
+
+/** The block reason for {@link selectFailedEditWakes}' rows. */
+export function buildFailedWakeReason(rows) {
+  const n = rows.length;
+  const lines = rows.slice(0, 10).map((r) => {
+    const files = r.filesChanged.slice(0, 10).join(", ") + (r.filesChanged.length > 10 ? ` and ${r.filesChanged.length - 10} more` : "");
+    const snippet = String(r.messagePreview || "").replace(/\s+/g, " ").slice(0, 120);
+    return ` - ${r.ts} from ${r.fromPeerId}: "${snippet}" → changed: ${files}`;
+  });
+  return (
+    `Cogent woke you for ${n} message${n === 1 ? "" : "s"} outside this conversation and the wake ` +
+    `FAILED after files in this checkout had changed (the sender was told no reply was captured):\n` +
+    lines.join("\n") +
+    `\n\nYou did not make these changes in this conversation, and they may be half-done. Look at them ` +
+    `(git status / git diff / git log) before you continue, and tell your user what you found. If one ` +
+    `belongs to an unanswered message, finish or undo that work as part of your answer.`
+  );
+}

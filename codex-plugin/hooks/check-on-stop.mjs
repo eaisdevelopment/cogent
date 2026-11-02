@@ -22,6 +22,11 @@ import {
   buildAgentSessionRecord,
   chooseHookCredentials,
   rootFromTranscriptPath,
+  wakeLogPathFor,
+  parseWakeLog,
+  newestWakeTs,
+  selectFailedEditWakes,
+  buildFailedWakeReason,
 } from "./check-on-stop.lib.mjs";
 
 const HTTP_TIMEOUT_MS = 5000; // < the 8s hook timeout; only bites on a degraded relay
@@ -154,12 +159,47 @@ async function main() {
   const me = creds.peerId || (await peerIdFromState(env, cwd));
   if (!me) return process.exit(0); // can't identify self → stay silent
 
-  const scope = parseScope(env.COGENT_CHECK_ON_STOP_SCOPE || "directed,human-broadcast");
-  if (!scope.directed && !scope.humanBroadcast) return process.exit(0);
-
   const sPath = statePath(creds.sessionId, me, env);
-  const st = (await readJson(sPath)) || {}; // { surfaced: string[], primed?, notified? }
+  const st = (await readJson(sPath)) || {}; // { surfaced: string[], primed?, notified?, wakeSince? }
   const surfaced = Array.isArray(st.surfaced) ? st.surfaced : [];
+
+  // COG-93: failed wakes that changed files in this checkout since the last look. The first run with
+  // this check only records where the log ends (wakeSince), like C's priming: no history dump.
+  let wakeRows = [];
+  try {
+    wakeRows = parseWakeLog(await fsp.readFile(wakeLogPathFor(cwd), "utf-8"));
+  } catch {
+    /* no wakes logged for this checkout */
+  }
+  const failedWakes = typeof st.wakeSince === "string" ? selectFailedEditWakes(wakeRows, { me, sinceTs: st.wakeSince }) : [];
+  const next = { ...st, wakeSince: newestWakeTs(wakeRows, st.wakeSince) || new Date().toISOString() };
+
+  const fresh = await freshUnanswered({ env, cwd, me, creds, st, surfaced, next });
+
+  if (fresh.length === 0 && failedWakes.length === 0) {
+    await writeJson(sPath, next);
+    return process.exit(0); // nothing new → silent (zero noise)
+  }
+
+  const parts = [];
+  if (fresh.length > 0) {
+    parts.push(buildBlockReason(fresh, { firstUse: st.notified !== true }));
+    next.notified = true;
+  }
+  if (failedWakes.length > 0) parts.push(buildFailedWakeReason(failedWakes));
+  await writeJson(sPath, next);
+  process.stdout.write(JSON.stringify({ decision: "block", reason: parts.join("\n\n") }));
+  return process.exit(0);
+}
+
+/**
+ * C proper: directed / human-broadcast messages that are unanswered and not yet shown. Updates `next`
+ * (surfaced, primed, notified) in place. [] whenever the scope is off or the relay cannot be read —
+ * silent, retried at the next Stop.
+ */
+async function freshUnanswered({ env, cwd, me, creds, st, surfaced, next }) {
+  const scope = parseScope(env.COGENT_CHECK_ON_STOP_SCOPE || "directed,human-broadcast");
+  if (!scope.directed && !scope.humanBroadcast) return [];
 
   // Silent, bounded poll of the relay for the FULL per-me history (no cursor — the
   // queue model re-attributes replies across turns; a cursor would mis-attribute).
@@ -173,11 +213,11 @@ async function main() {
       headers: { authorization: `Bearer ${creds.token}` },
       signal: AbortSignal.timeout(HTTP_TIMEOUT_MS),
     });
-    if (!res.ok) return process.exit(0); // auth/relay error → silent, retry next Stop
+    if (!res.ok) return []; // auth/relay error → silent, retry next Stop
     const body = await res.json();
     messages = Array.isArray(body.messages) ? body.messages : [];
   } catch {
-    return process.exit(0); // network/timeout → silent
+    return []; // network/timeout → silent
   }
 
   const all = selectUnanswered({ messages, me, scope }).items;
@@ -193,27 +233,13 @@ async function main() {
 
   // First run: PRIME — record the current backlog as already-surfaced so C never
   // dumps history on install. It catches messages that arrive AFTER it is active.
-  if (!st.primed) {
-    await writeJson(sPath, { surfaced: unansweredIds, primed: true, notified: st.notified === true });
-    return process.exit(0);
-  }
-
-  // New = unanswered we have not already shown. Prune "surfaced" to only still-unanswered
+  // New = unanswered we have not already shown. "surfaced" is pruned to the still-unanswered
   // ids (bounded growth): once a message is answered it leaves both sets.
-  const fresh = items.filter((m) => !surfaced.includes(m.id));
-  const nextSurfaced = unansweredIds; // union of (already-surfaced ∩ unanswered) and fresh
-
-  if (fresh.length === 0) {
-    await writeJson(sPath, { surfaced: nextSurfaced, primed: true, notified: st.notified === true });
-    return process.exit(0); // nothing new → silent (zero noise)
-  }
-
-  const firstUse = st.notified !== true;
-  await writeJson(sPath, { surfaced: nextSurfaced, primed: true, notified: true });
-
-  const reason = buildBlockReason(fresh, { firstUse });
-  process.stdout.write(JSON.stringify({ decision: "block", reason }));
-  return process.exit(0);
+  const fresh = st.primed ? items.filter((m) => !surfaced.includes(m.id)) : [];
+  next.surfaced = unansweredIds;
+  next.primed = true;
+  next.notified = st.notified === true;
+  return fresh;
 }
 
 // Never break the agent's Stop on our account — any unexpected error → silent exit 0.

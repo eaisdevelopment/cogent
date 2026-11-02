@@ -940,6 +940,615 @@ var init_watch = __esm({
   }
 });
 
+// src/logger.ts
+import fs5 from "node:fs";
+import path5 from "node:path";
+function initLogger(level, logDir) {
+  logger.close();
+  logger = new Logger(level, logDir);
+}
+var LEVELS, Logger, logger;
+var init_logger = __esm({
+  "src/logger.ts"() {
+    "use strict";
+    LEVELS = {
+      debug: 0,
+      info: 1,
+      warn: 2,
+      error: 3
+    };
+    Logger = class {
+      threshold;
+      textStream = null;
+      jsonStream = null;
+      constructor(level, logDir) {
+        this.threshold = LEVELS[level];
+        if (logDir) {
+          fs5.mkdirSync(logDir, { recursive: true });
+          const now = (/* @__PURE__ */ new Date()).toISOString().replace(/:/g, "-").replace(/\.\d{3}Z$/, "");
+          const textFile = `bridge-${now}.log`;
+          const jsonFile = `bridge-${now}.json.log`;
+          this.textStream = fs5.createWriteStream(path5.join(logDir, textFile), {
+            flags: "a"
+          });
+          this.jsonStream = fs5.createWriteStream(path5.join(logDir, jsonFile), {
+            flags: "a"
+          });
+        }
+      }
+      log(level, message, data) {
+        if (LEVELS[level] < this.threshold) return;
+        const timestamp = (/* @__PURE__ */ new Date()).toISOString();
+        const humanLine = `${timestamp} [${level.toUpperCase()}] ${message}
+`;
+        try {
+          process.stderr.write(humanLine);
+        } catch {
+        }
+        this.textStream?.write(humanLine);
+        const entry = { timestamp, level, message };
+        if (data !== void 0) {
+          entry.data = data;
+        }
+        this.jsonStream?.write(JSON.stringify(entry) + "\n");
+      }
+      debug(message, data) {
+        this.log("debug", message, data);
+      }
+      info(message, data) {
+        this.log("info", message, data);
+      }
+      warn(message, data) {
+        this.log("warn", message, data);
+      }
+      error(message, data) {
+        this.log("error", message, data);
+      }
+      close() {
+        this.textStream?.end();
+        this.jsonStream?.end();
+      }
+    };
+    logger = new Logger("info");
+  }
+});
+
+// src/services/wake-ownership.ts
+import crypto2 from "node:crypto";
+import fs6 from "node:fs";
+import os3 from "node:os";
+import path6 from "node:path";
+function agentSessionId(env = process.env) {
+  if (env.COGENT_PLATFORM && env.COGENT_PLATFORM !== "cc") return void 0;
+  const id = env.CLAUDE_CODE_SESSION_ID?.trim();
+  return id && id.length <= 128 ? id : void 0;
+}
+function startedWithoutClient() {
+  if (withoutClient === void 0) {
+    try {
+      withoutClient = fs6.fstatSync(0).isCharacterDevice();
+    } catch {
+      withoutClient = false;
+    }
+  }
+  return withoutClient;
+}
+function hashCwd(cwd) {
+  return crypto2.createHash("sha256").update(path6.resolve(cwd)).digest("hex").slice(0, 16);
+}
+function bridgeDirFor(cwd, peerId) {
+  return path6.join(os3.homedir(), ".cogent", "bridges", `${hashCwd(cwd)}.${safe(peerId)}`);
+}
+function isReservedPeerName(peerId) {
+  return safe(peerId).toLowerCase() === safe(PROCESS_MARK).toLowerCase();
+}
+function registryText(value) {
+  return String(value ?? "").replace(/[^A-Za-z0-9._-]/g, "").slice(0, 64) || "unreadable";
+}
+function registryOwnerLabel(o) {
+  return `pid ${registryText(o.pid)} (v${registryText(o.version)}, ${JSON.stringify(String(o.endpoint ?? "").slice(0, 200))})`;
+}
+function pidAlive(pid) {
+  if (typeof pid !== "number" || !Number.isInteger(pid) || pid <= 0) return false;
+  if (pid === process.pid) return true;
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (err) {
+    return err?.code === "EPERM";
+  }
+}
+function announceBridge(cwd, peerId, version2, endpoint, sessionId = agentSessionId()) {
+  const dir = bridgeDirFor(cwd, peerId);
+  try {
+    fs6.mkdirSync(dir, { recursive: true });
+    const entry = {
+      pid: process.pid,
+      startedAt: PROCESS_STARTED_AT,
+      version: version2,
+      peerId,
+      endpoint,
+      cwd: path6.resolve(cwd),
+      parentPid: process.ppid,
+      ...sessionId ? { sessionId } : {},
+      platform: process.env.COGENT_PLATFORM || "cc",
+      // 🔴 A headless bridge never had a client to lose (review r7 FIX2-2, SEC2-2): when its launching
+      // shell exited, the changed parent read as "client gone" and any bridge that started took its name.
+      ...startedWithoutClient() ? { noClient: true } : {}
+    };
+    fs6.writeFileSync(path6.join(dir, `${process.pid}.json`), JSON.stringify(entry));
+  } catch (err) {
+    logger.debug(`wake-ownership: could not announce this bridge (${err.message})`);
+  }
+}
+function markBridgeDraining(cwd, peerId) {
+  const file = path6.join(bridgeDirFor(cwd, peerId), `${process.pid}.json`);
+  try {
+    const entry = JSON.parse(fs6.readFileSync(file, "utf-8"));
+    fs6.writeFileSync(file, JSON.stringify({ ...entry, draining: true }));
+  } catch {
+  }
+}
+function markBridgeProcess(cwd, version2) {
+  listLiveBridges(cwd, PROCESS_MARK);
+  announceBridge(cwd, PROCESS_MARK, version2, "");
+}
+function withdrawBridge(cwd, peerId) {
+  try {
+    fs6.unlinkSync(path6.join(bridgeDirFor(cwd, peerId), `${process.pid}.json`));
+  } catch {
+  }
+}
+function listLiveBridges(cwd, peerId) {
+  const dir = bridgeDirFor(cwd, peerId);
+  let names;
+  try {
+    names = fs6.readdirSync(dir);
+  } catch {
+    return [];
+  }
+  const live = [];
+  for (const name of names) {
+    if (!name.endsWith(".json")) continue;
+    const p = path6.join(dir, name);
+    let entry = null;
+    try {
+      entry = JSON.parse(fs6.readFileSync(p, "utf-8"));
+    } catch {
+      entry = null;
+    }
+    if (!entry || !pidAlive(entry.pid) || typeof entry.startedAt !== "number") {
+      try {
+        fs6.unlinkSync(p);
+      } catch {
+      }
+      continue;
+    }
+    live.push(entry);
+  }
+  live.sort((a, b) => b.startedAt - a.startedAt || b.pid - a.pid);
+  return live;
+}
+function listLiveBridgesInFolder(cwd) {
+  const prefix = `${hashCwd(cwd)}.`;
+  let dirs;
+  try {
+    dirs = fs6.readdirSync(path6.join(os3.homedir(), ".cogent", "bridges"));
+  } catch {
+    return [];
+  }
+  return dirs.filter((d) => d.startsWith(prefix)).flatMap((d) => listLiveBridges(cwd, d.slice(prefix.length)));
+}
+function checkWakeOwnership(cwd, peerId) {
+  let live;
+  try {
+    live = listLiveBridges(cwd, peerId);
+  } catch (err) {
+    logger.warn(`wake-ownership: could not read bridge registry (${err.message}) \u2014 assuming ownership`);
+    return { isOwner: true, liveCount: 1 };
+  }
+  if (live.length === 0) return { isOwner: true, liveCount: 0 };
+  const owner = live[0];
+  if (owner.pid === process.pid) return { isOwner: true, liveCount: live.length };
+  if (live.some((e) => e.pid === process.pid)) {
+    return {
+      isOwner: false,
+      owner: { pid: owner.pid, version: owner.version, endpoint: owner.endpoint },
+      liveCount: live.length
+    };
+  }
+  return { isOwner: true, liveCount: live.length + 1 };
+}
+var PROCESS_STARTED_AT, withoutClient, safe, PROCESS_MARK;
+var init_wake_ownership = __esm({
+  "src/services/wake-ownership.ts"() {
+    "use strict";
+    init_logger();
+    PROCESS_STARTED_AT = Date.now() - Math.floor(process.uptime() * 1e3);
+    safe = (s) => String(s).replace(/[^A-Za-z0-9._-]/g, "_");
+    PROCESS_MARK = ".process";
+  }
+});
+
+// src/services/stale-bridge-reaper.ts
+import { execFileSync } from "node:child_process";
+import fs7 from "node:fs";
+import path7 from "node:path";
+function isBridgeCommand(argv) {
+  if (!argv) return false;
+  if (/\.test\.|-test\.mjs|scripts\//.test(argv)) return false;
+  return /\/bridge\/cogent-bridge\.mjs(\s|$)/.test(argv) || // plugin bundle (Claude + codex)
+  /\/cogent-bridge(\s|$)/.test(argv) || // npx / global bin shim
+  /@essentialai\/cogent-bridge(-bundled)?\/dist\/(cli|index)\.js(\s|$)/.test(argv);
+}
+function versionFromArgv(argv) {
+  const m = argv.match(/\/cogent\/(\d+\.\d+\.\d+)\//);
+  return m ? m[1] : null;
+}
+function versionAtLeast(a, b) {
+  const pa = a.split(/[-+]/)[0].split(".").map(Number);
+  const pb = b.split(/[-+]/)[0].split(".").map(Number);
+  for (let i = 0; i < 3; i++) {
+    const x = pa[i] ?? 0;
+    const y = pb[i] ?? 0;
+    if (x !== y) return x > y;
+  }
+  return true;
+}
+function bridgeVersion(argv, readFile = (p) => fs7.readFileSync(p, "utf-8")) {
+  const fromPath = versionFromArgv(argv);
+  if (fromPath) return fromPath;
+  const candidates = [];
+  const pkg = argv.match(/(\S*\/@essentialai\/cogent-bridge(?:-bundled)?)\/dist\/(?:cli|index)\.js(?:\s|$)/);
+  if (pkg) candidates.push(path7.join(pkg[1], "package.json"));
+  const bin = argv.match(/(\S*\/node_modules)\/\.bin\/cogent-bridge(?:\s|$)/);
+  if (bin) {
+    for (const name of ["cogent-bridge", "cogent-bridge-bundled"]) {
+      candidates.push(path7.join(bin[1], "@essentialai", name, "package.json"));
+    }
+  }
+  for (const file of candidates) {
+    try {
+      const pj = JSON.parse(readFile(file));
+      if (typeof pj.name === "string" && pj.name.startsWith("@essentialai/cogent-bridge") && typeof pj.version === "string" && /^\d+\.\d+\.\d+/.test(pj.version)) {
+        return pj.version;
+      }
+    } catch {
+    }
+  }
+  return null;
+}
+function listProcesses() {
+  let out;
+  try {
+    out = execFileSync("ps", ["-eo", "pid=,ppid=,lstart=,args="], {
+      encoding: "utf-8",
+      maxBuffer: 8 * 1024 * 1024,
+      timeout: 1e4
+    });
+  } catch (err) {
+    logger.debug(`stale-bridge-reaper: ps failed (${err.message})`);
+    return [];
+  }
+  const procs = [];
+  for (const line of out.split("\n")) {
+    const m = line.match(/^\s*(\d+)\s+(\d+)\s+(\S+\s+\S+\s+\S+\s+\S+\s+\S+)\s+(.*)$/);
+    if (!m) continue;
+    const started = Date.parse(m[3]);
+    procs.push({
+      pid: Number(m[1]),
+      ppid: Number(m[2]),
+      startedAt: Number.isFinite(started) ? started : NaN,
+      argv: m[4]
+    });
+  }
+  return procs;
+}
+function processCwd(pid) {
+  try {
+    if (process.platform === "linux") {
+      return path7.resolve(fs7.readlinkSync(`/proc/${pid}/cwd`));
+    }
+    if (process.platform === "darwin") {
+      const out = execFileSync("lsof", ["-a", "-d", "cwd", "-p", String(pid), "-Fn"], {
+        encoding: "utf-8",
+        timeout: 1e4,
+        stdio: ["ignore", "pipe", "ignore"]
+      });
+      const line = out.split("\n").find((l) => l.startsWith("n"));
+      return line ? path7.resolve(line.slice(1)) : null;
+    }
+  } catch {
+  }
+  return null;
+}
+function canonicalPath(p) {
+  try {
+    return fs7.realpathSync(path7.resolve(p));
+  } catch {
+    return path7.resolve(p);
+  }
+}
+function ancestorsOf(pid, procs) {
+  const byPid = new Map(procs.map((p) => [p.pid, p]));
+  const seen = /* @__PURE__ */ new Set();
+  let cur = byPid.get(pid)?.ppid;
+  while (cur && cur > 1 && !seen.has(cur)) {
+    seen.add(cur);
+    cur = byPid.get(cur)?.ppid;
+  }
+  return seen;
+}
+function findStaleBridges(cwd, procs = listProcesses(), opts = {}) {
+  const versionOf = opts.versionOf ?? ((argv) => bridgeVersion(argv));
+  const selfPid = opts.selfPid ?? process.pid;
+  const selfStartedAt = opts.selfStartedAt ?? procs.find((p) => p.pid === selfPid)?.startedAt ?? NaN;
+  if (!Number.isFinite(selfStartedAt)) return [];
+  const cwdOf = opts.cwdOf ?? processCwd;
+  const announced = opts.announced ?? new Set(listLiveBridgesInFolder(cwd).map((e) => e.pid));
+  const target = canonicalPath(cwd);
+  const ancestors = ancestorsOf(selfPid, procs);
+  const out = [];
+  for (const p of procs) {
+    if (p.pid === selfPid) continue;
+    if (ancestors.has(p.pid)) continue;
+    if (!isBridgeCommand(p.argv)) continue;
+    if (announced.has(p.pid)) continue;
+    if (!Number.isFinite(p.startedAt) || p.startedAt >= selfStartedAt) continue;
+    const theirCwd = cwdOf(p.pid);
+    if (!theirCwd || canonicalPath(theirCwd) !== target) continue;
+    const ver = versionOf(p.argv);
+    if (!ver || versionAtLeast(ver, SELF_SUPERSESSION_VERSION)) continue;
+    out.push({
+      proc: p,
+      reason: `pid ${p.pid} (version ${ver}) is a cogent bridge in this exact checkout, started ${new Date(p.startedAt).toISOString()} \u2014 before this process \u2014 and is not in the bridge registry; version ${ver} predates ${SELF_SUPERSESSION_VERSION} self-supersession and would keep waking this session forever`
+    });
+  }
+  return out;
+}
+function reaperEnabled(env = process.env) {
+  const v = env.COGENT_REAP_STALE_BRIDGES;
+  if (v === void 0 || v === "") return true;
+  return !/^(0|false|no|off)$/i.test(v.trim());
+}
+function reapStaleBridges(cwd, opts = {}) {
+  if (!reaperEnabled()) {
+    logger.debug("stale-bridge-reaper: disabled by COGENT_REAP_STALE_BRIDGES");
+    return [];
+  }
+  let candidates;
+  try {
+    candidates = findStaleBridges(cwd, listProcesses(), opts);
+  } catch (err) {
+    logger.warn(`stale-bridge-reaper: scan failed (${err.message}) \u2014 reaping nothing`);
+    return [];
+  }
+  const reaped = [];
+  for (const c2 of candidates) {
+    logger.warn(`Cogent: terminating a stale bridge \u2014 ${c2.reason}`);
+    try {
+      process.kill(c2.proc.pid, "SIGTERM");
+      reaped.push(c2);
+    } catch (err) {
+      logger.warn(`stale-bridge-reaper: could not signal pid ${c2.proc.pid}: ${err.message}`);
+    }
+  }
+  if (reaped.length) {
+    logger.warn(
+      `Cogent: reaped ${reaped.length} stale bridge process(es) for this checkout, each at a version before ${SELF_SUPERSESSION_VERSION}: they could not stand down on their own.`
+    );
+  }
+  return reaped;
+}
+var SELF_SUPERSESSION_VERSION;
+var init_stale_bridge_reaper = __esm({
+  "src/services/stale-bridge-reaper.ts"() {
+    "use strict";
+    init_logger();
+    init_wake_ownership();
+    SELF_SUPERSESSION_VERSION = "3.23.4";
+  }
+});
+
+// src/services/duplicate-sessions.ts
+var duplicate_sessions_exports = {};
+__export(duplicate_sessions_exports, {
+  claudeSessionDirs: () => claudeSessionDirs,
+  duplicateSessionWarning: () => duplicateSessionWarning,
+  liveSessionCopies: () => liveSessionCopies,
+  olderSessionCopies: () => olderSessionCopies,
+  procStartOf: () => procStartOf,
+  readSessionRecords: () => readSessionRecords,
+  runStopDuplicateSessions: () => runStopDuplicateSessions,
+  selfAndAncestors: () => selfAndAncestors,
+  stopDuplicatesCommand: () => stopDuplicatesCommand,
+  stopSessionCopies: () => stopSessionCopies
+});
+import { execFileSync as execFileSync2 } from "node:child_process";
+import fs8 from "node:fs";
+import os4 from "node:os";
+import path8 from "node:path";
+function claudeSessionDirs(env = process.env) {
+  const dirs = [env.CLAUDE_CONFIG_DIR ? path8.join(env.CLAUDE_CONFIG_DIR, "sessions") : null, path8.join(os4.homedir(), ".claude", "sessions")];
+  return [...new Set(dirs.filter((d) => !!d).map((d) => path8.resolve(d)))];
+}
+function readSessionRecords(dirs) {
+  const out = [];
+  for (const dir of dirs) {
+    let names;
+    try {
+      names = fs8.readdirSync(dir);
+    } catch {
+      continue;
+    }
+    for (const name of names) {
+      if (!/^\d+\.json$/.test(name)) continue;
+      try {
+        const r = JSON.parse(fs8.readFileSync(path8.join(dir, name), "utf-8"));
+        if (!Number.isInteger(r?.pid) || typeof r.sessionId !== "string" || typeof r.procStart !== "string") continue;
+        out.push({
+          pid: r.pid,
+          sessionId: r.sessionId,
+          procStart: r.procStart,
+          ...typeof r.kind === "string" ? { kind: r.kind } : {},
+          ...typeof r.version === "string" ? { version: r.version } : {},
+          ...typeof r.startedAt === "number" ? { startedAt: r.startedAt } : {}
+        });
+      } catch {
+      }
+    }
+  }
+  return out;
+}
+function procStartOf(pid, platform = process.platform) {
+  try {
+    if (platform === "linux") {
+      const stat = fs8.readFileSync(`/proc/${pid}/stat`, "utf-8");
+      const rest = stat.slice(stat.lastIndexOf(")") + 2).split(" ");
+      const start = rest[22 - 3];
+      return start && /^\d+$/.test(start) ? start : void 0;
+    }
+    const out = execFileSync2("ps", ["-o", "lstart=", "-p", String(pid)], {
+      encoding: "utf-8",
+      timeout: 2e3,
+      env: { ...process.env, LC_ALL: "C", TZ: "UTC" }
+    }).trim();
+    return out || void 0;
+  } catch {
+    return void 0;
+  }
+}
+function alive(pid) {
+  try {
+    process.kill(pid, 0);
+  } catch (err) {
+    return err?.code === "EPERM";
+  }
+  if (process.platform === "linux") {
+    try {
+      const stat = fs8.readFileSync(`/proc/${pid}/stat`, "utf-8");
+      if (stat.slice(stat.lastIndexOf(")") + 2, stat.lastIndexOf(")") + 3) === "Z") return false;
+    } catch {
+      return false;
+    }
+  }
+  return true;
+}
+function liveSessionCopies(sessionId, deps = {}) {
+  const records = deps.records ?? readSessionRecords(claudeSessionDirs());
+  const startOf = deps.procStartOf ?? ((pid) => procStartOf(pid));
+  const isAlive = deps.isAlive ?? alive;
+  const seen = /* @__PURE__ */ new Set();
+  const copies = records.filter((r) => {
+    if (r.sessionId !== sessionId || r.kind !== void 0 && r.kind !== "interactive") return false;
+    if (seen.has(r.pid)) return false;
+    if (!isAlive(r.pid) || startOf(r.pid) !== r.procStart) return false;
+    seen.add(r.pid);
+    return true;
+  });
+  return copies.sort((a, b) => (a.startedAt ?? 0) - (b.startedAt ?? 0));
+}
+function olderSessionCopies(copies, keep) {
+  if (copies.length < 2) return [];
+  const newest = copies[copies.length - 1];
+  return copies.filter((c2) => c2 !== newest && !keep.has(c2.pid));
+}
+function selfAndAncestors() {
+  return /* @__PURE__ */ new Set([process.pid, ...ancestorsOf(process.pid, listProcesses())]);
+}
+function stopDuplicatesCommand(sessionId, version2) {
+  return `npx -y @essentialai/cogent-bridge@${version2} stop-duplicate-sessions ${sessionId}`;
+}
+function duplicateSessionWarning(sessionId, others, version2) {
+  if (others.length === 0) return null;
+  const list = others.map((c2) => `pid ${c2.pid}${c2.startedAt ? ` (started ${new Date(c2.startedAt).toISOString().slice(0, 16).replace("T", " ")} UTC` : " ("}${c2.version ? `, Claude Code ${c2.version}` : ""})`).join("; ");
+  return `${others.length} other live Claude Code process${others.length === 1 ? " is" : "es are"} running THIS session (${sessionId}): ${list}. Each can take turns in the same folder at the same time. Tell your user; to stop the older copies (the newest copy and the one running this command are kept), they can run: ${stopDuplicatesCommand(sessionId, version2)}`;
+}
+async function stopSessionCopies(sessionId, targets, keep, deps = {}) {
+  const startOf = deps.procStartOf ?? ((pid) => procStartOf(pid));
+  const isAlive = deps.isAlive ?? alive;
+  const kill = deps.kill ?? ((pid, sig) => process.kill(pid, sig));
+  const res = { stopped: [], killed: [], survivors: [], refused: [] };
+  const sent = [];
+  for (const t of targets) {
+    if (keep.has(t.pid)) {
+      res.refused.push({ pid: t.pid, why: "is this process or one of its ancestors" });
+    } else if (t.sessionId !== sessionId) {
+      res.refused.push({ pid: t.pid, why: `belongs to session ${t.sessionId}` });
+    } else if (startOf(t.pid) !== t.procStart) {
+      res.refused.push({ pid: t.pid, why: "start time no longer matches its session record (exited, or the pid was reused)" });
+    } else {
+      try {
+        kill(t.pid, "SIGTERM");
+        sent.push(t);
+      } catch (err) {
+        res.refused.push({ pid: t.pid, why: `SIGTERM failed: ${err.message}` });
+      }
+    }
+  }
+  if (sent.length === 0) return res;
+  await new Promise((r) => setTimeout(r, deps.graceMs ?? 5e3));
+  const gone = (t) => !isAlive(t.pid) || startOf(t.pid) !== t.procStart;
+  const killedNow = [];
+  for (const t of sent) {
+    if (gone(t)) {
+      res.stopped.push(t.pid);
+      continue;
+    }
+    try {
+      kill(t.pid, "SIGKILL");
+      killedNow.push(t);
+    } catch {
+      res.survivors.push(t.pid);
+    }
+  }
+  const deadline = Date.now() + (deps.killWaitMs ?? 2e3);
+  while (killedNow.some((t) => !gone(t)) && Date.now() < deadline) await new Promise((r) => setTimeout(r, 50));
+  for (const t of killedNow) (gone(t) ? res.killed : res.survivors).push(t.pid);
+  return res;
+}
+async function runStopDuplicateSessions(args, write = (s) => process.stdout.write(s)) {
+  const sessionId = args.find((a) => !a.startsWith("-"));
+  if (!sessionId || !/^[0-9a-f-]{8,}$/i.test(sessionId)) {
+    write("usage: cogent-bridge stop-duplicate-sessions <claude-session-id>\n");
+    return 2;
+  }
+  const keep = selfAndAncestors();
+  const copies = liveSessionCopies(sessionId);
+  const targets = olderSessionCopies(copies, keep);
+  write(`${copies.length} live Claude Code process(es) on session ${sessionId}.
+`);
+  const newest = copies[copies.length - 1];
+  for (const c2 of copies) {
+    if (c2 !== newest && keep.has(c2.pid)) {
+      write(`  kept pid ${c2.pid}: this command runs inside it \u2014 close that Claude Code session yourself.
+`);
+    }
+  }
+  if (targets.length === 0) {
+    write("Nothing to stop (the newest copy and the one running this command are always kept).\n");
+    return 0;
+  }
+  for (const t of targets) write(`  stopping pid ${t.pid}${t.version ? ` (Claude Code ${t.version})` : ""}
+`);
+  const r = await stopSessionCopies(sessionId, targets, keep);
+  if (r.stopped.length) write(`stopped (SIGTERM): ${r.stopped.join(", ")}
+`);
+  if (r.killed.length) write(`killed after the grace period (SIGKILL): ${r.killed.join(", ")}
+`);
+  for (const x of r.refused) write(`not stopped: pid ${x.pid} \u2014 ${x.why}
+`);
+  if (r.survivors.length) write(`STILL RUNNING: ${r.survivors.join(", ")}
+`);
+  return r.survivors.length || r.refused.some((x) => x.why.startsWith("SIGTERM failed")) ? 1 : 0;
+}
+var init_duplicate_sessions = __esm({
+  "src/services/duplicate-sessions.ts"() {
+    "use strict";
+    init_stale_bridge_reaper();
+  }
+});
+
 // node_modules/zod/v3/helpers/util.js
 var util, objectUtil, ZodParsedType, getParsedType;
 var init_util = __esm({
@@ -1345,8 +1954,8 @@ var init_parseUtil = __esm({
     init_errors();
     init_en();
     makeIssue = (params) => {
-      const { data, path: path28, errorMaps, issueData } = params;
-      const fullPath = [...path28, ...issueData.path || []];
+      const { data, path: path29, errorMaps, issueData } = params;
+      const fullPath = [...path29, ...issueData.path || []];
       const fullIssue = {
         ...issueData,
         path: fullPath
@@ -1626,11 +2235,11 @@ var init_types = __esm({
     init_parseUtil();
     init_util();
     ParseInputLazyPath = class {
-      constructor(parent, value, path28, key) {
+      constructor(parent, value, path29, key) {
         this._cachedPath = [];
         this.parent = parent;
         this.data = value;
-        this._path = path28;
+        this._path = path29;
         this._key = key;
       }
       get path() {
@@ -5082,10 +5691,10 @@ function assignProp(target, prop, value) {
     configurable: true
   });
 }
-function getElementAtPath(obj, path28) {
-  if (!path28)
+function getElementAtPath(obj, path29) {
+  if (!path29)
     return obj;
-  return path28.reduce((acc, key) => acc?.[key], obj);
+  return path29.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -5334,11 +5943,11 @@ function aborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path28, issues) {
+function prefixIssues(path29, issues) {
   return issues.map((iss) => {
     var _a;
     (_a = iss).path ?? (_a.path = []);
-    iss.path.unshift(path28);
+    iss.path.unshift(path29);
     return iss;
   });
 }
@@ -17144,8 +17753,8 @@ var require_utils = __commonJS({
       }
       return ind;
     }
-    function removeDotSegments(path28) {
-      let input = path28;
+    function removeDotSegments(path29) {
+      let input = path29;
       const output = [];
       let nextSlash = -1;
       let len = 0;
@@ -17344,8 +17953,8 @@ var require_schemes = __commonJS({
         wsComponent.secure = void 0;
       }
       if (wsComponent.resourceName) {
-        const [path28, query] = wsComponent.resourceName.split("?");
-        wsComponent.path = path28 && path28 !== "/" ? path28 : void 0;
+        const [path29, query] = wsComponent.resourceName.split("?");
+        wsComponent.path = path29 && path29 !== "/" ? path29 : void 0;
         wsComponent.query = query;
         wsComponent.resourceName = void 0;
       }
@@ -20698,12 +21307,12 @@ var require_dist = __commonJS({
         throw new Error(`Unknown format "${name}"`);
       return f;
     };
-    function addFormats(ajv, list, fs26, exportName) {
+    function addFormats(ajv, list, fs27, exportName) {
       var _a;
       var _b;
       (_a = (_b = ajv.opts.code).formats) !== null && _a !== void 0 ? _a : _b.formats = (0, codegen_1._)`require("ajv-formats/dist/formats").${exportName}`;
       for (const f of list)
-        ajv.addFormat(f, fs26[f]);
+        ajv.addFormat(f, fs27[f]);
     }
     module.exports = exports = formatsPlugin;
     Object.defineProperty(exports, "__esModule", { value: true });
@@ -21815,8 +22424,8 @@ var require_parseUtil = __commonJS({
     var errors_js_1 = require_errors2();
     var en_js_1 = __importDefault(require_en());
     var makeIssue2 = (params) => {
-      const { data, path: path28, errorMaps, issueData } = params;
-      const fullPath = [...path28, ...issueData.path || []];
+      const { data, path: path29, errorMaps, issueData } = params;
+      const fullPath = [...path29, ...issueData.path || []];
       const fullIssue = {
         ...issueData,
         path: fullPath
@@ -21970,11 +22579,11 @@ var require_types2 = __commonJS({
     var parseUtil_js_1 = require_parseUtil();
     var util_js_1 = require_util2();
     var ParseInputLazyPath2 = class {
-      constructor(parent, value, path28, key) {
+      constructor(parent, value, path29, key) {
         this._cachedPath = [];
         this.parent = parent;
         this.data = value;
-        this._path = path28;
+        this._path = path29;
         this._key = key;
       }
       get path() {
@@ -26475,8 +27084,8 @@ var init_stdio2 = __esm({
 // src/constants.ts
 import { createRequire } from "node:module";
 function resolveVersion() {
-  if ("3.25.13") {
-    return "3.25.13";
+  if ("3.25.14") {
+    return "3.25.14";
   }
   try {
     const require2 = createRequire(import.meta.url);
@@ -26520,79 +27129,6 @@ var init_instructions = __esm({
       "- Anything else: report it and stop.",
       "Never print the channel password or the Org_ID. When online, report the peer name, the channel name, whether you created or joined it, and the Slack command from the tool result with its placeholders left as they are."
     ].join("\n");
-  }
-});
-
-// src/logger.ts
-import fs5 from "node:fs";
-import path5 from "node:path";
-function initLogger(level, logDir) {
-  logger.close();
-  logger = new Logger(level, logDir);
-}
-var LEVELS, Logger, logger;
-var init_logger = __esm({
-  "src/logger.ts"() {
-    "use strict";
-    LEVELS = {
-      debug: 0,
-      info: 1,
-      warn: 2,
-      error: 3
-    };
-    Logger = class {
-      threshold;
-      textStream = null;
-      jsonStream = null;
-      constructor(level, logDir) {
-        this.threshold = LEVELS[level];
-        if (logDir) {
-          fs5.mkdirSync(logDir, { recursive: true });
-          const now = (/* @__PURE__ */ new Date()).toISOString().replace(/:/g, "-").replace(/\.\d{3}Z$/, "");
-          const textFile = `bridge-${now}.log`;
-          const jsonFile = `bridge-${now}.json.log`;
-          this.textStream = fs5.createWriteStream(path5.join(logDir, textFile), {
-            flags: "a"
-          });
-          this.jsonStream = fs5.createWriteStream(path5.join(logDir, jsonFile), {
-            flags: "a"
-          });
-        }
-      }
-      log(level, message, data) {
-        if (LEVELS[level] < this.threshold) return;
-        const timestamp = (/* @__PURE__ */ new Date()).toISOString();
-        const humanLine = `${timestamp} [${level.toUpperCase()}] ${message}
-`;
-        try {
-          process.stderr.write(humanLine);
-        } catch {
-        }
-        this.textStream?.write(humanLine);
-        const entry = { timestamp, level, message };
-        if (data !== void 0) {
-          entry.data = data;
-        }
-        this.jsonStream?.write(JSON.stringify(entry) + "\n");
-      }
-      debug(message, data) {
-        this.log("debug", message, data);
-      }
-      info(message, data) {
-        this.log("info", message, data);
-      }
-      warn(message, data) {
-        this.log("warn", message, data);
-      }
-      error(message, data) {
-        this.log("error", message, data);
-      }
-      close() {
-        this.textStream?.end();
-        this.jsonStream?.end();
-      }
-    };
-    logger = new Logger("info");
   }
 });
 
@@ -26668,8 +27204,8 @@ var init_npm_update_check = __esm({
 });
 
 // src/config.ts
-import os3 from "node:os";
-import path6 from "node:path";
+import os5 from "node:os";
+import path9 from "node:path";
 function isLocalOptOut(value) {
   if (value === void 0) return false;
   return ["1", "true", "yes", "on", "enable", "enabled"].includes(
@@ -26704,7 +27240,7 @@ var init_config = __esm({
   "src/config.ts"() {
     "use strict";
     import_zod2 = __toESM(require_zod(), 1);
-    defaultStatePath = path6.join(os3.homedir(), ".cogent");
+    defaultStatePath = path9.join(os5.homedir(), ".cogent");
     DEFAULT_FREE_ENDPOINT = "https://cogent.tools";
     configSchema = import_zod2.z.object({
       COGENT_STATE_PATH: import_zod2.z.string().default(defaultStatePath),
@@ -26966,11 +27502,11 @@ var init_errors4 = __esm({
 });
 
 // src/services/peer-registry.ts
-import crypto2 from "node:crypto";
-import fs6 from "node:fs/promises";
-import path7 from "node:path";
+import crypto3 from "node:crypto";
+import fs9 from "node:fs/promises";
+import path10 from "node:path";
 function getStatePath() {
-  return path7.join(getConfig().COGENT_STATE_PATH, "cogent-state.json");
+  return path10.join(getConfig().COGENT_STATE_PATH, "cogent-state.json");
 }
 function getLockPath() {
   return getStatePath() + ".lock";
@@ -26989,7 +27525,7 @@ function migrateState(state) {
 async function readState() {
   const statePath = getStatePath();
   try {
-    const raw = await fs6.readFile(statePath, "utf-8");
+    const raw = await fs9.readFile(statePath, "utf-8");
     return migrateState(JSON.parse(raw));
   } catch (err) {
     if (err.code === "ENOENT") {
@@ -26998,7 +27534,7 @@ async function readState() {
     if (err instanceof SyntaxError) {
       const backupPath = statePath + ".corrupt." + Date.now();
       try {
-        await fs6.copyFile(statePath, backupPath);
+        await fs9.copyFile(statePath, backupPath);
       } catch {
       }
       logger.warn(
@@ -27017,8 +27553,8 @@ async function writeState(state) {
   const statePath = getStatePath();
   const tmp = statePath + "." + process.pid + ".tmp";
   try {
-    await fs6.writeFile(tmp, JSON.stringify(state, null, 2), "utf-8");
-    await fs6.rename(tmp, statePath);
+    await fs9.writeFile(tmp, JSON.stringify(state, null, 2), "utf-8");
+    await fs9.rename(tmp, statePath);
   } catch (err) {
     throw new BridgeError(
       "STATE_WRITE_FAILED" /* STATE_WRITE_FAILED */,
@@ -27032,7 +27568,7 @@ async function acquireLock() {
   const deadline = Date.now() + LOCK_MAX_WAIT_MS;
   while (Date.now() < deadline) {
     try {
-      await fs6.writeFile(lockPath, String(process.pid), {
+      await fs9.writeFile(lockPath, String(process.pid), {
         flag: "wx"
         // O_WRONLY | O_CREAT | O_EXCL
       });
@@ -27040,7 +27576,7 @@ async function acquireLock() {
     } catch (err) {
       if (err.code === "EEXIST") {
         try {
-          const content = await fs6.readFile(lockPath, "utf-8");
+          const content = await fs9.readFile(lockPath, "utf-8");
           const lockPid2 = parseInt(content, 10);
           if (!isNaN(lockPid2)) {
             try {
@@ -27048,9 +27584,9 @@ async function acquireLock() {
             } catch {
               let removed = false;
               try {
-                const recheck = parseInt(await fs6.readFile(lockPath, "utf-8"), 10);
+                const recheck = parseInt(await fs9.readFile(lockPath, "utf-8"), 10);
                 if (recheck === lockPid2) {
-                  await fs6.unlink(lockPath);
+                  await fs9.unlink(lockPath);
                   removed = true;
                 }
               } catch {
@@ -27074,7 +27610,7 @@ async function acquireLock() {
   }
   let lockPid = "unknown";
   try {
-    const content = await fs6.readFile(lockPath, "utf-8");
+    const content = await fs9.readFile(lockPath, "utf-8");
     lockPid = content.trim();
   } catch {
   }
@@ -27085,7 +27621,7 @@ async function acquireLock() {
   );
 }
 async function releaseLock() {
-  await fs6.unlink(getLockPath()).catch(() => {
+  await fs9.unlink(getLockPath()).catch(() => {
   });
 }
 function sleep(ms) {
@@ -27166,7 +27702,7 @@ async function recordMessage(record2) {
     const state = await readState();
     const full = {
       ...record2,
-      id: crypto2.randomUUID(),
+      id: crypto3.randomUUID(),
       timestamp: (/* @__PURE__ */ new Date()).toISOString()
     };
     state.messages.push(full);
@@ -27218,15 +27754,15 @@ var init_peer_registry = __esm({
 });
 
 // src/services/agent-config.ts
-import os4 from "node:os";
-import path8 from "node:path";
+import os6 from "node:os";
+import path11 from "node:path";
 function claudeConfigDir() {
   const override = process.env.CLAUDE_CONFIG_DIR?.trim();
-  return override ? override : path8.join(os4.homedir(), ".claude");
+  return override ? override : path11.join(os6.homedir(), ".claude");
 }
 function codexHomeDir() {
   const override = process.env.CODEX_HOME?.trim();
-  return override ? override : path8.join(os4.homedir(), ".codex");
+  return override ? override : path11.join(os6.homedir(), ".codex");
 }
 function buildResumeEnv(source, vendorPrefix, preserve) {
   const keep = new Set(preserve);
@@ -27243,22 +27779,22 @@ var init_agent_config = __esm({
 });
 
 // src/services/agent-sessions.ts
-import crypto3 from "node:crypto";
-import fs7 from "node:fs/promises";
-import os5 from "node:os";
-import path9 from "node:path";
-function hashCwd(cwd) {
-  return crypto3.createHash("sha256").update(path9.resolve(cwd)).digest("hex").slice(0, 16);
+import crypto4 from "node:crypto";
+import fs10 from "node:fs/promises";
+import os7 from "node:os";
+import path12 from "node:path";
+function hashCwd2(cwd) {
+  return crypto4.createHash("sha256").update(path12.resolve(cwd)).digest("hex").slice(0, 16);
 }
 function agentSessionsDir() {
-  return path9.join(os5.homedir(), ".cogent", "agent-sessions");
+  return path12.join(os7.homedir(), ".cogent", "agent-sessions");
 }
 function agentSessionPath(cwd, platform) {
-  return path9.join(agentSessionsDir(), `${hashCwd(cwd)}.${platform}.json`);
+  return path12.join(agentSessionsDir(), `${hashCwd2(cwd)}.${platform}.json`);
 }
 async function readAgentSession(cwd, platform) {
   try {
-    const raw = await fs7.readFile(agentSessionPath(cwd, platform), "utf-8");
+    const raw = await fs10.readFile(agentSessionPath(cwd, platform), "utf-8");
     const rec = JSON.parse(raw);
     if (!rec?.sessionId || !rec?.transcriptPath) return null;
     return rec;
@@ -27269,14 +27805,14 @@ async function readAgentSession(cwd, platform) {
 async function learnedRoots(platform) {
   try {
     const dir = agentSessionsDir();
-    const files = (await fs7.readdir(dir)).filter(
+    const files = (await fs10.readdir(dir)).filter(
       (f) => f.endsWith(`.${platform}.json`)
     );
     const recs = await Promise.all(
       files.map(async (f) => {
         try {
           return JSON.parse(
-            await fs7.readFile(path9.join(dir, f), "utf-8")
+            await fs10.readFile(path12.join(dir, f), "utf-8")
           );
         } catch {
           return null;
@@ -27300,9 +27836,9 @@ var init_agent_sessions = __esm({
 
 // src/services/cc-cli.ts
 import { spawn } from "node:child_process";
-import fs8 from "node:fs/promises";
-import os6 from "node:os";
-import path10 from "node:path";
+import fs11 from "node:fs/promises";
+import os8 from "node:os";
+import path13 from "node:path";
 async function projectDirsFor(cwd) {
   const [roots, forms] = await Promise.all([
     claudeConfigRoots(),
@@ -27310,16 +27846,16 @@ async function projectDirsFor(cwd) {
   ]);
   const dirs = roots.flatMap(
     (root) => forms.map(
-      (f) => path10.join(root, "projects", f.replace(/[^a-zA-Z0-9-]/g, "-"))
+      (f) => path13.join(root, "projects", f.replace(/[^a-zA-Z0-9-]/g, "-"))
     )
   );
   return [...new Set(dirs)];
 }
 async function cwdForms(cwd) {
-  const resolved = path10.resolve(cwd);
+  const resolved = path13.resolve(cwd);
   const forms = /* @__PURE__ */ new Set([resolved]);
   try {
-    forms.add(await fs8.realpath(resolved));
+    forms.add(await fs11.realpath(resolved));
   } catch {
   }
   return [...forms];
@@ -27329,15 +27865,15 @@ async function claudeConfigRoots() {
   const env = process.env.CLAUDE_CONFIG_DIR?.trim();
   if (env) roots.push(env);
   roots.push(...await learnedRoots("cc"));
-  roots.push(path10.join(os6.homedir(), ".claude"));
-  roots.push(path10.join(os6.homedir(), ".config", "claude"));
-  return [...new Set(roots.map((r) => path10.resolve(r)))];
+  roots.push(path13.join(os8.homedir(), ".claude"));
+  roots.push(path13.join(os8.homedir(), ".config", "claude"));
+  return [...new Set(roots.map((r) => path13.resolve(r)))];
 }
 async function recordedCandidate(cwd) {
   const rec = await readAgentSession(cwd, "cc");
   if (!rec) return null;
   try {
-    const st = await fs8.stat(rec.transcriptPath);
+    const st = await fs11.stat(rec.transcriptPath);
     return { sessionId: rec.sessionId, mtimeMs: st.mtimeMs };
   } catch {
     return null;
@@ -27347,9 +27883,9 @@ async function transcriptBaseSummary() {
   const roots = await claudeConfigRoots();
   const parts = await Promise.all(
     roots.map(async (root) => {
-      const base = path10.join(root, "projects");
+      const base = path13.join(root, "projects");
       try {
-        return `${base} [${(await fs8.readdir(base)).length} project dirs]`;
+        return `${base} [${(await fs11.readdir(base)).length} project dirs]`;
       } catch {
         return `${base} [absent]`;
       }
@@ -27362,11 +27898,11 @@ async function listCandidates(cwd) {
   const perDir = await Promise.all(
     dirs.map(async (projectDir) => {
       try {
-        const entries = await fs8.readdir(projectDir);
+        const entries = await fs11.readdir(projectDir);
         return await Promise.all(
           entries.filter((f) => f.endsWith(".jsonl")).map(async (f) => ({
             sessionId: f.replace(".jsonl", ""),
-            mtimeMs: (await fs8.stat(path10.join(projectDir, f))).mtimeMs
+            mtimeMs: (await fs11.stat(path13.join(projectDir, f))).mtimeMs
           }))
         );
       } catch {
@@ -27398,7 +27934,7 @@ async function validateSession(sessionId, cwd) {
   const hits = await Promise.all(
     dirs.map(async (dir) => {
       try {
-        await fs8.access(path10.join(dir, `${sessionId}.jsonl`));
+        await fs11.access(path13.join(dir, `${sessionId}.jsonl`));
         return true;
       } catch {
         return false;
@@ -27411,8 +27947,8 @@ async function rootForSession(sessionId, cwd) {
   const rec = await readAgentSession(cwd, "cc");
   if (rec?.sessionId === sessionId && rec.root) {
     try {
-      await fs8.stat(rec.transcriptPath);
-      return path10.resolve(rec.root);
+      await fs11.stat(rec.transcriptPath);
+      return path13.resolve(rec.root);
     } catch {
     }
   }
@@ -27423,14 +27959,14 @@ async function rootForSession(sessionId, cwd) {
   for (const root of roots) {
     const hits = await Promise.all(
       forms.map(async (form) => {
-        const file = path10.join(
+        const file = path13.join(
           root,
           "projects",
           form.replace(/[^a-zA-Z0-9-]/g, "-"),
           `${sessionId}.jsonl`
         );
         try {
-          await fs8.access(file);
+          await fs11.access(file);
           return true;
         } catch {
           return false;
@@ -27441,7 +27977,7 @@ async function rootForSession(sessionId, cwd) {
   }
   return null;
 }
-async function execClaude(sessionId, message, cwd, timeoutMs) {
+async function execClaude(sessionId, message, cwd, timeoutMs, opts) {
   const resolvedRoot = await rootForSession(sessionId, cwd).catch(() => null);
   return new Promise((resolve) => {
     const config2 = getConfig();
@@ -27475,7 +28011,7 @@ async function execClaude(sessionId, message, cwd, timeoutMs) {
       readOnlyWake(config2) ? `${truncated}${READ_ONLY_WAKE_PROMPT_SEPARATOR}${READ_ONLY_WAKE_NOTICE}` : truncated
     ];
     const cleanEnv = buildResumeEnv(process.env, "CLAUDE", ["CLAUDE_CONFIG_DIR"]);
-    if (resolvedRoot && resolvedRoot !== path10.resolve(claudeConfigDir())) {
+    if (resolvedRoot && resolvedRoot !== path13.resolve(claudeConfigDir())) {
       cleanEnv.CLAUDE_CONFIG_DIR = resolvedRoot;
     }
     cleanEnv.COGENT_CHECK_ON_STOP = "0";
@@ -27492,12 +28028,27 @@ async function execClaude(sessionId, message, cwd, timeoutMs) {
     let killed = false;
     let resolved = false;
     let kill9 = null;
+    let extendedMs = 0;
+    const timeoutText = () => `CLI_TIMEOUT: CLI subprocess timed out after ${effectiveTimeout + extendedMs}ms` + (extendedMs > 0 ? ` (extended by ${extendedMs}ms because it was changing files)` : "");
     const safeResolve = (result) => {
       if (resolved) return;
       resolved = true;
-      resolve(result);
+      resolve(extendedMs > 0 ? { ...result, timeoutExtendedMs: extendedMs } : result);
     };
-    const timer = setTimeout(() => {
+    const onTimeout = () => {
+      if (extendedMs === 0 && opts?.extendAtTimeout) {
+        let extra = 0;
+        try {
+          extra = opts.extendAtTimeout();
+        } catch {
+          extra = 0;
+        }
+        if (Number.isFinite(extra) && extra > 0) {
+          extendedMs = extra;
+          timer = setTimeout(onTimeout, extra);
+          return;
+        }
+      }
       killed = true;
       child.kill("SIGTERM");
       kill9 = setTimeout(() => {
@@ -27509,10 +28060,11 @@ async function execClaude(sessionId, message, cwd, timeoutMs) {
       kill9.unref?.();
       safeResolve({
         stdout: stdout || "",
-        stderr: `CLI_TIMEOUT: CLI subprocess timed out after ${effectiveTimeout}ms`,
+        stderr: timeoutText(),
         exitCode: null
       });
-    }, effectiveTimeout);
+    };
+    let timer = setTimeout(onTimeout, effectiveTimeout);
     child.stdout.on("data", (chunk) => {
       stdout += chunk.toString();
     });
@@ -27542,7 +28094,7 @@ async function execClaude(sessionId, message, cwd, timeoutMs) {
       if (killed) {
         safeResolve({
           stdout: stdout || "",
-          stderr: `CLI_TIMEOUT: CLI subprocess timed out after ${effectiveTimeout}ms`,
+          stderr: timeoutText(),
           exitCode: null
         });
         return;
@@ -27616,9 +28168,9 @@ var init_cc_cli = __esm({
 // src/services/codex-preflight.ts
 import { execFile as execFile2 } from "node:child_process";
 import { promisify as promisify2 } from "node:util";
-import fs9 from "node:fs/promises";
+import fs12 from "node:fs/promises";
 import { join } from "node:path";
-import os7 from "node:os";
+import os9 from "node:os";
 function analyzeCodexHelp(helpText) {
   const checked = EXPECTED_CODEX_RESUME_FLAGS.map((f) => f.flag);
   const missing = EXPECTED_CODEX_RESUME_FLAGS.filter(
@@ -27674,7 +28226,7 @@ function classifyUnshareError(err) {
 }
 async function readProc(p) {
   try {
-    return (await fs9.readFile(p, "utf8")).trim();
+    return (await fs12.readFile(p, "utf8")).trim();
   } catch {
     return null;
   }
@@ -27727,14 +28279,14 @@ function detectCodexCogentServerCollision(configTomlText) {
   return /^[ \t]*\[mcp_servers\.cogent(\.[^\]]+)?\]/m.test(configTomlText);
 }
 function codexConfigPath(codexHomeDir2) {
-  const home = codexHomeDir2 || process.env.CODEX_HOME || join(os7.homedir(), ".codex");
+  const home = codexHomeDir2 || process.env.CODEX_HOME || join(os9.homedir(), ".codex");
   return join(home, "config.toml");
 }
 async function preflightCodexServerCollision(codexHomeDir2) {
   const cfgPath = codexConfigPath(codexHomeDir2);
   let text;
   try {
-    text = await fs9.readFile(cfgPath, "utf8");
+    text = await fs12.readFile(cfgPath, "utf8");
   } catch {
     return false;
   }
@@ -27763,11 +28315,11 @@ var init_codex_preflight = __esm({
 });
 
 // src/services/wake-experiment.ts
-import fs10 from "node:fs";
-import os8 from "node:os";
-import path11 from "node:path";
+import fs13 from "node:fs";
+import os10 from "node:os";
+import path14 from "node:path";
 function wakeExperimentPath() {
-  return pathOverride ?? path11.join(os8.homedir(), ".cogent", "wake-experiment.json");
+  return pathOverride ?? path14.join(os10.homedir(), ".cogent", "wake-experiment.json");
 }
 function warnOnce(file, problem) {
   if (warned) return;
@@ -27790,8 +28342,8 @@ function readWakeExperiment() {
   let text;
   let fd;
   try {
-    fd = fs10.openSync(file, fs10.constants.O_RDONLY | (fs10.constants.O_NONBLOCK ?? 0));
-    const st = fs10.fstatSync(fd);
+    fd = fs13.openSync(file, fs13.constants.O_RDONLY | (fs13.constants.O_NONBLOCK ?? 0));
+    const st = fs13.fstatSync(fd);
     if (!st.isFile()) {
       warnOnce(file, "not a regular file");
       return { ...OFF };
@@ -27805,14 +28357,14 @@ function readWakeExperiment() {
       warnOnce(file, `group- or world-writable (mode ${(st.mode & 511).toString(8)}); run: chmod 600 ${file}`);
       return { ...OFF };
     }
-    text = fs10.readFileSync(fd, "utf-8");
+    text = fs13.readFileSync(fd, "utf-8");
   } catch (err) {
     if (err.code !== "ENOENT") warnOnce(file, `unreadable: ${err.message}`);
     return { ...OFF };
   } finally {
     if (fd !== void 0) {
       try {
-        fs10.closeSync(fd);
+        fs13.closeSync(fd);
       } catch {
       }
     }
@@ -27866,9 +28418,9 @@ var init_wake_experiment = __esm({
 
 // src/services/codex-cli.ts
 import { spawn as spawn2 } from "node:child_process";
-import fs11 from "node:fs/promises";
-import os9 from "node:os";
-import path12 from "node:path";
+import fs14 from "node:fs/promises";
+import os11 from "node:os";
+import path15 from "node:path";
 import { randomUUID } from "node:crypto";
 import { createReadStream } from "node:fs";
 import { createInterface as createInterface2 } from "node:readline";
@@ -27913,7 +28465,7 @@ function execCodex(sessionId, message, cwd, timeoutMs, sandbox) {
     const effectiveTimeout = timeoutMs ?? config2.COGENT_TIMEOUT_MS;
     const mode = sandbox ?? effectiveSandbox(config2);
     const truncated = config2.COGENT_CHAR_LIMIT > 0 && message.length > config2.COGENT_CHAR_LIMIT ? message.slice(0, config2.COGENT_CHAR_LIMIT) + "\n...[truncated]" : message;
-    const lastMsgFile = path12.join(os9.tmpdir(), `cogent-codex-${randomUUID()}.txt`);
+    const lastMsgFile = path15.join(os11.tmpdir(), `cogent-codex-${randomUUID()}.txt`);
     const args = [
       "exec",
       "resume",
@@ -27942,7 +28494,7 @@ function execCodex(sessionId, message, cwd, timeoutMs, sandbox) {
         resolve({ ...result, sandbox: mode });
       }
     };
-    const cleanupFile = () => fs11.rm(lastMsgFile, { force: true }).catch(() => {
+    const cleanupFile = () => fs14.rm(lastMsgFile, { force: true }).catch(() => {
     });
     const timer = setTimeout(async () => {
       killed = true;
@@ -27993,7 +28545,7 @@ function execCodex(sessionId, message, cwd, timeoutMs, sandbox) {
       }
       let fileMessage = "";
       try {
-        fileMessage = await fs11.readFile(lastMsgFile, "utf8");
+        fileMessage = await fs14.readFile(lastMsgFile, "utf8");
       } catch {
         fileMessage = "";
       }
@@ -28014,12 +28566,12 @@ async function listRolloutFiles(root) {
   async function walk(dir) {
     let entries;
     try {
-      entries = await fs11.readdir(dir, { withFileTypes: true });
+      entries = await fs14.readdir(dir, { withFileTypes: true });
     } catch {
       return;
     }
     for (const e of entries) {
-      const full = path12.join(dir, e.name);
+      const full = path15.join(dir, e.name);
       if (e.isDirectory()) await walk(full);
       else if (e.isFile() && e.name.endsWith(".jsonl")) out.push(full);
     }
@@ -28051,19 +28603,19 @@ async function readSessionMeta(file) {
   }
 }
 function codexSessionsRoot() {
-  return path12.join(codexHomeDir(), "sessions");
+  return path15.join(codexHomeDir(), "sessions");
 }
 async function cwdCanonicals(cwd) {
-  const resolved = path12.resolve(cwd);
+  const resolved = path15.resolve(cwd);
   const forms = /* @__PURE__ */ new Set([resolved]);
   try {
-    forms.add(await fs11.realpath(resolved));
+    forms.add(await fs14.realpath(resolved));
   } catch {
   }
   return forms;
 }
 function metaCwdMatches(metaCwd, forms) {
-  return forms.has(path12.resolve(metaCwd));
+  return forms.has(path15.resolve(metaCwd));
 }
 async function detectCurrentCodexSession(cwd) {
   try {
@@ -28071,7 +28623,7 @@ async function detectCurrentCodexSession(cwd) {
     const files = await listRolloutFiles(codexSessionsRoot());
     const withStats = await Promise.all(
       files.map(async (f) => {
-        const stat = await fs11.stat(f);
+        const stat = await fs14.stat(f);
         return { file: f, mtimeMs: stat.mtimeMs };
       })
     );
@@ -28090,7 +28642,7 @@ async function listCodexCandidates(cwd) {
     const forms = await cwdCanonicals(cwd);
     const files = await listRolloutFiles(codexSessionsRoot());
     const withStats = await Promise.all(
-      files.map(async (f) => ({ file: f, mtimeMs: (await fs11.stat(f)).mtimeMs }))
+      files.map(async (f) => ({ file: f, mtimeMs: (await fs14.stat(f)).mtimeMs }))
     );
     const bySession = /* @__PURE__ */ new Map();
     for (const { file, mtimeMs } of withStats) {
@@ -28140,22 +28692,22 @@ var init_codex_cli = __esm({
 });
 
 // src/services/health-check.ts
-import fs12 from "node:fs/promises";
-import path13 from "node:path";
+import fs15 from "node:fs/promises";
+import path16 from "node:path";
 import { execFile as execFile3 } from "node:child_process";
 function getStatePath2() {
-  return path13.join(getConfig().COGENT_STATE_PATH, "cogent-state.json");
+  return path16.join(getConfig().COGENT_STATE_PATH, "cogent-state.json");
 }
 async function checkStateFile() {
   const statePath = getStatePath2();
-  const dir = path13.dirname(statePath);
+  const dir = path16.dirname(statePath);
   try {
-    await fs12.access(dir, fs12.constants.R_OK | fs12.constants.W_OK);
+    await fs15.access(dir, fs15.constants.R_OK | fs15.constants.W_OK);
   } catch {
     return { ok: false, message: `State directory not accessible: ${dir}` };
   }
   try {
-    const raw = await fs12.readFile(statePath, "utf-8");
+    const raw = await fs15.readFile(statePath, "utf-8");
     JSON.parse(raw);
     return { ok: true, message: "State file readable and valid JSON" };
   } catch (err) {
@@ -28171,9 +28723,9 @@ async function checkStateFile() {
 async function checkLockMechanism() {
   const healthLockPath = getStatePath2() + ".health-lock";
   try {
-    await fs12.writeFile(healthLockPath, String(process.pid), { flag: "wx" });
+    await fs15.writeFile(healthLockPath, String(process.pid), { flag: "wx" });
     try {
-      await fs12.unlink(healthLockPath);
+      await fs15.unlink(healthLockPath);
     } catch {
     }
     return { ok: true, message: "Lock acquire/release cycle succeeded" };
@@ -28229,7 +28781,7 @@ async function checkHealth() {
   return {
     healthy,
     mcpServerVersion: SERVER_VERSION,
-    statePath: path13.join(config2.COGENT_STATE_PATH, "cogent-state.json"),
+    statePath: path16.join(config2.COGENT_STATE_PATH, "cogent-state.json"),
     claudePath: config2.COGENT_CLAUDE_PATH,
     checks,
     timestamp: (/* @__PURE__ */ new Date()).toISOString()
@@ -28389,7 +28941,7 @@ var init_http_backend = __esm({
        * in cloud mode we ignore it and use this.sessionId (the cloud session).
        */
       async registerPeer(peerId, _sessionId, cwd, label, clientVersion, mode, _channelSessionId, capabilities, workspaceId, threadId, peerSecret) {
-        const path28 = PATHS.peers.replace(":sessionId", this.sessionId);
+        const path29 = PATHS.peers.replace(":sessionId", this.sessionId);
         const body = {
           peerId,
           cwd,
@@ -28420,7 +28972,7 @@ var init_http_backend = __esm({
         if (peerSecret !== void 0 && await relaySupports(this.http, "peer-ownership")) {
           body.peerSecret = peerSecret;
         }
-        const peer = await this.http.post(path28, body);
+        const peer = await this.http.post(path29, body);
         const issued = peer?.peerSecret;
         if (issued) {
           try {
@@ -28440,9 +28992,9 @@ var init_http_backend = __esm({
        * local mail creds. A 404 (peer not found) resolves to `{ removed: false, ... }`, not a throw.
        */
       async deregisterPeer(peerId, peerSecret) {
-        const path28 = PATHS.peer.replace(":sessionId", this.sessionId).replace(":peerId", peerId);
+        const path29 = PATHS.peer.replace(":sessionId", this.sessionId).replace(":peerId", peerId);
         try {
-          const headers = await this.http.delete(path28, peerSecret ? { peerSecret } : {});
+          const headers = await this.http.delete(path29, peerSecret ? { peerSecret } : {});
           const mailboxDeprovisioned = headers.get(MAILBOX_DEPROVISIONED_HEADER) === "true";
           return { removed: true, mailboxDeprovisioned };
         } catch (err) {
@@ -28466,8 +29018,8 @@ var init_http_backend = __esm({
        * GET /api/sessions/:sessionId/peers
        */
       async listPeers() {
-        const path28 = PATHS.peers.replace(":sessionId", this.sessionId);
-        const result = await this.http.get(path28);
+        const path29 = PATHS.peers.replace(":sessionId", this.sessionId);
+        const result = await this.http.get(path29);
         return result.peers;
       }
       /**
@@ -28475,8 +29027,8 @@ var init_http_backend = __esm({
        * Calls the lightweight heartbeat endpoint on the cloud relay server.
        */
       async updateLastSeen(peerId) {
-        const path28 = PATHS.heartbeat.replace(":sessionId", this.sessionId);
-        await this.http.post(path28, { peerId });
+        const path29 = PATHS.heartbeat.replace(":sessionId", this.sessionId);
+        await this.http.post(path29, { peerId });
       }
       /**
        * Record a message in the cloud session.
@@ -28487,7 +29039,7 @@ var init_http_backend = __esm({
        * the input record to construct a full MessageRecord.
        */
       async recordMessage(record2) {
-        const path28 = PATHS.messages.replace(":sessionId", this.sessionId);
+        const path29 = PATHS.messages.replace(":sessionId", this.sessionId);
         const body = {
           fromPeerId: record2.fromPeerId,
           toPeerId: record2.toPeerId,
@@ -28513,7 +29065,7 @@ var init_http_backend = __esm({
         if (record2.replyExpected === false && await relaySupports(this.http, "terminal-messages")) {
           body.replyExpected = false;
         }
-        const resp = await this.http.post(path28, body);
+        const resp = await this.http.post(path29, body);
         return {
           ...record2,
           id: resp.id,
@@ -28527,7 +29079,7 @@ var init_http_backend = __esm({
        * Supports optional peerId filter and limit (default 300).
        */
       async getHistory(peerId, limit, includeRelayEchoes, metadataOnly, dedupInferredEchoes) {
-        const path28 = PATHS.messages.replace(":sessionId", this.sessionId);
+        const path29 = PATHS.messages.replace(":sessionId", this.sessionId);
         const query = {};
         if (peerId) {
           query.peerId = peerId;
@@ -28542,7 +29094,7 @@ var init_http_backend = __esm({
         if (dedupInferredEchoes) {
           query.dedupInferredEchoes = "true";
         }
-        const result = await this.http.get(path28, query);
+        const result = await this.http.get(path29, query);
         return result.messages;
       }
       /**
@@ -28553,12 +29105,12 @@ var init_http_backend = __esm({
        * so that get-history shows the actual response (not null).
        */
       async updateMessageResponse(messageId, response, durationMs, pending) {
-        const path28 = PATHS.message.replace(":sessionId", this.sessionId).replace(":messageId", messageId);
+        const path29 = PATHS.message.replace(":sessionId", this.sessionId).replace(":messageId", messageId);
         const body = { response, durationMs };
         if (pending === true) {
           body.pending = true;
         }
-        await this.http.patch(path28, body);
+        await this.http.patch(path29, body);
       }
       /**
        * Validate a session.
@@ -28732,8 +29284,8 @@ var init_http_client = __esm({
        * Perform an authenticated GET request.
        * Appends query parameters to the URL if provided.
        */
-      async get(path28, query) {
-        const url = new URL(path28, this.baseUrl);
+      async get(path29, query) {
+        const url = new URL(path29, this.baseUrl);
         if (query) {
           for (const [k, v] of Object.entries(query)) {
             url.searchParams.set(k, v);
@@ -28748,8 +29300,8 @@ var init_http_client = __esm({
       /**
        * Perform an authenticated POST request with a JSON body.
        */
-      async post(path28, body) {
-        const url = new URL(path28, this.baseUrl);
+      async post(path29, body) {
+        const url = new URL(path29, this.baseUrl);
         const resp = await this.fetchWithTimeout(url, {
           method: "POST",
           headers: this.headers(),
@@ -28767,8 +29319,8 @@ var init_http_client = __esm({
        * Perform an authenticated PATCH request with a JSON body.
        * Used to update existing resources (e.g., message response fields).
        */
-      async patch(path28, body) {
-        const url = new URL(path28, this.baseUrl);
+      async patch(path29, body) {
+        const url = new URL(path29, this.baseUrl);
         const resp = await this.fetchWithTimeout(url, {
           method: "PATCH",
           headers: this.headers(),
@@ -28793,8 +29345,8 @@ var init_http_client = __esm({
        * "Malformed JSON in request body" 400 from cogent-server <=3.1.2 when
        * any client (including third-party tools) DELETEd a peer without a body.
        */
-      async delete(path28, body) {
-        const url = new URL(path28, this.baseUrl);
+      async delete(path29, body) {
+        const url = new URL(path29, this.baseUrl);
         const headers = {
           "Authorization": `Bearer ${this.token}`
         };
@@ -32698,16 +33250,16 @@ var init_wrapper = __esm({
 });
 
 // src/cloud/poll-cursor.ts
-import fs13 from "node:fs";
-import os10 from "node:os";
-import path14 from "node:path";
+import fs16 from "node:fs";
+import os12 from "node:os";
+import path17 from "node:path";
 function pollCursorPath(sessionId, peerId) {
-  return path14.join(os10.homedir(), ".cogent", "poll-cursors", `${safe(sessionId)}.${safe(peerId)}.json`);
+  return path17.join(os12.homedir(), ".cogent", "poll-cursors", `${safe2(sessionId)}.${safe2(peerId)}.json`);
 }
 function loadPollCursor(sessionId, peerId) {
   if (!sessionId || !peerId) return null;
   try {
-    const raw = JSON.parse(fs13.readFileSync(pollCursorPath(sessionId, peerId), "utf-8"));
+    const raw = JSON.parse(fs16.readFileSync(pollCursorPath(sessionId, peerId), "utf-8"));
     return typeof raw?.lastMessageId === "string" && raw.lastMessageId ? raw.lastMessageId : null;
   } catch {
     return null;
@@ -32717,8 +33269,8 @@ function savePollCursor(sessionId, peerId, lastMessageId) {
   if (!sessionId || !peerId || !lastMessageId) return;
   const p = pollCursorPath(sessionId, peerId);
   try {
-    fs13.mkdirSync(path14.dirname(p), { recursive: true });
-    fs13.writeFileSync(
+    fs16.mkdirSync(path17.dirname(p), { recursive: true });
+    fs16.writeFileSync(
       p,
       JSON.stringify({ lastMessageId, updatedAt: (/* @__PURE__ */ new Date()).toISOString() })
     );
@@ -32726,12 +33278,12 @@ function savePollCursor(sessionId, peerId, lastMessageId) {
     logger.debug(`poll-cursor: could not persist (${err.message})`);
   }
 }
-var safe;
+var safe2;
 var init_poll_cursor = __esm({
   "src/cloud/poll-cursor.ts"() {
     "use strict";
     init_logger();
-    safe = (s) => String(s).replace(/[^A-Za-z0-9._-]/g, "_");
+    safe2 = (s) => String(s).replace(/[^A-Za-z0-9._-]/g, "_");
   }
 });
 
@@ -33095,14 +33647,14 @@ var init_ws_client = __esm({
         this.restoreCursor();
         const poll = async () => {
           try {
-            const path28 = `/api/sessions/${this.opts.sessionId}/poll`;
+            const path29 = `/api/sessions/${this.opts.sessionId}/poll`;
             const query = {
               peerId: this.opts.peerId
             };
             if (this.lastMessageId) {
               query.lastMessageId = this.lastMessageId;
             }
-            const result = await this.opts.http.get(path28, query);
+            const result = await this.opts.http.get(path29, query);
             if (result.messages && result.messages.length > 0) {
               this.opts.onMessages(result.messages);
               this.advanceCursor(result.messages[result.messages.length - 1].id);
@@ -33159,12 +33711,12 @@ var init_cloud = __esm({
 });
 
 // src/services/codex-app-server.ts
-import path15 from "node:path";
+import path18 from "node:path";
 import { statSync } from "node:fs";
-import fs14 from "node:fs/promises";
+import fs17 from "node:fs/promises";
 import { spawn as spawn3, spawnSync } from "node:child_process";
 function appServerSocketPath(codexHome = codexHomeDir()) {
-  return path15.join(codexHome, "app-server-control", "app-server-control.sock");
+  return path18.join(codexHome, "app-server-control", "app-server-control.sock");
 }
 function appServerDaemonRunning(codexHome = codexHomeDir()) {
   try {
@@ -33404,6 +33956,42 @@ function stopHookFrom(list) {
     }
   }
   return null;
+}
+async function probeCogentStopHook(cwd, deps = {}) {
+  if (!deps.socketPath && !appServerDaemonRunning()) return void 0;
+  const sock = deps.socketPath ?? appServerSocketPath();
+  let client;
+  try {
+    client = new AppServerClient(
+      (deps.wsFactory ?? defaultWsFactory)(rpcUrl(sock), { perMessageDeflate: false, headers: { Host: "localhost" } })
+    );
+    const c2 = client;
+    const list = await bestEffort(
+      (async () => {
+        await c2.waitOpen();
+        await c2.request("initialize", { clientInfo: { name: "cogent-bridge", version: "1" }, capabilities: { experimentalApi: true } });
+        return c2.request("hooks/list", { cwds: [cwd] });
+      })(),
+      deps.timeoutMs ?? 3e3
+    );
+    return list === void 0 ? void 0 : stopHookFrom(list);
+  } catch {
+    return void 0;
+  } finally {
+    try {
+      client?.close();
+    } catch {
+    }
+  }
+}
+function codexStopHookWarning(state) {
+  if (!state) return null;
+  const effect = "Until then Codex does not run it, so messages that arrive while you are busy are not caught at the end of your turn (Cogent's check-on-stop).";
+  if (!state.enabled) {
+    return `Cogent's Codex Stop hook is turned OFF in /hooks. Turn it back on in Codex's /hooks screen. ${effect}`;
+  }
+  if (state.trust === "trusted" || state.trust === "managed") return null;
+  return `Cogent's Codex Stop hook is "${state.trust}": Codex asks you to approve a plugin's hooks again after every Cogent update. Open /hooks in Codex and trust the two cogent hooks (or restart Codex and choose to review hooks). ${effect}`;
 }
 function execCodexViaAppServer(threadId, message, cwd, timeoutMs, deps = {}) {
   const key = deps.idempotencyKey ? `${threadId}::${deps.idempotencyKey}` : null;
@@ -33648,7 +34236,7 @@ var init_codex_app_server = __esm({
     });
     defaultSocketExists = async (p) => {
       try {
-        await fs14.stat(p);
+        await fs17.stat(p);
         return true;
       } catch {
         return false;
@@ -33782,7 +34370,7 @@ function execRemote(platform, sessionId, message, cwd, timeoutMs, opts) {
       return execCodexWake(sessionId, message, cwd, timeoutMs, opts?.idempotencyKey, opts?.lateAnswerMaxMs, opts?.codexSandbox);
     case "cc":
     default:
-      return execClaude(sessionId, message, cwd, timeoutMs).then((r) => ({ ...r, rail: "claude" }));
+      return (opts?.extendAtTimeout ? execClaude(sessionId, message, cwd, timeoutMs, { extendAtTimeout: opts.extendAtTimeout }) : execClaude(sessionId, message, cwd, timeoutMs)).then((r) => ({ ...r, rail: "claude" }));
   }
 }
 function detectCurrentSessionFor(platform, cwd) {
@@ -33840,19 +34428,19 @@ var init_exec_remote = __esm({
 });
 
 // src/services/wake-log.ts
-import { execFileSync } from "node:child_process";
-import crypto4 from "node:crypto";
-import fs15 from "node:fs";
-import os11 from "node:os";
-import path16 from "node:path";
-function hashCwd2(cwd) {
-  return crypto4.createHash("sha256").update(path16.resolve(cwd)).digest("hex").slice(0, 16);
+import { execFileSync as execFileSync3 } from "node:child_process";
+import crypto5 from "node:crypto";
+import fs18 from "node:fs";
+import os13 from "node:os";
+import path19 from "node:path";
+function hashCwd3(cwd) {
+  return crypto5.createHash("sha256").update(path19.resolve(cwd)).digest("hex").slice(0, 16);
 }
 function wakeLogPath(cwd) {
-  return path16.join(os11.homedir(), ".cogent", "wake-log", `${hashCwd2(cwd)}.jsonl`);
+  return path19.join(os13.homedir(), ".cogent", "wake-log", `${hashCwd3(cwd)}.jsonl`);
 }
 function git(cwd, args) {
-  return execFileSync("git", ["-C", cwd, ...args], {
+  return execFileSync3("git", ["-C", cwd, ...args], {
     encoding: "utf-8",
     timeout: 15e3,
     stdio: ["ignore", "pipe", "ignore"]
@@ -33893,13 +34481,13 @@ function preview(message) {
 function appendWakeRecord(record2, cwd) {
   const target = wakeLogPath(cwd);
   try {
-    fs15.mkdirSync(path16.dirname(target), { recursive: true });
+    fs18.mkdirSync(path19.dirname(target), { recursive: true });
     const row = {
       ts: (/* @__PURE__ */ new Date()).toISOString(),
       ...record2,
       messagePreview: preview(record2.messagePreview ?? "")
     };
-    fs15.appendFileSync(target, `${JSON.stringify(row)}
+    fs18.appendFileSync(target, `${JSON.stringify(row)}
 `);
     pruneIfNeeded(target);
   } catch {
@@ -33907,20 +34495,20 @@ function appendWakeRecord(record2, cwd) {
 }
 function pruneIfNeeded(target) {
   try {
-    const lines = fs15.readFileSync(target, "utf-8").split("\n").filter((l) => l.length > 0);
+    const lines = fs18.readFileSync(target, "utf-8").split("\n").filter((l) => l.length > 0);
     if (lines.length <= WAKE_LOG_MAX_RECORDS) return;
     const kept = lines.slice(lines.length - WAKE_LOG_MAX_RECORDS);
     const tmp = `${target}.tmp-${process.pid}`;
-    fs15.writeFileSync(tmp, `${kept.join("\n")}
+    fs18.writeFileSync(tmp, `${kept.join("\n")}
 `);
-    fs15.renameSync(tmp, target);
+    fs18.renameSync(tmp, target);
   } catch {
   }
 }
 function readWakeLog(cwd, limit) {
   let lines;
   try {
-    lines = fs15.readFileSync(wakeLogPath(cwd), "utf-8").split("\n").filter((l) => l.length > 0);
+    lines = fs18.readFileSync(wakeLogPath(cwd), "utf-8").split("\n").filter((l) => l.length > 0);
   } catch {
     return [];
   }
@@ -34032,19 +34620,19 @@ var init_session_resolver = __esm({
 });
 
 // src/services/wake-inflight.ts
-import crypto5 from "node:crypto";
-import fs16 from "node:fs";
-import os12 from "node:os";
-import path17 from "node:path";
+import crypto6 from "node:crypto";
+import fs19 from "node:fs";
+import os14 from "node:os";
+import path20 from "node:path";
 function drainCapMs(timeoutMs) {
   const t = Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : 3e5;
   return Math.min(INFLIGHT_TIMEOUT_FACTOR * t, INFLIGHT_MAX_MS);
 }
-function hashCwd3(cwd) {
-  return crypto5.createHash("sha256").update(path17.resolve(cwd)).digest("hex").slice(0, 16);
+function hashCwd4(cwd) {
+  return crypto6.createHash("sha256").update(path20.resolve(cwd)).digest("hex").slice(0, 16);
 }
 function wakeInflightPath(peerId, cwd = process.cwd()) {
-  return path17.join(os12.homedir(), ".cogent", "wake-inflight", `${hashCwd3(cwd)}.${safe2(peerId)}.json`);
+  return path20.join(os14.homedir(), ".cogent", "wake-inflight", `${hashCwd4(cwd)}.${safe3(peerId)}.json`);
 }
 function ttlMs() {
   let timeout = 3e5;
@@ -34057,17 +34645,17 @@ function ttlMs() {
 }
 function readFileSafe(p) {
   try {
-    const parsed = JSON.parse(fs16.readFileSync(p, "utf-8"));
+    const parsed = JSON.parse(fs19.readFileSync(p, "utf-8"));
     return parsed && typeof parsed === "object" && parsed.messages ? parsed : { messages: {} };
   } catch {
     return { messages: {} };
   }
 }
 function writeAtomic(p, data) {
-  fs16.mkdirSync(path17.dirname(p), { recursive: true });
+  fs19.mkdirSync(path20.dirname(p), { recursive: true });
   const tmp = `${p}.${process.pid}.tmp`;
-  fs16.writeFileSync(tmp, JSON.stringify(data, null, 2) + "\n", "utf-8");
-  fs16.renameSync(tmp, p);
+  fs19.writeFileSync(tmp, JSON.stringify(data, null, 2) + "\n", "utf-8");
+  fs19.renameSync(tmp, p);
 }
 function prune(f, now) {
   for (const [id, rec] of Object.entries(f.messages)) {
@@ -34125,7 +34713,7 @@ function clearWakeInFlight(peerId, messageId, cwd = process.cwd()) {
     logger.debug(`wake-inflight: could not clear ${messageId}: ${err}`);
   }
 }
-var INFLIGHT_MAX_MS, INFLIGHT_LATE_HOLD_MAX_MS, INFLIGHT_TIMEOUT_FACTOR, safe2;
+var INFLIGHT_MAX_MS, INFLIGHT_LATE_HOLD_MAX_MS, INFLIGHT_TIMEOUT_FACTOR, safe3;
 var init_wake_inflight = __esm({
   "src/services/wake-inflight.ts"() {
     "use strict";
@@ -34134,24 +34722,24 @@ var init_wake_inflight = __esm({
     INFLIGHT_MAX_MS = 18e5;
     INFLIGHT_LATE_HOLD_MAX_MS = 18e6;
     INFLIGHT_TIMEOUT_FACTOR = 3;
-    safe2 = (s) => String(s).replace(/[^A-Za-z0-9._-]/g, "_");
+    safe3 = (s) => String(s).replace(/[^A-Za-z0-9._-]/g, "_");
   }
 });
 
 // src/services/wake-claim.ts
-import crypto6 from "node:crypto";
-import fs17 from "node:fs";
-import os13 from "node:os";
-import path18 from "node:path";
-function hashCwd4(cwd) {
-  return crypto6.createHash("sha256").update(path18.resolve(cwd)).digest("hex").slice(0, 16);
+import crypto7 from "node:crypto";
+import fs20 from "node:fs";
+import os15 from "node:os";
+import path21 from "node:path";
+function hashCwd5(cwd) {
+  return crypto7.createHash("sha256").update(path21.resolve(cwd)).digest("hex").slice(0, 16);
 }
 function wakeClaimPath(peerId, messageId, cwd = process.cwd()) {
-  return path18.join(
-    os13.homedir(),
+  return path21.join(
+    os15.homedir(),
     ".cogent",
     "wake-claims",
-    `${hashCwd4(cwd)}.${safe3(peerId)}.${safe3(messageId)}.json`
+    `${hashCwd5(cwd)}.${safe4(peerId)}.${safe4(messageId)}.json`
   );
 }
 function ttlMs2() {
@@ -34178,22 +34766,22 @@ function claimWake(peerId, messageId, cwd = process.cwd()) {
   const now = Date.now();
   const body = () => JSON.stringify({ pid: process.pid, startedAt: now, expiresAt: now + ttlMs2() });
   try {
-    fs17.mkdirSync(path18.dirname(p), { recursive: true });
+    fs20.mkdirSync(path21.dirname(p), { recursive: true });
     try {
-      fs17.writeFileSync(p, body(), { flag: "wx" });
+      fs20.writeFileSync(p, body(), { flag: "wx" });
       return true;
     } catch (err) {
       if (err?.code !== "EEXIST") throw err;
     }
     let held = null;
     try {
-      held = JSON.parse(fs17.readFileSync(p, "utf-8"));
+      held = JSON.parse(fs20.readFileSync(p, "utf-8"));
     } catch {
       held = null;
     }
     const expired = !held || typeof held.expiresAt !== "number" || held.expiresAt <= now;
     if (!held || expired || !holderAlive(held.pid)) {
-      fs17.writeFileSync(p, body());
+      fs20.writeFileSync(p, body());
       logger.debug(`wake-claim: took over an abandoned claim for ${messageId}`);
       return true;
     }
@@ -34206,13 +34794,27 @@ function claimWake(peerId, messageId, cwd = process.cwd()) {
     return true;
   }
 }
+function extendWakeClaim(peerId, messageId, untilMs, cwd = process.cwd()) {
+  try {
+    const p = wakeClaimPath(peerId, messageId, cwd);
+    const held = JSON.parse(fs20.readFileSync(p, "utf-8"));
+    if (!held || held.pid !== process.pid || typeof held.expiresAt !== "number") return;
+    const expiresAt = Math.min(untilMs, Date.now() + CLAIM_MAX_MS);
+    if (expiresAt <= held.expiresAt) return;
+    const tmp = `${p}.${process.pid}.tmp`;
+    fs20.writeFileSync(tmp, JSON.stringify({ ...held, expiresAt }));
+    fs20.renameSync(tmp, p);
+  } catch (err) {
+    logger.debug(`wake-claim: could not extend the claim for ${messageId}: ${err}`);
+  }
+}
 function releaseWake(peerId, messageId, cwd = process.cwd()) {
   try {
-    fs17.unlinkSync(wakeClaimPath(peerId, messageId, cwd));
+    fs20.unlinkSync(wakeClaimPath(peerId, messageId, cwd));
   } catch {
   }
 }
-var CLAIM_MAX_MS, CLAIM_TIMEOUT_FACTOR, safe3;
+var CLAIM_MAX_MS, CLAIM_TIMEOUT_FACTOR, safe4;
 var init_wake_claim = __esm({
   "src/services/wake-claim.ts"() {
     "use strict";
@@ -34220,20 +34822,20 @@ var init_wake_claim = __esm({
     init_logger();
     CLAIM_MAX_MS = 18e5;
     CLAIM_TIMEOUT_FACTOR = 3;
-    safe3 = (s) => String(s).replace(/[^A-Za-z0-9._-]/g, "_");
+    safe4 = (s) => String(s).replace(/[^A-Za-z0-9._-]/g, "_");
   }
 });
 
 // src/services/wake-lock.ts
-import crypto7 from "node:crypto";
-import fs18 from "node:fs";
-import os14 from "node:os";
-import path19 from "node:path";
-function hashCwd5(cwd) {
-  return crypto7.createHash("sha256").update(path19.resolve(cwd)).digest("hex").slice(0, 16);
+import crypto8 from "node:crypto";
+import fs21 from "node:fs";
+import os16 from "node:os";
+import path22 from "node:path";
+function hashCwd6(cwd) {
+  return crypto8.createHash("sha256").update(path22.resolve(cwd)).digest("hex").slice(0, 16);
 }
 function wakeLockPath(cwd = process.cwd()) {
-  return path19.join(os14.homedir(), ".cogent", "wake-locks", `${hashCwd5(cwd)}.json`);
+  return path22.join(os16.homedir(), ".cogent", "wake-locks", `${hashCwd6(cwd)}.json`);
 }
 function leaseTtlMs() {
   let timeout = 3e5;
@@ -34264,7 +34866,7 @@ function holderAlive2(pid) {
 }
 function readHolder(p) {
   try {
-    const held = JSON.parse(fs18.readFileSync(p, "utf-8"));
+    const held = JSON.parse(fs21.readFileSync(p, "utf-8"));
     if (!held || typeof held.expiresAt !== "number") return null;
     return held;
   } catch {
@@ -34287,7 +34889,8 @@ async function acquireWakeLock(cwd = process.cwd(), sessionId = "unknown", opts 
         if (released) return;
         released = true;
         heldDepth--;
-      }
+      },
+      extend: (untilMs) => extendWakeLock(cwd, untilMs)
     };
   }
   const lease = () => {
@@ -34302,16 +34905,20 @@ async function acquireWakeLock(cwd = process.cwd(), sessionId = "unknown", opts 
         released = true;
         heldDepth--;
         if (heldDepth === 0) releaseWakeLock(cwd);
+      },
+      extend: (untilMs) => {
+        if (!released) extendWakeLock(cwd, untilMs);
       }
     };
   };
   const failOpen = (why) => {
     logger.warn(`wake-lock: ${why} \u2014 waking anyway (fail-open)`);
     return { acquired: true, waitedMs: Date.now() - started, contended, release: () => {
+    }, extend: () => {
     } };
   };
   try {
-    fs18.mkdirSync(path19.dirname(p), { recursive: true });
+    fs21.mkdirSync(path22.dirname(p), { recursive: true });
   } catch (err) {
     return failOpen(`cannot create lock dir (${err.message})`);
   }
@@ -34324,7 +34931,7 @@ async function acquireWakeLock(cwd = process.cwd(), sessionId = "unknown", opts 
       expiresAt: now + leaseTtlMs()
     });
     try {
-      fs18.writeFileSync(p, body, { flag: "wx" });
+      fs21.writeFileSync(p, body, { flag: "wx" });
       if (contended) {
         logger.info(
           `Auto-relay: waited ${Date.now() - started}ms for another bridge process to finish its turn in this checkout before resuming \u2014 turns are serialised, not overlapping.`
@@ -34339,7 +34946,7 @@ async function acquireWakeLock(cwd = process.cwd(), sessionId = "unknown", opts 
     const held = readHolder(p);
     if (!held || held.expiresAt <= now || !holderAlive2(held.pid)) {
       try {
-        fs18.writeFileSync(p, body);
+        fs21.writeFileSync(p, body);
       } catch (err) {
         return failOpen(`cannot steal abandoned lock (${err.message})`);
       }
@@ -34360,9 +34967,23 @@ async function acquireWakeLock(cwd = process.cwd(), sessionId = "unknown", opts 
     await sleep3(POLL_MS);
   }
 }
+function extendWakeLock(cwd, untilMs) {
+  try {
+    const p = wakeLockPath(cwd);
+    const held = readHolder(p);
+    if (!held || held.pid !== process.pid) return;
+    const expiresAt = Math.min(untilMs, Date.now() + WAKE_LOCK_MAX_MS);
+    if (expiresAt <= held.expiresAt) return;
+    const tmp = `${p}.${process.pid}.tmp`;
+    fs21.writeFileSync(tmp, JSON.stringify({ ...held, expiresAt }));
+    fs21.renameSync(tmp, p);
+  } catch (err) {
+    logger.debug(`wake-lock: could not extend the lease in ${cwd}: ${err}`);
+  }
+}
 function releaseWakeLock(cwd = process.cwd()) {
   try {
-    fs18.unlinkSync(wakeLockPath(cwd));
+    fs21.unlinkSync(wakeLockPath(cwd));
   } catch {
   }
 }
@@ -34380,349 +35001,16 @@ var init_wake_lock = __esm({
   }
 });
 
-// src/services/wake-ownership.ts
-import crypto8 from "node:crypto";
-import fs19 from "node:fs";
-import os15 from "node:os";
-import path20 from "node:path";
-function agentSessionId(env = process.env) {
-  if (env.COGENT_PLATFORM && env.COGENT_PLATFORM !== "cc") return void 0;
-  const id = env.CLAUDE_CODE_SESSION_ID?.trim();
-  return id && id.length <= 128 ? id : void 0;
-}
-function startedWithoutClient() {
-  if (withoutClient === void 0) {
-    try {
-      withoutClient = fs19.fstatSync(0).isCharacterDevice();
-    } catch {
-      withoutClient = false;
-    }
-  }
-  return withoutClient;
-}
-function hashCwd6(cwd) {
-  return crypto8.createHash("sha256").update(path20.resolve(cwd)).digest("hex").slice(0, 16);
-}
-function bridgeDirFor(cwd, peerId) {
-  return path20.join(os15.homedir(), ".cogent", "bridges", `${hashCwd6(cwd)}.${safe4(peerId)}`);
-}
-function isReservedPeerName(peerId) {
-  return safe4(peerId).toLowerCase() === safe4(PROCESS_MARK).toLowerCase();
-}
-function registryText(value) {
-  return String(value ?? "").replace(/[^A-Za-z0-9._-]/g, "").slice(0, 64) || "unreadable";
-}
-function registryOwnerLabel(o) {
-  return `pid ${registryText(o.pid)} (v${registryText(o.version)}, ${JSON.stringify(String(o.endpoint ?? "").slice(0, 200))})`;
-}
-function pidAlive(pid) {
-  if (typeof pid !== "number" || !Number.isInteger(pid) || pid <= 0) return false;
-  if (pid === process.pid) return true;
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch (err) {
-    return err?.code === "EPERM";
-  }
-}
-function announceBridge(cwd, peerId, version2, endpoint, sessionId = agentSessionId()) {
-  const dir = bridgeDirFor(cwd, peerId);
-  try {
-    fs19.mkdirSync(dir, { recursive: true });
-    const entry = {
-      pid: process.pid,
-      startedAt: PROCESS_STARTED_AT,
-      version: version2,
-      peerId,
-      endpoint,
-      cwd: path20.resolve(cwd),
-      parentPid: process.ppid,
-      ...sessionId ? { sessionId } : {},
-      platform: process.env.COGENT_PLATFORM || "cc",
-      // 🔴 A headless bridge never had a client to lose (review r7 FIX2-2, SEC2-2): when its launching
-      // shell exited, the changed parent read as "client gone" and any bridge that started took its name.
-      ...startedWithoutClient() ? { noClient: true } : {}
-    };
-    fs19.writeFileSync(path20.join(dir, `${process.pid}.json`), JSON.stringify(entry));
-  } catch (err) {
-    logger.debug(`wake-ownership: could not announce this bridge (${err.message})`);
-  }
-}
-function markBridgeDraining(cwd, peerId) {
-  const file = path20.join(bridgeDirFor(cwd, peerId), `${process.pid}.json`);
-  try {
-    const entry = JSON.parse(fs19.readFileSync(file, "utf-8"));
-    fs19.writeFileSync(file, JSON.stringify({ ...entry, draining: true }));
-  } catch {
-  }
-}
-function markBridgeProcess(cwd, version2) {
-  listLiveBridges(cwd, PROCESS_MARK);
-  announceBridge(cwd, PROCESS_MARK, version2, "");
-}
-function withdrawBridge(cwd, peerId) {
-  try {
-    fs19.unlinkSync(path20.join(bridgeDirFor(cwd, peerId), `${process.pid}.json`));
-  } catch {
-  }
-}
-function listLiveBridges(cwd, peerId) {
-  const dir = bridgeDirFor(cwd, peerId);
-  let names;
-  try {
-    names = fs19.readdirSync(dir);
-  } catch {
-    return [];
-  }
-  const live = [];
-  for (const name of names) {
-    if (!name.endsWith(".json")) continue;
-    const p = path20.join(dir, name);
-    let entry = null;
-    try {
-      entry = JSON.parse(fs19.readFileSync(p, "utf-8"));
-    } catch {
-      entry = null;
-    }
-    if (!entry || !pidAlive(entry.pid) || typeof entry.startedAt !== "number") {
-      try {
-        fs19.unlinkSync(p);
-      } catch {
-      }
-      continue;
-    }
-    live.push(entry);
-  }
-  live.sort((a, b) => b.startedAt - a.startedAt || b.pid - a.pid);
-  return live;
-}
-function listLiveBridgesInFolder(cwd) {
-  const prefix = `${hashCwd6(cwd)}.`;
-  let dirs;
-  try {
-    dirs = fs19.readdirSync(path20.join(os15.homedir(), ".cogent", "bridges"));
-  } catch {
-    return [];
-  }
-  return dirs.filter((d) => d.startsWith(prefix)).flatMap((d) => listLiveBridges(cwd, d.slice(prefix.length)));
-}
-function checkWakeOwnership(cwd, peerId) {
-  let live;
-  try {
-    live = listLiveBridges(cwd, peerId);
-  } catch (err) {
-    logger.warn(`wake-ownership: could not read bridge registry (${err.message}) \u2014 assuming ownership`);
-    return { isOwner: true, liveCount: 1 };
-  }
-  if (live.length === 0) return { isOwner: true, liveCount: 0 };
-  const owner = live[0];
-  if (owner.pid === process.pid) return { isOwner: true, liveCount: live.length };
-  if (live.some((e) => e.pid === process.pid)) {
-    return {
-      isOwner: false,
-      owner: { pid: owner.pid, version: owner.version, endpoint: owner.endpoint },
-      liveCount: live.length
-    };
-  }
-  return { isOwner: true, liveCount: live.length + 1 };
-}
-var PROCESS_STARTED_AT, withoutClient, safe4, PROCESS_MARK;
-var init_wake_ownership = __esm({
-  "src/services/wake-ownership.ts"() {
-    "use strict";
-    init_logger();
-    PROCESS_STARTED_AT = Date.now() - Math.floor(process.uptime() * 1e3);
-    safe4 = (s) => String(s).replace(/[^A-Za-z0-9._-]/g, "_");
-    PROCESS_MARK = ".process";
-  }
-});
-
-// src/services/stale-bridge-reaper.ts
-import { execFileSync as execFileSync2 } from "node:child_process";
-import fs20 from "node:fs";
-import path21 from "node:path";
-function isBridgeCommand(argv) {
-  if (!argv) return false;
-  if (/\.test\.|-test\.mjs|scripts\//.test(argv)) return false;
-  return /\/bridge\/cogent-bridge\.mjs(\s|$)/.test(argv) || // plugin bundle (Claude + codex)
-  /\/cogent-bridge(\s|$)/.test(argv) || // npx / global bin shim
-  /@essentialai\/cogent-bridge(-bundled)?\/dist\/(cli|index)\.js(\s|$)/.test(argv);
-}
-function versionFromArgv(argv) {
-  const m = argv.match(/\/cogent\/(\d+\.\d+\.\d+)\//);
-  return m ? m[1] : null;
-}
-function versionAtLeast(a, b) {
-  const pa = a.split(/[-+]/)[0].split(".").map(Number);
-  const pb = b.split(/[-+]/)[0].split(".").map(Number);
-  for (let i = 0; i < 3; i++) {
-    const x = pa[i] ?? 0;
-    const y = pb[i] ?? 0;
-    if (x !== y) return x > y;
-  }
-  return true;
-}
-function bridgeVersion(argv, readFile = (p) => fs20.readFileSync(p, "utf-8")) {
-  const fromPath = versionFromArgv(argv);
-  if (fromPath) return fromPath;
-  const candidates = [];
-  const pkg = argv.match(/(\S*\/@essentialai\/cogent-bridge(?:-bundled)?)\/dist\/(?:cli|index)\.js(?:\s|$)/);
-  if (pkg) candidates.push(path21.join(pkg[1], "package.json"));
-  const bin = argv.match(/(\S*\/node_modules)\/\.bin\/cogent-bridge(?:\s|$)/);
-  if (bin) {
-    for (const name of ["cogent-bridge", "cogent-bridge-bundled"]) {
-      candidates.push(path21.join(bin[1], "@essentialai", name, "package.json"));
-    }
-  }
-  for (const file of candidates) {
-    try {
-      const pj = JSON.parse(readFile(file));
-      if (typeof pj.name === "string" && pj.name.startsWith("@essentialai/cogent-bridge") && typeof pj.version === "string" && /^\d+\.\d+\.\d+/.test(pj.version)) {
-        return pj.version;
-      }
-    } catch {
-    }
-  }
-  return null;
-}
-function listProcesses() {
-  let out;
-  try {
-    out = execFileSync2("ps", ["-eo", "pid=,ppid=,lstart=,args="], {
-      encoding: "utf-8",
-      maxBuffer: 8 * 1024 * 1024,
-      timeout: 1e4
-    });
-  } catch (err) {
-    logger.debug(`stale-bridge-reaper: ps failed (${err.message})`);
-    return [];
-  }
-  const procs = [];
-  for (const line of out.split("\n")) {
-    const m = line.match(/^\s*(\d+)\s+(\d+)\s+(\S+\s+\S+\s+\S+\s+\S+\s+\S+)\s+(.*)$/);
-    if (!m) continue;
-    const started = Date.parse(m[3]);
-    procs.push({
-      pid: Number(m[1]),
-      ppid: Number(m[2]),
-      startedAt: Number.isFinite(started) ? started : NaN,
-      argv: m[4]
-    });
-  }
-  return procs;
-}
-function processCwd(pid) {
-  try {
-    if (process.platform === "linux") {
-      return path21.resolve(fs20.readlinkSync(`/proc/${pid}/cwd`));
-    }
-    if (process.platform === "darwin") {
-      const out = execFileSync2("lsof", ["-a", "-d", "cwd", "-p", String(pid), "-Fn"], {
-        encoding: "utf-8",
-        timeout: 1e4,
-        stdio: ["ignore", "pipe", "ignore"]
-      });
-      const line = out.split("\n").find((l) => l.startsWith("n"));
-      return line ? path21.resolve(line.slice(1)) : null;
-    }
-  } catch {
-  }
-  return null;
-}
-function canonicalPath(p) {
-  try {
-    return fs20.realpathSync(path21.resolve(p));
-  } catch {
-    return path21.resolve(p);
-  }
-}
-function ancestorsOf(pid, procs) {
-  const byPid = new Map(procs.map((p) => [p.pid, p]));
-  const seen = /* @__PURE__ */ new Set();
-  let cur = byPid.get(pid)?.ppid;
-  while (cur && cur > 1 && !seen.has(cur)) {
-    seen.add(cur);
-    cur = byPid.get(cur)?.ppid;
-  }
-  return seen;
-}
-function findStaleBridges(cwd, procs = listProcesses(), opts = {}) {
-  const versionOf = opts.versionOf ?? ((argv) => bridgeVersion(argv));
-  const selfPid = opts.selfPid ?? process.pid;
-  const selfStartedAt = opts.selfStartedAt ?? procs.find((p) => p.pid === selfPid)?.startedAt ?? NaN;
-  if (!Number.isFinite(selfStartedAt)) return [];
-  const cwdOf = opts.cwdOf ?? processCwd;
-  const announced = opts.announced ?? new Set(listLiveBridgesInFolder(cwd).map((e) => e.pid));
-  const target = canonicalPath(cwd);
-  const ancestors = ancestorsOf(selfPid, procs);
-  const out = [];
-  for (const p of procs) {
-    if (p.pid === selfPid) continue;
-    if (ancestors.has(p.pid)) continue;
-    if (!isBridgeCommand(p.argv)) continue;
-    if (announced.has(p.pid)) continue;
-    if (!Number.isFinite(p.startedAt) || p.startedAt >= selfStartedAt) continue;
-    const theirCwd = cwdOf(p.pid);
-    if (!theirCwd || canonicalPath(theirCwd) !== target) continue;
-    const ver = versionOf(p.argv);
-    if (!ver || versionAtLeast(ver, SELF_SUPERSESSION_VERSION)) continue;
-    out.push({
-      proc: p,
-      reason: `pid ${p.pid} (version ${ver}) is a cogent bridge in this exact checkout, started ${new Date(p.startedAt).toISOString()} \u2014 before this process \u2014 and is not in the bridge registry; version ${ver} predates ${SELF_SUPERSESSION_VERSION} self-supersession and would keep waking this session forever`
-    });
-  }
-  return out;
-}
-function reaperEnabled(env = process.env) {
-  const v = env.COGENT_REAP_STALE_BRIDGES;
-  if (v === void 0 || v === "") return true;
-  return !/^(0|false|no|off)$/i.test(v.trim());
-}
-function reapStaleBridges(cwd, opts = {}) {
-  if (!reaperEnabled()) {
-    logger.debug("stale-bridge-reaper: disabled by COGENT_REAP_STALE_BRIDGES");
-    return [];
-  }
-  let candidates;
-  try {
-    candidates = findStaleBridges(cwd, listProcesses(), opts);
-  } catch (err) {
-    logger.warn(`stale-bridge-reaper: scan failed (${err.message}) \u2014 reaping nothing`);
-    return [];
-  }
-  const reaped = [];
-  for (const c2 of candidates) {
-    logger.warn(`Cogent: terminating a stale bridge \u2014 ${c2.reason}`);
-    try {
-      process.kill(c2.proc.pid, "SIGTERM");
-      reaped.push(c2);
-    } catch (err) {
-      logger.warn(`stale-bridge-reaper: could not signal pid ${c2.proc.pid}: ${err.message}`);
-    }
-  }
-  if (reaped.length) {
-    logger.warn(
-      `Cogent: reaped ${reaped.length} stale bridge process(es) for this checkout, each at a version before ${SELF_SUPERSESSION_VERSION}: they could not stand down on their own.`
-    );
-  }
-  return reaped;
-}
-var SELF_SUPERSESSION_VERSION;
-var init_stale_bridge_reaper = __esm({
-  "src/services/stale-bridge-reaper.ts"() {
-    "use strict";
-    init_logger();
-    init_wake_ownership();
-    SELF_SUPERSESSION_VERSION = "3.23.4";
-  }
-});
-
 // src/services/auto-relay.ts
 import { randomUUID as randomUUID2 } from "node:crypto";
-import fs21 from "node:fs";
-import path22 from "node:path";
+import fs22 from "node:fs";
+import path23 from "node:path";
 function buildStatusNotice(status, peerId, traceId, opts) {
   const tail = traceId ? ` (trace ${traceId})` : "";
+  if (status === RELAY_STATUS.PROCESSING && opts?.midEditTotalSeconds !== void 0) {
+    const over = opts.overSeconds !== void 0 ? ` after ${opts.overSeconds} s` : "";
+    return `[cogent:processing] \u23F3 "${peerId}" is still changing files for your message${over}; Cogent gives it up to ${Math.round(opts.midEditTotalSeconds / 60)} min in total. Its answer, or a failure notice, will follow as a separate message; there is no need to resend.${tail}`;
+  }
   if (status === RELAY_STATUS.PROCESSING) {
     const over = opts?.overSeconds !== void 0 ? ` (over ${opts.overSeconds} s)` : "";
     return `[cogent:processing] \u23F3 "${peerId}" is busy working on your message${over}. Its answer will arrive as a separate message when its current turn ends; there is no need to resend.${tail}`;
@@ -34805,8 +35093,9 @@ function describeWakeFailure(agent, exitCode, stderr, stdout) {
   }
   const timedOut = /CLI_TIMEOUT: (?:CLI subprocess timed out after|app-server turn did not complete within) (\d+)ms/.exec(raw);
   if (timedOut) {
+    const extended = /extended by (\d+)ms/.exec(raw);
     return truncate(
-      `the resume timed out after ${timedOut[1]}ms (COGENT_TIMEOUT_MS) \u2014 the agent was still working, not idle.`
+      `the resume timed out after ${timedOut[1]}ms (COGENT_TIMEOUT_MS${extended ? ` plus a one-time extension of ${extended[1]}ms because it was changing files` : ""}) \u2014 the agent was still working, not idle.`
     );
   }
   const childStderr = /\. stderr:\s*([\s\S]*)$/.exec(raw)?.[1]?.trim() ?? raw;
@@ -34854,6 +35143,11 @@ function truncate(s) {
   const flat = s.replace(/\s+/g, " ").trim();
   return flat.length > DIAGNOSTIC_MAX ? `${flat.slice(0, DIAGNOSTIC_MAX - 1)}\u2026` : flat;
 }
+function describeChangedFiles(files) {
+  if (!files || files.length === 0) return "";
+  const n = files.length;
+  return ` ${n} path${n === 1 ? "" : "s"} in its checkout changed while it ran, so the work may be half-done; the agent is told which when its own session next stops.`;
+}
 function timeoutSecondsOf(result) {
   const fromText = /within (\d+)ms/.exec(result?.stderr ?? "")?.[1];
   const ms = fromText !== void 0 ? Number(fromText) : Number(getConfig().COGENT_TIMEOUT_MS);
@@ -34874,20 +35168,20 @@ function lateFailureReason(r, lateAnswerMaxMs, timeoutSeconds) {
 }
 function isInsideOwnFolder(dir) {
   try {
-    const real = fs21.realpathSync.native(dir);
-    return real === process.cwd() || real.startsWith(process.cwd() + path22.sep);
+    const real = fs22.realpathSync.native(dir);
+    return real === process.cwd() || real.startsWith(process.cwd() + path23.sep);
   } catch {
     return false;
   }
 }
 function isOwnFolder(dir) {
   try {
-    return fs21.realpathSync.native(dir) === fs21.realpathSync.native(process.cwd());
+    return fs22.realpathSync.native(dir) === fs22.realpathSync.native(process.cwd());
   } catch {
     return false;
   }
 }
-var RELAY_STATUS, STATUS_MARKER_RE, DIAGNOSTIC_MAX, LATE_HOLD_GRACE_MS, EARLY_ACK_TTL_MS, EARLY_ACK_MAX, AutoRelayService, autoRelay;
+var RELAY_STATUS, STATUS_MARKER_RE, DIAGNOSTIC_MAX, LATE_HOLD_GRACE_MS, MID_EDIT_TOTAL_MS, MID_EDIT_HOLD_GRACE_MS, EARLY_ACK_TTL_MS, EARLY_ACK_MAX, AutoRelayService, autoRelay;
 var init_auto_relay = __esm({
   "src/services/auto-relay.ts"() {
     "use strict";
@@ -34916,6 +35210,8 @@ var init_auto_relay = __esm({
     STATUS_MARKER_RE = /^\[cogent:(queued|processing|delivered|needs-manual|failed)\]/;
     DIAGNOSTIC_MAX = 220;
     LATE_HOLD_GRACE_MS = 6e4;
+    MID_EDIT_TOTAL_MS = 6e5;
+    MID_EDIT_HOLD_GRACE_MS = 6e4;
     EARLY_ACK_TTL_MS = 12e4;
     EARLY_ACK_MAX = 256;
     AutoRelayService = class {
@@ -34929,6 +35225,10 @@ var init_auto_relay = __esm({
        */
       pinnedSessionId = null;
       localCwd = null;
+      /** The registered agent's working directory, or null before register (COG-96 health check). */
+      getLocalCwd() {
+        return this.localCwd;
+      }
       /** Every folder this process announced the current peer name under — what a drain or a stop must cover. */
       announcedCwds = /* @__PURE__ */ new Set();
       /**
@@ -35015,8 +35315,8 @@ var init_auto_relay = __esm({
         logger.info(
           `Auto-relay configured for peer ${peerId} (session: ${sessionId}, pinned: ${this.pinnedSessionId}, mode: ${this.localMode}, label: ${this.localLabel})`
         );
-        const dirs = /* @__PURE__ */ new Set([path22.resolve(cwd)]);
-        if (isInsideOwnFolder(path22.resolve(cwd))) dirs.add(process.cwd());
+        const dirs = /* @__PURE__ */ new Set([path23.resolve(cwd)]);
+        if (isInsideOwnFolder(path23.resolve(cwd))) dirs.add(process.cwd());
         for (const dir of dirs) {
           this.announcedCwds.add(dir);
           announceBridge(dir, peerId, CLIENT_VERSION, getConfig().COGENT_ENDPOINT ?? "local");
@@ -35399,7 +35699,7 @@ var init_auto_relay = __esm({
           return;
         }
         if (this.localPeerId && this.localCwd) {
-          const dirs = /* @__PURE__ */ new Set([path22.resolve(this.localCwd), ...isOwnFolder(this.localCwd) ? [process.cwd()] : []]);
+          const dirs = /* @__PURE__ */ new Set([path23.resolve(this.localCwd), ...isOwnFolder(this.localCwd) ? [process.cwd()] : []]);
           for (const dir of dirs) {
             const own = checkWakeOwnership(dir, this.localPeerId);
             if (!own.isOwner) {
@@ -35639,6 +35939,12 @@ var init_auto_relay = __esm({
           wakeLease = await acquireWakeLock(this.localCwd, this.localSessionId);
           treeBefore = captureTreeState(this.localCwd);
           const codexSandbox = getConfig().COGENT_PLATFORM === "codex" ? effectiveSandbox(getConfig(), experiment.codexSandbox) : void 0;
+          const runStartMs = Date.now();
+          const extendAtTimeout = getConfig().COGENT_PLATFORM !== "codex" && treeBefore ? () => {
+            const extra = this._midEditExtension(msg, traceId, treeBefore, wakeLease, runStartMs);
+            if (extra > 0) notice = "processing";
+            return extra;
+          } : void 0;
           const result = await execRemote(
             getConfig().COGENT_PLATFORM,
             this.localSessionId,
@@ -35651,7 +35957,8 @@ var init_auto_relay = __esm({
             {
               idempotencyKey: msg.id,
               ...lateAnswerMaxMs !== void 0 ? { lateAnswerMaxMs } : {},
-              ...codexSandbox ? { codexSandbox } : {}
+              ...codexSandbox ? { codexSandbox } : {},
+              ...extendAtTimeout ? { extendAtTimeout } : {}
             }
           );
           primary = result;
@@ -35713,7 +36020,9 @@ var init_auto_relay = __esm({
               }
               return;
             }
-            const freshId = await detectCurrentSessionFor(getConfig().COGENT_PLATFORM, this.localCwd);
+            const claudeTimedOut = getConfig().COGENT_PLATFORM !== "codex" && result.exitCode === null && /CLI_TIMEOUT/.test(result.stderr ?? "");
+            const freshId = claudeTimedOut ? null : await detectCurrentSessionFor(getConfig().COGENT_PLATFORM, this.localCwd);
+            if (claudeTimedOut) this._trace(traceId, "retry_skipped", { reason: "timeout" });
             if (freshId && freshId !== this.localSessionId) {
               logger.info(`Auto-relay: retry with rotated session ${this.localSessionId} -> ${freshId}`);
               this.localSessionId = freshId;
@@ -35735,7 +36044,8 @@ var init_auto_relay = __esm({
               codexLiveSession: result.codexLiveSession === true,
               exitCode: result.exitCode,
               stderr: result.stderr,
-              stdout: result.stdout
+              stdout: result.stdout,
+              filesChanged: this._changedSince(treeBefore)
             });
           }
         } catch (err) {
@@ -35745,7 +36055,8 @@ var init_auto_relay = __esm({
           logger.error(`Auto-relay: execRemote threw after ${durationMs}ms: ${err}`);
           if (!replied) {
             notice = await this._recordNoReplyFailure(msg, traceId, durationMs, {
-              stderr: `EXEC_THREW: ${err}`
+              stderr: `EXEC_THREW: ${err}`,
+              filesChanged: this._changedSince(treeBefore)
             });
           }
         } finally {
@@ -35772,7 +36083,8 @@ var init_auto_relay = __esm({
               who: { cwd: lateWho.cwd, sessionId: lateWho.sessionId },
               lateAnswerMaxMs,
               timeoutSeconds: timeoutSecondsOf(primary),
-              fields
+              fields,
+              treeBefore
             });
           }
         }
@@ -35795,8 +36107,53 @@ var init_auto_relay = __esm({
           ...result?.codexVersion ? { codexVersion: result.codexVersion } : {},
           ...result && result.stopHook !== void 0 ? { stopHook: result.stopHook } : {},
           ...result?.gaveUpAt ? { gaveUpAt: result.gaveUpAt } : {},
-          ...result?.lateSkipped ? { lateReason: result.lateSkipped } : {}
+          ...result?.lateSkipped ? { lateReason: result.lateSkipped } : {},
+          ...result?.timeoutExtendedMs ? { timeoutExtendedMs: result.timeoutExtendedMs } : {}
         };
+      }
+      /** COG-93: paths changed in `cwd` since `before` was taken; null when that cannot be told. Never throws. */
+      _changedSince(before, cwd = this.localCwd) {
+        try {
+          return before && cwd ? diffTreeState(before, captureTreeState(cwd)) : null;
+        } catch {
+          return null;
+        }
+      }
+      /**
+       * COG-93: asked when a Claude wake reaches COGENT_TIMEOUT_MS. If the checkout has changed since the
+       * wake started, the run is mid-edit: give it time up to MID_EDIT_TOTAL_MS in total (returned in ms),
+       * extend everything that assumed the old bound — the wake lock, the message claim, the in-flight
+       * marker that keeps rail C quiet — until the run's new limit (from `runStartMs`) plus a margin — and
+       * tell the asker it is still working. Otherwise 0: killed as before. Runs inside the rail's timer, so
+       * synchronous; never throws.
+       */
+      _midEditExtension(msg, traceId, treeBefore, lease, runStartMs) {
+        try {
+          const timeoutMs = Number(getConfig().COGENT_TIMEOUT_MS);
+          const extra = MID_EDIT_TOTAL_MS - timeoutMs;
+          if (!Number.isFinite(extra) || extra <= 0) return 0;
+          const changed = this._changedSince(treeBefore);
+          if (!changed || changed.length === 0) return 0;
+          const peerId = this.localPeerId;
+          const until = runStartMs + MID_EDIT_TOTAL_MS + MID_EDIT_HOLD_GRACE_MS;
+          lease?.extend(until);
+          if (peerId) {
+            extendWakeClaim(peerId, msg.id, until, this.localCwd ?? process.cwd());
+            extendWakeInFlight(peerId, msg.id, until);
+          }
+          this._trace(traceId, "mid_edit_extended", { extraMs: extra, changed: changed.length });
+          logger.info(
+            `Auto-relay: wake for ${msg.id} reached ${Math.round(timeoutMs / 1e3)} s while changing ${changed.length} path(s) \u2014 giving it up to ${Math.round(MID_EDIT_TOTAL_MS / 1e3)} s in total instead of killing it (COG-93)`
+          );
+          void this._emitStatusNotice(msg.fromPeerId, RELAY_STATUS.PROCESSING, traceId, {
+            overSeconds: Math.round(timeoutMs / 1e3),
+            midEditTotalSeconds: Math.round(MID_EDIT_TOTAL_MS / 1e3)
+          });
+          return extra;
+        } catch (err) {
+          logger.warn(`Auto-relay: mid-edit extension check failed \u2014 the wake is stopped at its timeout: ${err}`);
+          return 0;
+        }
       }
       /**
        * COG-95: hand a timed-out codex app-server turn to a late wait. Holds the in-flight marker for
@@ -35860,7 +36217,8 @@ var init_auto_relay = __esm({
           } else {
             lateReason = r.stdout !== null ? "empty" : r.reason;
             notice = await this._recordNoReplyFailure(msg, ctx.traceId, Date.now() - ctx.startMs, {
-              reason: lateFailureReason(r, ctx.lateAnswerMaxMs, ctx.timeoutSeconds)
+              reason: lateFailureReason(r, ctx.lateAnswerMaxMs, ctx.timeoutSeconds),
+              filesChanged: this._changedSince(ctx.treeBefore, ctx.who.cwd)
             });
           }
         } catch (err) {
@@ -35875,8 +36233,8 @@ var init_auto_relay = __esm({
               outcome,
               exitCode: outcome === "late-replied" ? 0 : null,
               durationMs: Date.now() - ctx.startMs,
-              treeBefore: null
-              // no tree snapshot spans the late window → filesChanged null ("cannot tell")
+              treeBefore: ctx.treeBefore
+              // COG-93: spans the whole late window (see ctx.treeBefore)
             },
             {
               ...ctx.fields,
@@ -35939,7 +36297,7 @@ var init_auto_relay = __esm({
        */
       async _recordNoReplyFailure(msg, traceId, durationMs, opts) {
         const codexLive = opts?.codexLiveSession === true;
-        const message = codexLive ? `\u{1F4E8} Queued for "${this.localPeerId}": it's live in an interactive Codex session, so Cogent can't resume it in real time \u2014 it will see this at its next turn. For real-time replies, launch it via \`cogent-codex\` (COGENT_CODEX_WAKE=app-server). (trace ${traceId})` : `\u26A0\uFE0F Cogent could not capture a reply from "${this.localPeerId}". ${opts?.reason ?? (describeWakeFailure(wakeAgentFor(getConfig().COGENT_PLATFORM), opts?.exitCode, opts?.stderr, opts?.stdout) || "It may have been busy, or the resume produced no output.")} Manual response required \u2014 the target agent must reply in its own session. (trace ${traceId})`;
+        const message = codexLive ? `\u{1F4E8} Queued for "${this.localPeerId}": it's live in an interactive Codex session, so Cogent can't resume it in real time \u2014 it will see this at its next turn. For real-time replies, launch it via \`cogent-codex\` (COGENT_CODEX_WAKE=app-server). (trace ${traceId})` : `\u26A0\uFE0F Cogent could not capture a reply from "${this.localPeerId}". ${opts?.reason ?? (describeWakeFailure(wakeAgentFor(getConfig().COGENT_PLATFORM), opts?.exitCode, opts?.stderr, opts?.stdout) || "It may have been busy, or the resume produced no output.")}${describeChangedFiles(opts?.filesChanged)} Manual response required \u2014 the target agent must reply in its own session. (trace ${traceId})`;
         try {
           await getBackend().recordMessage({
             fromPeerId: this.localPeerId,
@@ -36608,9 +36966,9 @@ __export(startup_exports, {
   setInboxNotifier: () => setInboxNotifier,
   triggerReRegistration: () => triggerReRegistration
 });
-import os16 from "node:os";
-import path23 from "node:path";
-import fs22 from "node:fs/promises";
+import os17 from "node:os";
+import path24 from "node:path";
+import fs23 from "node:fs/promises";
 import readline2 from "node:readline";
 import { execFile as execFile5 } from "node:child_process";
 import { promisify as promisify4 } from "node:util";
@@ -36628,7 +36986,7 @@ function bindInboxNotifier() {
 }
 async function loadPersistedConfig() {
   try {
-    const raw = await fs22.readFile(PERSIST_PATH, "utf-8");
+    const raw = await fs23.readFile(PERSIST_PATH, "utf-8");
     return JSON.parse(raw);
   } catch {
     return {};
@@ -36636,7 +36994,7 @@ async function loadPersistedConfig() {
 }
 async function savePersistedConfig(config2) {
   try {
-    await fs22.writeFile(PERSIST_PATH, JSON.stringify(config2, null, 2) + "\n", "utf-8");
+    await fs23.writeFile(PERSIST_PATH, JSON.stringify(config2, null, 2) + "\n", "utf-8");
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     logger.warn(`Could not save config to ${PERSIST_PATH}: ${msg}`);
@@ -36671,11 +37029,11 @@ First run detected. Where should cogent-bridge store its data?
   });
 }
 async function validateStateDir(statePath) {
-  await fs22.mkdir(statePath, { recursive: true });
-  const testFile = path23.join(statePath, ".write-test");
+  await fs23.mkdir(statePath, { recursive: true });
+  const testFile = path24.join(statePath, ".write-test");
   try {
-    await fs22.writeFile(testFile, "test", "utf-8");
-    await fs22.unlink(testFile);
+    await fs23.writeFile(testFile, "test", "utf-8");
+    await fs23.unlink(testFile);
   } catch {
     throw new BridgeError(
       "STARTUP_FAILED" /* STARTUP_FAILED */,
@@ -37000,10 +37358,10 @@ async function runStartup() {
   if (envStatePath) {
     statePath = envStatePath;
   } else {
-    const defaultPath = path23.join(os16.homedir(), ".cogent");
+    const defaultPath = path24.join(os17.homedir(), ".cogent");
     statePath = await firstRunPrompt(defaultPath);
   }
-  if (!envStatePath && statePath !== path23.join(os16.homedir(), ".cogent")) {
+  if (!envStatePath && statePath !== path24.join(os17.homedir(), ".cogent")) {
     process.env.COGENT_STATE_PATH = statePath;
   } else if (!envStatePath) {
     process.env.COGENT_STATE_PATH = statePath;
@@ -37067,7 +37425,7 @@ async function runStartup() {
   }
   initLogger(
     config2.COGENT_LOG_LEVEL,
-    path23.join(config2.COGENT_STATE_PATH, "logs")
+    path24.join(config2.COGENT_STATE_PATH, "logs")
   );
   if (isCloud && effectiveSessionId && effectiveToken) {
     cloudInbox = new MessageInbox();
@@ -37133,7 +37491,7 @@ var init_startup = __esm({
     init_auto_relay();
     UUID_V4_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     execFileAsync3 = promisify4(execFile5);
-    PERSIST_PATH = path23.join(os16.homedir(), ".cogent-config.json");
+    PERSIST_PATH = path24.join(os17.homedir(), ".cogent-config.json");
     legacyWarnEmitted = false;
     cloudWsClient = null;
     cloudInbox = null;
@@ -37152,12 +37510,12 @@ var init_startup = __esm({
 
 // src/cloud/mail-credential-store.ts
 import crypto9 from "node:crypto";
-import fs23 from "node:fs/promises";
-import path24 from "node:path";
-import os17 from "node:os";
+import fs24 from "node:fs/promises";
+import path25 from "node:path";
+import os18 from "node:os";
 function defaultMailCredentialPath(cwd = process.cwd()) {
-  const hash = crypto9.createHash("sha256").update(path24.resolve(cwd)).digest("hex").slice(0, 16);
-  return path24.join(os17.homedir(), ".cogent", "mail-credentials", `${hash}.json`);
+  const hash = crypto9.createHash("sha256").update(path25.resolve(cwd)).digest("hex").slice(0, 16);
+  return path25.join(os18.homedir(), ".cogent", "mail-credentials", `${hash}.json`);
 }
 function resolveMailCredentialPath(credentialPath) {
   if (credentialPath) return credentialPath;
@@ -37168,16 +37526,16 @@ function resolveMailCredentialPath(credentialPath) {
 async function loadMailCredentials(credentialPath) {
   const filePath = resolveMailCredentialPath(credentialPath);
   try {
-    return JSON.parse(await fs23.readFile(filePath, "utf-8"));
+    return JSON.parse(await fs24.readFile(filePath, "utf-8"));
   } catch {
     return null;
   }
 }
 async function saveMailCredentials(creds, credentialPath) {
   const filePath = resolveMailCredentialPath(credentialPath);
-  await fs23.mkdir(path24.dirname(filePath), { recursive: true, mode: 448 });
-  await fs23.writeFile(filePath, JSON.stringify(creds, null, 2) + "\n", { encoding: "utf-8", mode: 384 });
-  await fs23.chmod(filePath, 384);
+  await fs24.mkdir(path25.dirname(filePath), { recursive: true, mode: 448 });
+  await fs24.writeFile(filePath, JSON.stringify(creds, null, 2) + "\n", { encoding: "utf-8", mode: 384 });
+  await fs24.chmod(filePath, 384);
 }
 async function persistProvisionedMailbox(mailbox, credentialPath) {
   if (!mailbox?.address || !mailbox.password) return false;
@@ -37198,7 +37556,7 @@ async function persistProvisionedMailbox(mailbox, credentialPath) {
 async function clearMailCredentials(credentialPath) {
   const filePath = resolveMailCredentialPath(credentialPath);
   try {
-    await fs23.unlink(filePath);
+    await fs24.unlink(filePath);
   } catch (err) {
     if (err.code !== "ENOENT") throw err;
   }
@@ -37601,6 +37959,27 @@ function registerRegisterPeerTool(server) {
         const relayAdvisory = peer?.advisory;
         const updateNudge = typeof relayAdvisory === "string" && relayAdvisory || getLastNudge();
         if (updateNudge) result.updateAvailable = updateNudge;
+        if (config2.COGENT_PLATFORM === "cc") {
+          try {
+            const copies = liveSessionCopies(sessionId);
+            const self = copies.length > 1 ? selfAndAncestors() : /* @__PURE__ */ new Set();
+            const others = copies.length > 1 ? copies.filter((c2) => !self.has(c2.pid)) : [];
+            const dupWarning = duplicateSessionWarning(sessionId, others, CLIENT_VERSION);
+            if (dupWarning) {
+              result.duplicateSessionWarning = dupWarning;
+              logger.warn(`Register: ${dupWarning}`);
+            }
+          } catch (err) {
+            logger.debug(`Register: duplicate-session check failed (${err.message})`);
+          }
+        }
+        if (config2.COGENT_PLATFORM === "codex") {
+          const hookWarning = codexStopHookWarning(await probeCogentStopHook(cwd));
+          if (hookWarning) {
+            result.codexStopHookWarning = hookWarning;
+            logger.warn(`Register: ${hookWarning}`);
+          }
+        }
         if (sessionCreated && cloudSessionId && autoSecret) {
           result.session_created = true;
           result.credentials = {
@@ -37669,6 +38048,8 @@ var init_register_peer = __esm({
     init_stale_bridge_reaper();
     init_session_resolver();
     init_cc_cli();
+    init_codex_app_server();
+    init_duplicate_sessions();
     init_durable_identity();
     init_constants();
     init_npm_update_check();
@@ -38769,6 +39150,14 @@ function registerHealthCheckTool(server) {
         const registered = autoRelay.getDiagnostics().registered;
         const deliveryBroken = cloud && registered && deliveryPath === "none";
         const unhealthyReason = deliveryBroken ? `registered as a cloud peer but NO delivery path is working (websocket down${delivery?.lastWsError ? `: ${delivery.lastWsError}` : ""}; poll ${delivery?.lastPollError ? `failing: ${delivery.lastPollError}` : "inactive"}) \u2014 messages addressed to this peer cannot reach it` : null;
+        let codexStopHook;
+        if (getConfig().COGENT_PLATFORM === "codex") {
+          const state = await probeCogentStopHook(autoRelay.getLocalCwd() ?? process.cwd());
+          if (state !== void 0) {
+            const warning = codexStopHookWarning(state);
+            codexStopHook = { listed: state !== null, ...state ?? {}, ...warning ? { warning } : {} };
+          }
+        }
         const enriched = {
           ...JSON.parse(JSON.stringify(result)),
           healthy: relayHealthy && !deliveryBroken,
@@ -38795,6 +39184,7 @@ function registerHealthCheckTool(server) {
             ...cloud ? { wsHealth, relayVersion, deliveryPath, lastWsError: delivery?.lastWsError ?? null } : {}
           },
           autoRelay: autoRelay.getDiagnostics(),
+          ...codexStopHook ? { codexStopHook } : {},
           // PRESENCE — the agent's own view of whether it is IN its channel, so it can
           // answer "am I reachable?" without inferring it from transport internals.
           // "online" registered · "offline" owns a peer but is not registered (nobody can
@@ -38834,6 +39224,7 @@ var init_health_check2 = __esm({
     init_logger();
     init_auto_relay();
     init_peer_presence();
+    init_codex_app_server();
   }
 });
 
@@ -39492,8 +39883,8 @@ var require_cookies = __commonJS({
         if (urlparts.hostname !== cookie.domain && (cookie.domain.charAt(0) !== "." || ("." + urlparts.hostname).substr(-cookie.domain.length) !== cookie.domain)) {
           return false;
         }
-        let path28 = this.getPath(urlparts.pathname);
-        if (path28.substr(0, cookie.path.length) !== cookie.path) {
+        let path29 = this.getPath(urlparts.pathname);
+        if (path29.substr(0, cookie.path.length) !== cookie.path) {
           return false;
         }
         if (cookie.secure && urlparts.protocol !== "https:") {
@@ -39553,16 +39944,16 @@ var require_cookies = __commonJS({
        * @returns {String} Normalized path
        */
       getPath(pathname) {
-        let path28 = (pathname || "/").split("/");
-        path28.pop();
-        path28 = path28.join("/").trim();
-        if (path28.charAt(0) !== "/") {
-          path28 = "/" + path28;
+        let path29 = (pathname || "/").split("/");
+        path29.pop();
+        path29 = path29.join("/").trim();
+        if (path29.charAt(0) !== "/") {
+          path29 = "/" + path29;
         }
-        if (path28.substr(-1) !== "/") {
-          path28 += "/";
+        if (path29.substr(-1) !== "/") {
+          path29 += "/";
         }
-        return path28;
+        return path29;
       }
     };
     module.exports = Cookies;
@@ -39863,15 +40254,15 @@ var require_shared = __commonJS({
     "use strict";
     var urllib = __require("url");
     var util2 = __require("util");
-    var fs26 = __require("fs");
+    var fs27 = __require("fs");
     var nmfetch = require_fetch();
     var dns = __require("dns");
     var net = __require("net");
-    var os19 = __require("os");
+    var os20 = __require("os");
     var DNS_TTL = 5 * 60 * 1e3;
     var networkInterfaces;
     try {
-      networkInterfaces = os19.networkInterfaces();
+      networkInterfaces = os20.networkInterfaces();
     } catch (err) {
     }
     module.exports.networkInterfaces = networkInterfaces;
@@ -40249,7 +40640,7 @@ var require_shared = __commonJS({
           }
           return callback(null, parsedDataUri.data);
         } else if (content.path) {
-          return resolveStream(fs26.createReadStream(content.path), callback);
+          return resolveStream(fs27.createReadStream(content.path), callback);
         }
       }
       if (typeof data[key].content === "string" && !["utf8", "usascii", "ascii"].includes(encoding)) {
@@ -40373,7 +40764,7 @@ var require_shared = __commonJS({
 var require_mime_types = __commonJS({
   "node_modules/nodemailer/lib/mime-funcs/mime-types.js"(exports, module) {
     "use strict";
-    var path28 = __require("path");
+    var path29 = __require("path");
     var defaultMimeType = "application/octet-stream";
     var defaultExtension = "bin";
     var mimeTypes = /* @__PURE__ */ new Map([
@@ -42431,7 +42822,7 @@ var require_mime_types = __commonJS({
         if (!filename) {
           return defaultMimeType;
         }
-        let parsed = path28.parse(filename);
+        let parsed = path29.parse(filename);
         let extension = (parsed.ext.substr(1) || parsed.name || "").split("?").shift().trim().toLowerCase();
         let value = defaultMimeType;
         if (extensions.has(extension)) {
@@ -43833,7 +44224,7 @@ var require_mime_node = __commonJS({
   "node_modules/nodemailer/lib/mime-node/index.js"(exports, module) {
     "use strict";
     var crypto12 = __require("crypto");
-    var fs26 = __require("fs");
+    var fs27 = __require("fs");
     var punycode = require_punycode();
     var PassThrough = __require("stream").PassThrough;
     var shared = require_shared();
@@ -44548,7 +44939,7 @@ var require_mime_node = __commonJS({
             setImmediate(() => contentStream.emit("error", new Error("File access rejected for " + content.path)));
             return contentStream;
           }
-          return fs26.createReadStream(content.path);
+          return fs27.createReadStream(content.path);
         } else if (content && typeof content.href === "string") {
           if (this.disableUrlAccess) {
             contentStream = new PassThrough();
@@ -45569,8 +45960,8 @@ var require_dkim = __commonJS({
     var RelaxedBody = require_relaxed_body();
     var sign = require_sign();
     var PassThrough = __require("stream").PassThrough;
-    var fs26 = __require("fs");
-    var path28 = __require("path");
+    var fs27 = __require("fs");
+    var path29 = __require("path");
     var crypto12 = __require("crypto");
     var DKIM_ALGO = "sha256";
     var MAX_MESSAGE_SIZE = 128 * 1024;
@@ -45584,7 +45975,7 @@ var require_dkim = __commonJS({
         this.chunks = [];
         this.chunklen = 0;
         this.readPos = 0;
-        this.cachePath = this.cacheDir ? path28.join(this.cacheDir, "message." + Date.now() + "-" + crypto12.randomBytes(14).toString("hex")) : false;
+        this.cachePath = this.cacheDir ? path29.join(this.cacheDir, "message." + Date.now() + "-" + crypto12.randomBytes(14).toString("hex")) : false;
         this.cache = false;
         this.headers = false;
         this.bodyHash = false;
@@ -45604,10 +45995,10 @@ var require_dkim = __commonJS({
         if (!this.cache || !this.cachePath) {
           return;
         }
-        fs26.unlink(this.cachePath, () => false);
+        fs27.unlink(this.cachePath, () => false);
       }
       createReadCache() {
-        this.cache = fs26.createReadStream(this.cachePath);
+        this.cache = fs27.createReadStream(this.cachePath);
         this.cache.once("error", (err) => {
           this.cleanup();
           this.output.emit("error", err);
@@ -45663,7 +46054,7 @@ var require_dkim = __commonJS({
       }
       createWriteCache() {
         this.output.usingCache = true;
-        this.cache = fs26.createWriteStream(this.cachePath);
+        this.cache = fs27.createWriteStream(this.cachePath);
         this.cache.once("error", (err) => {
           this.cleanup();
           this.relaxedBody.unpipe(this.cache);
@@ -46590,7 +46981,7 @@ var require_smtp_connection = __commonJS({
     var EventEmitter = __require("events").EventEmitter;
     var net = __require("net");
     var tls = __require("tls");
-    var os19 = __require("os");
+    var os20 = __require("os");
     var crypto12 = __require("crypto");
     var DataStream = require_data_stream();
     var PassThrough = __require("stream").PassThrough;
@@ -47983,7 +48374,7 @@ var require_smtp_connection = __commonJS({
       _getHostname() {
         let defaultHostname;
         try {
-          defaultHostname = os19.hostname() || "";
+          defaultHostname = os20.hostname() || "";
         } catch (err) {
           defaultHostname = "localhost";
         }
@@ -50552,13 +50943,13 @@ var require_nodemailer = __commonJS({
 });
 
 // src/mail/mail-sender.ts
-import fs24 from "node:fs/promises";
-import path25 from "node:path";
+import fs25 from "node:fs/promises";
+import path26 from "node:path";
 async function buildAndSendMail(sender, creds, params) {
   const attachments = [];
   for (const p of params.attachmentPaths ?? []) {
-    const content = await fs24.readFile(p);
-    attachments.push({ filename: path25.basename(p), content });
+    const content = await fs25.readFile(p);
+    attachments.push({ filename: path26.basename(p), content });
   }
   const { messageId } = await sender.send({
     from: creds.address,
@@ -50947,8 +51338,8 @@ var require_req = __commonJS({
       if (req.originalUrl) {
         _req.url = req.originalUrl;
       } else {
-        const path28 = req.path;
-        _req.url = typeof path28 === "string" ? path28 : req.url ? req.url.path || req.url : void 0;
+        const path29 = req.path;
+        _req.url = typeof path29 === "string" ? path29 : req.url ? req.url.path || req.url : void 0;
       }
       if (req.query) {
         _req.query = req.query;
@@ -51113,14 +51504,14 @@ var require_redact = __commonJS({
       }
       return obj;
     }
-    function parsePath(path28) {
+    function parsePath(path29) {
       const parts = [];
       let current = "";
       let inBrackets = false;
       let inQuotes = false;
       let quoteChar = "";
-      for (let i = 0; i < path28.length; i++) {
-        const char = path28[i];
+      for (let i = 0; i < path29.length; i++) {
+        const char = path29[i];
         if (!inBrackets && char === ".") {
           if (current) {
             parts.push(current);
@@ -51251,10 +51642,10 @@ var require_redact = __commonJS({
       return current;
     }
     function redactPaths(obj, paths, censor, remove = false) {
-      for (const path28 of paths) {
-        const parts = parsePath(path28);
+      for (const path29 of paths) {
+        const parts = parsePath(path29);
         if (parts.includes("*")) {
-          redactWildcardPath(obj, parts, censor, path28, remove);
+          redactWildcardPath(obj, parts, censor, path29, remove);
         } else {
           if (remove) {
             removeKey(obj, parts);
@@ -51339,8 +51730,8 @@ var require_redact = __commonJS({
           }
         } else {
           if (afterWildcard.includes("*")) {
-            const wrappedCensor = typeof censor === "function" ? (value, path28) => {
-              const fullPath = [...pathArray.slice(0, pathLength), ...path28];
+            const wrappedCensor = typeof censor === "function" ? (value, path29) => {
+              const fullPath = [...pathArray.slice(0, pathLength), ...path29];
               return censor(value, fullPath);
             } : censor;
             redactWildcardPath(current, afterWildcard, wrappedCensor, originalPath, remove);
@@ -51375,8 +51766,8 @@ var require_redact = __commonJS({
         return null;
       }
       const pathStructure = /* @__PURE__ */ new Map();
-      for (const path28 of pathsToClone) {
-        const parts = parsePath(path28);
+      for (const path29 of pathsToClone) {
+        const parts = parsePath(path29);
         let current = pathStructure;
         for (let i = 0; i < parts.length; i++) {
           const part = parts[i];
@@ -51428,24 +51819,24 @@ var require_redact = __commonJS({
       }
       return cloneSelectively(obj, pathStructure);
     }
-    function validatePath(path28) {
-      if (typeof path28 !== "string") {
+    function validatePath(path29) {
+      if (typeof path29 !== "string") {
         throw new Error("Paths must be (non-empty) strings");
       }
-      if (path28 === "") {
+      if (path29 === "") {
         throw new Error("Invalid redaction path ()");
       }
-      if (path28.includes("..")) {
-        throw new Error(`Invalid redaction path (${path28})`);
+      if (path29.includes("..")) {
+        throw new Error(`Invalid redaction path (${path29})`);
       }
-      if (path28.includes(",")) {
-        throw new Error(`Invalid redaction path (${path28})`);
+      if (path29.includes(",")) {
+        throw new Error(`Invalid redaction path (${path29})`);
       }
       let bracketCount = 0;
       let inQuotes = false;
       let quoteChar = "";
-      for (let i = 0; i < path28.length; i++) {
-        const char = path28[i];
+      for (let i = 0; i < path29.length; i++) {
+        const char = path29[i];
         if ((char === '"' || char === "'") && bracketCount > 0) {
           if (!inQuotes) {
             inQuotes = true;
@@ -51459,20 +51850,20 @@ var require_redact = __commonJS({
         } else if (char === "]" && !inQuotes) {
           bracketCount--;
           if (bracketCount < 0) {
-            throw new Error(`Invalid redaction path (${path28})`);
+            throw new Error(`Invalid redaction path (${path29})`);
           }
         }
       }
       if (bracketCount !== 0) {
-        throw new Error(`Invalid redaction path (${path28})`);
+        throw new Error(`Invalid redaction path (${path29})`);
       }
     }
     function validatePaths(paths) {
       if (!Array.isArray(paths)) {
         throw new TypeError("paths must be an array");
       }
-      for (const path28 of paths) {
-        validatePath(path28);
+      for (const path29 of paths) {
+        validatePath(path29);
       }
     }
     function slowRedact(options = {}) {
@@ -51640,8 +52031,8 @@ var require_redaction = __commonJS({
         if (shape[k] === null) {
           o[k] = (value) => topCensor(value, [k]);
         } else {
-          const wrappedCensor = typeof censor === "function" ? (value, path28) => {
-            return censor(value, [k, ...path28]);
+          const wrappedCensor = typeof censor === "function" ? (value, path29) => {
+            return censor(value, [k, ...path29]);
           } : censor;
           o[k] = Redact({
             paths: shape[k],
@@ -51859,10 +52250,10 @@ var require_atomic_sleep = __commonJS({
 var require_sonic_boom = __commonJS({
   "node_modules/sonic-boom/index.js"(exports, module) {
     "use strict";
-    var fs26 = __require("fs");
+    var fs27 = __require("fs");
     var EventEmitter = __require("events");
     var inherits = __require("util").inherits;
-    var path28 = __require("path");
+    var path29 = __require("path");
     var sleep4 = require_atomic_sleep();
     var assert2 = __require("assert");
     var BUSY_WRITE_TIMEOUT = 100;
@@ -51916,20 +52307,20 @@ var require_sonic_boom = __commonJS({
       const mode = sonic.mode;
       if (sonic.sync) {
         try {
-          if (sonic.mkdir) fs26.mkdirSync(path28.dirname(file), { recursive: true });
-          const fd = fs26.openSync(file, flags, mode);
+          if (sonic.mkdir) fs27.mkdirSync(path29.dirname(file), { recursive: true });
+          const fd = fs27.openSync(file, flags, mode);
           fileOpened(null, fd);
         } catch (err) {
           fileOpened(err);
           throw err;
         }
       } else if (sonic.mkdir) {
-        fs26.mkdir(path28.dirname(file), { recursive: true }, (err) => {
+        fs27.mkdir(path29.dirname(file), { recursive: true }, (err) => {
           if (err) return fileOpened(err);
-          fs26.open(file, flags, mode, fileOpened);
+          fs27.open(file, flags, mode, fileOpened);
         });
       } else {
-        fs26.open(file, flags, mode, fileOpened);
+        fs27.open(file, flags, mode, fileOpened);
       }
     }
     function SonicBoom(opts) {
@@ -51970,8 +52361,8 @@ var require_sonic_boom = __commonJS({
         this.flush = flushBuffer;
         this.flushSync = flushBufferSync;
         this._actualWrite = actualWriteBuffer;
-        fsWriteSync = () => fs26.writeSync(this.fd, this._writingBuf);
-        fsWrite = () => fs26.write(this.fd, this._writingBuf, this.release);
+        fsWriteSync = () => fs27.writeSync(this.fd, this._writingBuf);
+        fsWrite = () => fs27.write(this.fd, this._writingBuf, this.release);
       } else if (contentMode === void 0 || contentMode === kContentModeUtf8) {
         this._writingBuf = "";
         this.write = write;
@@ -51980,15 +52371,15 @@ var require_sonic_boom = __commonJS({
         this._actualWrite = actualWrite;
         fsWriteSync = () => {
           if (Buffer.isBuffer(this._writingBuf)) {
-            return fs26.writeSync(this.fd, this._writingBuf);
+            return fs27.writeSync(this.fd, this._writingBuf);
           }
-          return fs26.writeSync(this.fd, this._writingBuf, "utf8");
+          return fs27.writeSync(this.fd, this._writingBuf, "utf8");
         };
         fsWrite = () => {
           if (Buffer.isBuffer(this._writingBuf)) {
-            return fs26.write(this.fd, this._writingBuf, this.release);
+            return fs27.write(this.fd, this._writingBuf, this.release);
           }
-          return fs26.write(this.fd, this._writingBuf, "utf8", this.release);
+          return fs27.write(this.fd, this._writingBuf, "utf8", this.release);
         };
       } else {
         throw new Error(`SonicBoom supports "${kContentModeUtf8}" and "${kContentModeBuffer}", but passed ${contentMode}`);
@@ -52045,7 +52436,7 @@ var require_sonic_boom = __commonJS({
           }
         }
         if (this._fsync) {
-          fs26.fsyncSync(this.fd);
+          fs27.fsyncSync(this.fd);
         }
         const len = this._len;
         if (this._reopening) {
@@ -52159,7 +52550,7 @@ var require_sonic_boom = __commonJS({
       const onDrain = () => {
         if (!this._fsync) {
           try {
-            fs26.fsync(this.fd, (err) => {
+            fs27.fsync(this.fd, (err) => {
               this._flushPending = false;
               cb(err);
             });
@@ -52261,7 +52652,7 @@ var require_sonic_boom = __commonJS({
       const fd = this.fd;
       this.once("ready", () => {
         if (fd !== this.fd) {
-          fs26.close(fd, (err) => {
+          fs27.close(fd, (err) => {
             if (err) {
               return this.emit("error", err);
             }
@@ -52310,7 +52701,7 @@ var require_sonic_boom = __commonJS({
           buf = this._bufs[0];
         }
         try {
-          const n = Buffer.isBuffer(buf) ? fs26.writeSync(this.fd, buf) : fs26.writeSync(this.fd, buf, "utf8");
+          const n = Buffer.isBuffer(buf) ? fs27.writeSync(this.fd, buf) : fs27.writeSync(this.fd, buf, "utf8");
           const releasedBufObj = releaseWritingBuf(buf, this._len, n);
           buf = releasedBufObj.writingBuf;
           this._len = releasedBufObj.len;
@@ -52326,7 +52717,7 @@ var require_sonic_boom = __commonJS({
         }
       }
       try {
-        fs26.fsyncSync(this.fd);
+        fs27.fsyncSync(this.fd);
       } catch {
       }
     }
@@ -52347,7 +52738,7 @@ var require_sonic_boom = __commonJS({
           buf = mergeBuf(this._bufs[0], this._lens[0]);
         }
         try {
-          const n = fs26.writeSync(this.fd, buf);
+          const n = fs27.writeSync(this.fd, buf);
           buf = buf.subarray(n);
           this._len = Math.max(this._len - n, 0);
           if (buf.length <= 0) {
@@ -52375,13 +52766,13 @@ var require_sonic_boom = __commonJS({
       this._writingBuf = this._writingBuf.length ? this._writingBuf : this._bufs.shift() || "";
       if (this.sync) {
         try {
-          const written = Buffer.isBuffer(this._writingBuf) ? fs26.writeSync(this.fd, this._writingBuf) : fs26.writeSync(this.fd, this._writingBuf, "utf8");
+          const written = Buffer.isBuffer(this._writingBuf) ? fs27.writeSync(this.fd, this._writingBuf) : fs27.writeSync(this.fd, this._writingBuf, "utf8");
           release(null, written);
         } catch (err) {
           release(err);
         }
       } else {
-        fs26.write(this.fd, this._writingBuf, release);
+        fs27.write(this.fd, this._writingBuf, release);
       }
     }
     function actualWriteBuffer() {
@@ -52390,7 +52781,7 @@ var require_sonic_boom = __commonJS({
       this._writingBuf = this._writingBuf.length ? this._writingBuf : mergeBuf(this._bufs.shift(), this._lens.shift());
       if (this.sync) {
         try {
-          const written = fs26.writeSync(this.fd, this._writingBuf);
+          const written = fs27.writeSync(this.fd, this._writingBuf);
           release(null, written);
         } catch (err) {
           release(err);
@@ -52399,7 +52790,7 @@ var require_sonic_boom = __commonJS({
         if (kCopyBuffer) {
           this._writingBuf = Buffer.from(this._writingBuf);
         }
-        fs26.write(this.fd, this._writingBuf, release);
+        fs27.write(this.fd, this._writingBuf, release);
       }
     }
     function actualClose(sonic) {
@@ -52415,12 +52806,12 @@ var require_sonic_boom = __commonJS({
       sonic._lens = [];
       assert2(typeof sonic.fd === "number", `sonic.fd must be a number, got ${typeof sonic.fd}`);
       try {
-        fs26.fsync(sonic.fd, closeWrapped);
+        fs27.fsync(sonic.fd, closeWrapped);
       } catch {
       }
       function closeWrapped() {
         if (sonic.fd !== 1 && sonic.fd !== 2) {
-          fs26.close(sonic.fd, done);
+          fs27.close(sonic.fd, done);
         } else {
           done();
         }
@@ -53256,15 +53647,15 @@ var require_transport = __commonJS({
       if (!unquoted) {
         return false;
       }
-      let path28 = unquoted;
-      if (path28.startsWith("file://")) {
+      let path29 = unquoted;
+      if (path29.startsWith("file://")) {
         try {
-          path28 = fileURLToPath(path28);
+          path29 = fileURLToPath(path29);
         } catch {
           return false;
         }
       }
-      return isAbsolute(path28) && !existsSync(path28);
+      return isAbsolute(path29) && !existsSync(path29);
     }
     function stripQuotes(value) {
       const first = value[0];
@@ -54958,7 +55349,7 @@ var require_multistream = __commonJS({
 var require_pino = __commonJS({
   "node_modules/pino/pino.js"(exports, module) {
     "use strict";
-    var os19 = __require("node:os");
+    var os20 = __require("node:os");
     var stdSerializers = require_pino_std_serializers();
     var caller = require_caller();
     var redaction = require_redaction();
@@ -55005,7 +55396,7 @@ var require_pino = __commonJS({
     } = symbols;
     var { epochTime, nullTime } = time3;
     var { pid } = process;
-    var hostname2 = os19.hostname();
+    var hostname2 = os20.hostname();
     var defaultErrorSerializer = stdSerializers.err;
     var defaultOptions2 = {
       level: "info",
@@ -87331,15 +87722,15 @@ var require_tools2 = __commonJS({
        * @param {String} path - Mailbox path to encode
        * @returns {String} Encoded mailbox path
        */
-      encodePath(connection, path28) {
-        path28 = (path28 || "").toString();
-        if (!connection.enabled.has("UTF8=ACCEPT") && !tools.isRev2Active(connection) && /[&\x00-\x08\x0b-\x0c\x0e-\x1f\u0080-\uffff]/.test(path28)) {
+      encodePath(connection, path29) {
+        path29 = (path29 || "").toString();
+        if (!connection.enabled.has("UTF8=ACCEPT") && !tools.isRev2Active(connection) && /[&\x00-\x08\x0b-\x0c\x0e-\x1f\u0080-\uffff]/.test(path29)) {
           try {
-            path28 = iconv.encode(path28, "utf-7-imap").toString();
+            path29 = iconv.encode(path29, "utf-7-imap").toString();
           } catch {
           }
         }
-        return path28;
+        return path29;
       },
       /**
        * Decodes a mailbox path from modified UTF-7 if the server does not support UTF8=ACCEPT.
@@ -87348,15 +87739,15 @@ var require_tools2 = __commonJS({
        * @param {String} path - Mailbox path to decode
        * @returns {String} Decoded mailbox path
        */
-      decodePath(connection, path28) {
-        path28 = (path28 || "").toString();
-        if (!connection.enabled.has("UTF8=ACCEPT") && !tools.isRev2Active(connection) && /[&]/.test(path28)) {
+      decodePath(connection, path29) {
+        path29 = (path29 || "").toString();
+        if (!connection.enabled.has("UTF8=ACCEPT") && !tools.isRev2Active(connection) && /[&]/.test(path29)) {
           try {
-            path28 = iconv.decode(Buffer.from(path28), "utf-7-imap").toString();
+            path29 = iconv.decode(Buffer.from(path29), "utf-7-imap").toString();
           } catch {
           }
         }
-        return path28;
+        return path29;
       },
       /**
        * Normalizes a mailbox path by joining array segments with the namespace delimiter,
@@ -87367,17 +87758,17 @@ var require_tools2 = __commonJS({
        * @param {Boolean} [skipNamespace] - If true, skips prepending the namespace prefix
        * @returns {String} Normalized mailbox path
        */
-      normalizePath(connection, path28, skipNamespace) {
-        if (Array.isArray(path28)) {
-          path28 = path28.join(connection.namespace && connection.namespace.delimiter || "");
+      normalizePath(connection, path29, skipNamespace) {
+        if (Array.isArray(path29)) {
+          path29 = path29.join(connection.namespace && connection.namespace.delimiter || "");
         }
-        if (path28.toUpperCase() === "INBOX") {
+        if (path29.toUpperCase() === "INBOX") {
           return "INBOX";
         }
-        if (!skipNamespace && connection.namespace && connection.namespace.prefix && !path28.startsWith(connection.namespace.prefix)) {
-          path28 = connection.namespace.prefix + path28;
+        if (!skipNamespace && connection.namespace && connection.namespace.prefix && !path29.startsWith(connection.namespace.prefix)) {
+          path29 = connection.namespace.prefix + path29;
         }
-        return path28;
+        return path29;
       },
       /**
        * Compares two mailbox paths for equality after normalization.
@@ -87708,14 +88099,14 @@ var require_tools2 = __commonJS({
           }
         }
         if (map.emailId || map.uid) {
-          let path28 = mailbox.path;
-          if (/[\u0080-\uffff]/.test(path28)) {
+          let path29 = mailbox.path;
+          if (/[\u0080-\uffff]/.test(path29)) {
             try {
-              path28 = iconv.encode(path28, "utf-7-imap").toString();
+              path29 = iconv.encode(path29, "utf-7-imap").toString();
             } catch {
             }
           }
-          map.id = map.emailId || createHash2("md5").update([path28, mailbox.uidValidity?.toString() || "", map.uid.toString()].join(":")).digest("hex");
+          map.id = map.emailId || createHash2("md5").update([path29, mailbox.uidValidity?.toString() || "", map.uid.toString()].join(":")).digest("hex");
         }
         if (map.flags) {
           let flagColor = tools.getFlagColor(map.flags);
@@ -87890,16 +88281,16 @@ var require_tools2 = __commonJS({
        * @returns {Object} Parsed body structure tree with part numbers, types, parameters, and child nodes
        */
       parseBodystructure(entry) {
-        let walk = (node, path28) => {
-          path28 = path28 || [];
+        let walk = (node, path29) => {
+          path29 = path29 || [];
           let curNode = {}, i = 0, part = 0;
-          if (path28.length) {
-            curNode.part = path28.join(".");
+          if (path29.length) {
+            curNode.part = path29.join(".");
           }
           if (Array.isArray(node[0])) {
             curNode.childNodes = [];
             while (Array.isArray(node[i])) {
-              curNode.childNodes.push(walk(node[i], path28.concat(++part)));
+              curNode.childNodes.push(walk(node[i], path29.concat(++part)));
               i++;
             }
             curNode.type = "multipart/" + ((node[i++] || {}).value || "").toString().toLowerCase();
@@ -87942,7 +88333,7 @@ var require_tools2 = __commonJS({
                   // the encapsulated message shares the part number with its wrapper.
                   // Distinction is via suffixes: path.MIME = wrapper headers,
                   // path.HEADER = encapsulated message headers.
-                  walk(node[i], path28)
+                  walk(node[i], path29)
                 ];
               }
               i++;
@@ -89904,14 +90295,14 @@ var require_select = __commonJS({
       // update into a silent no-op for the rest of the session.
       permanentflags: { key: "permanentFlags", parse: (value) => Array.isArray(value) && new Set(value) }
     });
-    module.exports = async (connection, path28, options) => {
+    module.exports = async (connection, path29, options) => {
       if (![connection.states.AUTHENTICATED, connection.states.SELECTED].includes(connection.state)) {
         return;
       }
       options = options || {};
-      path28 = normalizePath(connection, path28);
-      if (!connection.folders.has(path28)) {
-        let folders = await connection.run("LIST", "", path28);
+      path29 = normalizePath(connection, path29);
+      if (!connection.folders.has(path29)) {
+        let folders = await connection.run("LIST", "", path29);
         if (!folders) {
           throw new Error("Failed to fetch folders");
         }
@@ -89919,10 +90310,10 @@ var require_select = __commonJS({
           connection.folders.set(folder.path, folder);
         });
       }
-      let folderListData = connection.folders.has(path28) ? connection.folders.get(path28) : false;
+      let folderListData = connection.folders.has(path29) ? connection.folders.get(path29) : false;
       let response;
       try {
-        let map = { path: path28 };
+        let map = { path: path29 };
         if (folderListData) {
           ["delimiter", "specialUse", "subscribed", "listed"].forEach((key) => {
             if (folderListData[key]) {
@@ -89941,7 +90332,7 @@ var require_select = __commonJS({
           ]);
           map.qresync = true;
         }
-        let encodedPath = encodePath(connection, path28);
+        let encodedPath = encodePath(connection, path29);
         let selectCommand = {
           command: !options.readOnly ? "SELECT" : "EXAMINE",
           /* c8 ignore next */
@@ -90001,12 +90392,12 @@ var require_select = __commonJS({
             // since the client's last known state. Only received when QRESYNC was requested.
             // A dummy mailbox object is passed because the mailbox isn't officially open yet.
             VANISHED: async (untagged) => {
-              await connection.untaggedVanished(untagged, { path: path28, uidNext: false, uidValidity: false });
+              await connection.untaggedVanished(untagged, { path: path29, uidNext: false, uidValidity: false });
             },
             // Untagged FETCH during SELECT/EXAMINE: only occurs with QRESYNC, delivering
             // updated flags for messages that changed since the client's last modseq.
             FETCH: async (untagged) => {
-              await connection.untaggedFetch(untagged, { path: path28, uidNext: false, uidValidity: false });
+              await connection.untaggedFetch(untagged, { path: path29, uidNext: false, uidValidity: false });
             }
           }
         });
@@ -90020,13 +90411,13 @@ var require_select = __commonJS({
         }
         let currentMailbox = connection.mailbox;
         connection.mailbox = false;
-        if (currentMailbox && currentMailbox.path !== path28) {
+        if (currentMailbox && currentMailbox.path !== path29) {
           connection.emit("mailboxClose", currentMailbox);
         }
         connection.mailbox = map;
         connection.currentSelectCommand = selectCommand;
         connection.state = connection.states.SELECTED;
-        if (!currentMailbox || currentMailbox.path !== path28) {
+        if (!currentMailbox || currentMailbox.path !== path29) {
           connection.emit("mailboxOpen", connection.mailbox);
         }
         response.next();
@@ -90241,17 +90632,17 @@ var require_create = __commonJS({
   "node_modules/imapflow/lib/commands/create.js"(exports, module) {
     "use strict";
     var { encodePath, normalizePath, getStatusCode, enhanceCommandError } = require_tools2();
-    module.exports = async (connection, path28) => {
+    module.exports = async (connection, path29) => {
       if (![connection.states.AUTHENTICATED, connection.states.SELECTED].includes(connection.state)) {
         return;
       }
-      path28 = normalizePath(connection, path28);
+      path29 = normalizePath(connection, path29);
       let response;
       try {
         let map = {
-          path: path28
+          path: path29
         };
-        response = await connection.exec("CREATE", [{ type: "ATOM", value: encodePath(connection, path28) }]);
+        response = await connection.exec("CREATE", [{ type: "ATOM", value: encodePath(connection, path29) }]);
         let section = response.response.attributes && response.response.attributes[0] && response.response.attributes[0].section && response.response.attributes[0].section.length ? response.response.attributes[0].section : false;
         if (section) {
           let key;
@@ -90277,13 +90668,13 @@ var require_create = __commonJS({
         }
         map.created = true;
         response.next();
-        await connection.run("SUBSCRIBE", path28);
+        await connection.run("SUBSCRIBE", path29);
         return map;
       } catch (err) {
         let errorCode = getStatusCode(err.response);
         if (errorCode === "ALREADYEXISTS") {
           return {
-            path: path28,
+            path: path29,
             created: false
           };
         }
@@ -90300,20 +90691,20 @@ var require_delete = __commonJS({
   "node_modules/imapflow/lib/commands/delete.js"(exports, module) {
     "use strict";
     var { encodePath, normalizePath, enhanceCommandError } = require_tools2();
-    module.exports = async (connection, path28) => {
+    module.exports = async (connection, path29) => {
       if (![connection.states.AUTHENTICATED, connection.states.SELECTED].includes(connection.state)) {
         return;
       }
-      path28 = normalizePath(connection, path28);
-      if (connection.state === connection.states.SELECTED && connection.mailbox.path === path28) {
+      path29 = normalizePath(connection, path29);
+      if (connection.state === connection.states.SELECTED && connection.mailbox.path === path29) {
         await connection.run("CLOSE");
       }
       let response;
       try {
         let map = {
-          path: path28
+          path: path29
         };
-        response = await connection.exec("DELETE", [{ type: "ATOM", value: encodePath(connection, path28) }]);
+        response = await connection.exec("DELETE", [{ type: "ATOM", value: encodePath(connection, path29) }]);
         response.next();
         return map;
       } catch (err) {
@@ -90330,23 +90721,23 @@ var require_rename = __commonJS({
   "node_modules/imapflow/lib/commands/rename.js"(exports, module) {
     "use strict";
     var { encodePath, normalizePath, enhanceCommandError } = require_tools2();
-    module.exports = async (connection, path28, newPath) => {
+    module.exports = async (connection, path29, newPath) => {
       if (![connection.states.AUTHENTICATED, connection.states.SELECTED].includes(connection.state)) {
         return;
       }
-      path28 = normalizePath(connection, path28);
+      path29 = normalizePath(connection, path29);
       newPath = normalizePath(connection, newPath);
-      if (connection.state === connection.states.SELECTED && connection.mailbox.path === path28) {
+      if (connection.state === connection.states.SELECTED && connection.mailbox.path === path29) {
         await connection.run("CLOSE");
       }
       let response;
       try {
         let map = {
-          path: path28,
+          path: path29,
           newPath
         };
         response = await connection.exec("RENAME", [
-          { type: "ATOM", value: encodePath(connection, path28) },
+          { type: "ATOM", value: encodePath(connection, path29) },
           { type: "ATOM", value: encodePath(connection, newPath) }
         ]);
         response.next();
@@ -90393,14 +90784,14 @@ var require_subscribe = __commonJS({
   "node_modules/imapflow/lib/commands/subscribe.js"(exports, module) {
     "use strict";
     var { encodePath, normalizePath, enhanceCommandError } = require_tools2();
-    module.exports = async (connection, path28) => {
+    module.exports = async (connection, path29) => {
       if (![connection.states.AUTHENTICATED, connection.states.SELECTED].includes(connection.state)) {
         return;
       }
-      path28 = normalizePath(connection, path28);
+      path29 = normalizePath(connection, path29);
       let response;
       try {
-        response = await connection.exec("SUBSCRIBE", [{ type: "ATOM", value: encodePath(connection, path28) }]);
+        response = await connection.exec("SUBSCRIBE", [{ type: "ATOM", value: encodePath(connection, path29) }]);
         response.next();
         return true;
       } catch (err) {
@@ -90417,14 +90808,14 @@ var require_unsubscribe = __commonJS({
   "node_modules/imapflow/lib/commands/unsubscribe.js"(exports, module) {
     "use strict";
     var { encodePath, normalizePath, enhanceCommandError } = require_tools2();
-    module.exports = async (connection, path28) => {
+    module.exports = async (connection, path29) => {
       if (![connection.states.AUTHENTICATED, connection.states.SELECTED].includes(connection.state)) {
         return;
       }
-      path28 = normalizePath(connection, path28);
+      path29 = normalizePath(connection, path29);
       let response;
       try {
-        response = await connection.exec("UNSUBSCRIBE", [{ type: "ATOM", value: encodePath(connection, path28) }]);
+        response = await connection.exec("UNSUBSCRIBE", [{ type: "ATOM", value: encodePath(connection, path29) }]);
         response.next();
         return true;
       } catch (err) {
@@ -91230,11 +91621,11 @@ var require_status = __commonJS({
     var { encodePath, normalizePath, buildStatusQueryAttributes, isRev2Active } = require_tools2();
     var { parseStatusList } = require_status_fields();
     var MAILBOX_UPDATERS = {
-      messages: (value, connection, path28) => {
+      messages: (value, connection, path29) => {
         let prevCount = connection.mailbox.exists;
         if (prevCount !== value) {
           connection.mailbox.exists = value;
-          connection.emit("exists", { path: path28, count: value, prevCount });
+          connection.emit("exists", { path: path29, count: value, prevCount });
         }
       },
       uidNext: (value, connection) => {
@@ -91244,28 +91635,28 @@ var require_status = __commonJS({
         connection.mailbox.highestModseq = value;
       }
     };
-    module.exports = async (connection, path28, query) => {
-      if (![connection.states.AUTHENTICATED, connection.states.SELECTED].includes(connection.state) || !path28) {
+    module.exports = async (connection, path29, query) => {
+      if (![connection.states.AUTHENTICATED, connection.states.SELECTED].includes(connection.state) || !path29) {
         return false;
       }
-      path28 = normalizePath(connection, path28);
-      let encodedPath = encodePath(connection, path28);
+      path29 = normalizePath(connection, path29);
+      let encodedPath = encodePath(connection, path29);
       let attributes = [{ type: encodedPath.indexOf("&") >= 0 ? "STRING" : "ATOM", value: encodedPath }];
       let queryAttributes = buildStatusQueryAttributes(connection, query);
       let syntheticRecent = query && query.recent && isRev2Active(connection);
       if (!queryAttributes.length) {
-        return syntheticRecent ? { path: path28, recent: 0 } : false;
+        return syntheticRecent ? { path: path29, recent: 0 } : false;
       }
       attributes.push(queryAttributes);
       let response;
       try {
-        let map = { path: path28 };
+        let map = { path: path29 };
         response = await connection.exec("STATUS", attributes, {
           untagged: {
             // STATUS response: * STATUS <mailbox> (<key> <value> <key> <value> ...)
             // Parsed as alternating key-value pairs (i % 2 pattern).
             STATUS: async (untagged) => {
-              let updateCurrent = connection.state === connection.states.SELECTED && path28 === connection.mailbox.path;
+              let updateCurrent = connection.state === connection.states.SELECTED && path29 === connection.mailbox.path;
               let list = untagged.attributes && Array.isArray(untagged.attributes[1]) ? untagged.attributes[1] : false;
               if (!list) {
                 return;
@@ -91273,7 +91664,7 @@ var require_status = __commonJS({
               parseStatusList(list, (key, value) => {
                 map[key] = value;
                 if (updateCurrent && MAILBOX_UPDATERS[key]) {
-                  MAILBOX_UPDATERS[key](value, connection, path28);
+                  MAILBOX_UPDATERS[key](value, connection, path29);
                 }
               });
             }
@@ -91286,9 +91677,9 @@ var require_status = __commonJS({
         return map;
       } catch (err) {
         if (err.responseStatus === "NO") {
-          let folders = await connection.run("LIST", "", path28, { listOnly: true });
+          let folders = await connection.run("LIST", "", path29, { listOnly: true });
           if (folders && !folders.length) {
-            let error2 = new Error(`Mailbox doesn't exist: ${path28}`);
+            let error2 = new Error(`Mailbox doesn't exist: ${path29}`);
             error2.code = "NotFound";
             error2.response = err;
             throw error2;
@@ -91435,15 +91826,15 @@ var require_quota = __commonJS({
   "node_modules/imapflow/lib/commands/quota.js"(exports, module) {
     "use strict";
     var { encodePath, normalizePath, enhanceCommandError, parseUintValue, isUnsafeKey } = require_tools2();
-    module.exports = async (connection, path28) => {
-      if (![connection.states.AUTHENTICATED, connection.states.SELECTED].includes(connection.state) || !path28) {
+    module.exports = async (connection, path29) => {
+      if (![connection.states.AUTHENTICATED, connection.states.SELECTED].includes(connection.state) || !path29) {
         return;
       }
       if (!connection.capabilities.has("QUOTA")) {
         return false;
       }
-      path28 = normalizePath(connection, path28);
-      let map = { path: path28 };
+      path29 = normalizePath(connection, path29);
+      let map = { path: path29 };
       let processQuotaResponse = (untagged) => {
         let attributes = untagged.attributes && untagged.attributes[1];
         if (!attributes || !attributes.length) {
@@ -91483,7 +91874,7 @@ var require_quota = __commonJS({
       let quotaFound = false;
       let response;
       try {
-        response = await connection.exec("GETQUOTAROOT", [{ type: "ATOM", value: encodePath(connection, path28) }], {
+        response = await connection.exec("GETQUOTAROOT", [{ type: "ATOM", value: encodePath(connection, path29) }], {
           untagged: {
             // QUOTAROOT response tells us which quota root applies to this mailbox.
             // A mailbox may have zero or one quota root.
@@ -91626,15 +92017,15 @@ var require_idle = __commonJS({
       }
     }
     async function pollOnce2(connection, session) {
-      let path28 = connection.mailbox && connection.mailbox.path;
+      let path29 = connection.mailbox && connection.mailbox.path;
       switch (connection.missingIdleCommand) {
         case "SELECT":
           connection.log.debug({ src: "c", msg: `Running SELECT to detect changes in folder`, cid: connection.id });
-          await connection.runInternal("SELECT", path28, { readOnly: session.selectCommand.command === "EXAMINE" });
+          await connection.runInternal("SELECT", path29, { readOnly: session.selectCommand.command === "EXAMINE" });
           break;
         case "STATUS": {
           connection.log.debug({ src: "c", msg: `Running STATUS to detect changes in folder`, cid: connection.id });
-          let status = await connection.runInternal("STATUS", path28, {
+          let status = await connection.runInternal("STATUS", path29, {
             messages: true,
             uidNext: true,
             uidValidity: true,
@@ -93321,12 +93712,12 @@ var require_imap_flow = __commonJS({
           this.emit("flags", updateEvent);
         }
       }
-      async ensureSelectedMailbox(path28) {
-        if (!path28) {
+      async ensureSelectedMailbox(path29) {
+        if (!path29) {
           return false;
         }
-        if (!this.mailbox || !comparePaths(this, this.mailbox.path, path28)) {
-          return await this.mailboxOpen(path28);
+        if (!this.mailbox || !comparePaths(this, this.mailbox.path, path29)) {
+          return await this.mailboxOpen(path29);
         }
         return true;
       }
@@ -93741,9 +94132,9 @@ var require_imap_flow = __commonJS({
        * let quota = await client.getQuota();
        * console.log(quota.storage.used, quota.storage.limit)
        */
-      async getQuota(path28) {
-        path28 = path28 || "INBOX";
-        return await this.run("QUOTA", path28);
+      async getQuota(path29) {
+        path29 = path29 || "INBOX";
+        return await this.run("QUOTA", path29);
       }
       /**
        * @typedef {Object} ListResponse
@@ -93853,8 +94244,8 @@ var require_imap_flow = __commonJS({
        * console.log(info.path);
        * // "INBOX.parent.child" // assumes "INBOX." as namespace prefix and "." as delimiter
        */
-      async mailboxCreate(path28) {
-        return await this.run("CREATE", path28);
+      async mailboxCreate(path29) {
+        return await this.run("CREATE", path29);
       }
       /**
        * @typedef {Object} MailboxRenameResponse
@@ -93875,8 +94266,8 @@ var require_imap_flow = __commonJS({
        * console.log(info.newPath);
        * // "INBOX.Important stuff ❗️" // assumes "INBOX." as namespace prefix
        */
-      async mailboxRename(path28, newPath) {
-        return await this.run("RENAME", path28, newPath);
+      async mailboxRename(path29, newPath) {
+        return await this.run("RENAME", path29, newPath);
       }
       /**
        * @typedef {Object} MailboxDeleteResponse
@@ -93895,8 +94286,8 @@ var require_imap_flow = __commonJS({
        * console.log(info.path);
        * // "INBOX.Important stuff ❗️" // assumes "INBOX." as namespace prefix
        */
-      async mailboxDelete(path28) {
-        return await this.run("DELETE", path28);
+      async mailboxDelete(path29) {
+        return await this.run("DELETE", path29);
       }
       /**
        * Subscribes to a mailbox
@@ -93907,8 +94298,8 @@ var require_imap_flow = __commonJS({
        * @example
        * await client.mailboxSubscribe('Important stuff ❗️');
        */
-      async mailboxSubscribe(path28) {
-        return await this.run("SUBSCRIBE", path28);
+      async mailboxSubscribe(path29) {
+        return await this.run("SUBSCRIBE", path29);
       }
       /**
        * Unsubscribes from a mailbox
@@ -93919,8 +94310,8 @@ var require_imap_flow = __commonJS({
        * @example
        * await client.mailboxUnsubscribe('Important stuff ❗️');
        */
-      async mailboxUnsubscribe(path28) {
-        return await this.run("UNSUBSCRIBE", path28);
+      async mailboxUnsubscribe(path29) {
+        return await this.run("UNSUBSCRIBE", path29);
       }
       /**
        * Opens a mailbox to access messages. You can perform message operations only against an opened mailbox.
@@ -93938,8 +94329,8 @@ var require_imap_flow = __commonJS({
        * console.log(mailbox.exists);
        * // 125
        */
-      async mailboxOpen(path28, options) {
-        return await this.run("SELECT", path28, options);
+      async mailboxOpen(path29, options) {
+        return await this.run("SELECT", path29, options);
       }
       /**
        * Closes a previously opened mailbox
@@ -93986,8 +94377,8 @@ var require_imap_flow = __commonJS({
        * console.log(status.unseen);
        * // 123
        */
-      async status(path28, query) {
-        return await this.run("STATUS", path28, query);
+      async status(path29, query) {
+        return await this.run("STATUS", path29, query);
       }
       /**
        * Starts listening for new or deleted messages from the currently opened mailbox. Only required if {@link ImapFlow#disableAutoIdle} is set to `true`
@@ -94241,8 +94632,8 @@ var require_imap_flow = __commonJS({
        * @example
        * await client.append('INBOX', rawMessageBuffer, ['\\Seen'], new Date(2000, 1, 1));
        */
-      async append(path28, content, flags, idate) {
-        return await this.run("APPEND", path28, content, flags, idate) || false;
+      async append(path29, content, flags, idate) {
+        return await this.run("APPEND", path29, content, flags, idate) || false;
       }
       /**
        * @typedef {Object} CopyResponseObject
@@ -95086,7 +95477,7 @@ var require_imap_flow = __commonJS({
               await new Promise((resolve2) => setImmediate(resolve2));
             }
             const lock = this.locks.shift();
-            const { resolve, reject, path: path28, options, lockId } = lock;
+            const { resolve, reject, path: path29, options, lockId } = lock;
             if (lock.acquireTimer) {
               clearTimeout(lock.acquireTimer);
               lock.acquireTimer = null;
@@ -95102,7 +95493,7 @@ var require_imap_flow = __commonJS({
                 this.log.warn({
                   msg: "Mailbox lock held for a long time",
                   lockId: lock.lockId,
-                  path: path28,
+                  path: path29,
                   heldFor: Date.now() - lock.heldAt,
                   /* c8 ignore next */
                   // the held-lock-warning diagnostic with a description set is a timing-dependent log detail
@@ -95138,52 +95529,52 @@ var require_imap_flow = __commonJS({
               }
             };
             if (!this.usable || !this.socket || this.socket.destroyed) {
-              this.log.trace({ msg: "Failed to acquire mailbox lock", path: path28, lockId, idling: this.idling });
+              this.log.trace({ msg: "Failed to acquire mailbox lock", path: path29, lockId, idling: this.idling });
               let error2 = new Error("Connection not available");
               error2.code = "NoConnection";
               reject(error2);
               continue;
             }
-            if (this.mailbox && this.mailbox.path === path28 && !!this.mailbox.readOnly === !!options.readOnly) {
+            if (this.mailbox && this.mailbox.path === path29 && !!this.mailbox.readOnly === !!options.readOnly) {
               this.log.trace({
                 msg: "Mailbox lock acquired [existing]",
-                path: path28,
+                path: path29,
                 lockId,
                 idling: this.idling,
                 ...options.description && { description: options.description }
               });
               this.currentLock = lock;
               armHeldTimer();
-              resolve({ path: path28, release });
+              resolve({ path: path29, release });
               break;
             }
             try {
-              await this.mailboxOpen(path28, options);
+              await this.mailboxOpen(path29, options);
               this.log.trace({
                 msg: "Mailbox lock acquired [selected]",
-                path: path28,
+                path: path29,
                 lockId,
                 idling: this.idling,
                 ...options.description && { description: options.description }
               });
               this.currentLock = lock;
               armHeldTimer();
-              resolve({ path: path28, release });
+              resolve({ path: path29, release });
               break;
             } catch (err) {
               if (err.responseStatus === "NO") {
                 try {
-                  let folders = await this.run("LIST", "", path28, { listOnly: true });
+                  let folders = await this.run("LIST", "", path29, { listOnly: true });
                   if (!folders || !folders.length) {
                     err.mailboxMissing = true;
                   }
                 } catch (E) {
-                  this.log.trace({ msg: "Failed to verify failed mailbox", path: path28, err: E });
+                  this.log.trace({ msg: "Failed to verify failed mailbox", path: path29, err: E });
                 }
               }
               this.log.trace({
                 msg: "Failed to acquire mailbox lock",
-                path: path28,
+                path: path29,
                 lockId,
                 idling: this.idling,
                 ...options.description && { description: options.description },
@@ -95222,13 +95613,13 @@ var require_imap_flow = __commonJS({
        *   lock.release();
        * }
        */
-      getMailboxLock(path28, options) {
+      getMailboxLock(path29, options) {
         options = options || {};
-        path28 = normalizePath(this, path28);
+        path29 = normalizePath(this, path29);
         let lockId = ++this.lockCounter;
         this.log.trace({
           msg: "Requesting lock",
-          path: path28,
+          path: path29,
           lockId,
           ...options.description && { description: options.description },
           activeLock: this.currentLock ? {
@@ -95237,7 +95628,7 @@ var require_imap_flow = __commonJS({
           } : null
         });
         let lockPromise = new Promise((resolve, reject) => {
-          let lockEntry = { resolve, reject, path: path28, options, lockId };
+          let lockEntry = { resolve, reject, path: path29, options, lockId };
           this.locks.push(lockEntry);
           if (Number(options.acquireTimeout) > 0) {
             lockEntry.acquireTimer = setTimeout(() => {
@@ -95326,16 +95717,16 @@ var require_imap_flow = __commonJS({
 });
 
 // src/mail/mail-fetcher.ts
-import fs25 from "node:fs/promises";
-import path26 from "node:path";
+import fs26 from "node:fs/promises";
+import path27 from "node:path";
 async function saveAttachments(attachments, downloadDir) {
   if (attachments.length === 0) return [];
-  await fs25.mkdir(downloadDir, { recursive: true });
+  await fs26.mkdir(downloadDir, { recursive: true });
   const saved = [];
   for (const a of attachments) {
-    const name = path26.basename(a.filename) || "attachment";
-    const savedPath = path26.join(downloadDir, name);
-    await fs25.writeFile(savedPath, a.content);
+    const name = path27.basename(a.filename) || "attachment";
+    const savedPath = path27.join(downloadDir, name);
+    await fs26.writeFile(savedPath, a.content);
     saved.push({ filename: name, savedPath, size: a.content.length });
   }
   return saved;
@@ -95465,8 +95856,8 @@ var init_mail_fetcher = __esm({
 });
 
 // src/tools/fetch-mail.ts
-import os18 from "node:os";
-import path27 from "node:path";
+import os19 from "node:os";
+import path28 from "node:path";
 function registerFetchMailTool(server, deps = {}) {
   const makeFetcher = deps.fetcherFactory ?? ((creds) => new ImapflowMailFetcher(creds));
   server.registerTool(
@@ -95528,7 +95919,7 @@ var init_fetch_mail = __esm({
     init_mail_fetcher();
     init_auth_error();
     init_validate();
-    DEFAULT_DOWNLOAD_DIR = path27.join(os18.homedir(), ".cogent", "mail-downloads");
+    DEFAULT_DOWNLOAD_DIR = path28.join(os19.homedir(), ".cogent", "mail-downloads");
   }
 });
 
@@ -95846,6 +96237,9 @@ async function runCli() {
   } else if (command === "watch") {
     const { runWatch: runWatch2 } = await Promise.resolve().then(() => (init_watch(), watch_exports));
     await runWatch2(process.argv.slice(3));
+  } else if (command === "stop-duplicate-sessions") {
+    const { runStopDuplicateSessions: runStopDuplicateSessions2 } = await Promise.resolve().then(() => (init_duplicate_sessions(), duplicate_sessions_exports));
+    process.exitCode = await runStopDuplicateSessions2(process.argv.slice(3));
   } else {
     await Promise.resolve().then(() => (init_index(), index_exports));
   }
