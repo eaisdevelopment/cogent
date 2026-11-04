@@ -1954,8 +1954,8 @@ var init_parseUtil = __esm({
     init_errors();
     init_en();
     makeIssue = (params) => {
-      const { data, path: path29, errorMaps, issueData } = params;
-      const fullPath = [...path29, ...issueData.path || []];
+      const { data, path: path30, errorMaps, issueData } = params;
+      const fullPath = [...path30, ...issueData.path || []];
       const fullIssue = {
         ...issueData,
         path: fullPath
@@ -2235,11 +2235,11 @@ var init_types = __esm({
     init_parseUtil();
     init_util();
     ParseInputLazyPath = class {
-      constructor(parent, value, path29, key) {
+      constructor(parent, value, path30, key) {
         this._cachedPath = [];
         this.parent = parent;
         this.data = value;
-        this._path = path29;
+        this._path = path30;
         this._key = key;
       }
       get path() {
@@ -5691,10 +5691,10 @@ function assignProp(target, prop, value) {
     configurable: true
   });
 }
-function getElementAtPath(obj, path29) {
-  if (!path29)
+function getElementAtPath(obj, path30) {
+  if (!path30)
     return obj;
-  return path29.reduce((acc, key) => acc?.[key], obj);
+  return path30.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -5943,11 +5943,11 @@ function aborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path29, issues) {
+function prefixIssues(path30, issues) {
   return issues.map((iss) => {
     var _a;
     (_a = iss).path ?? (_a.path = []);
-    iss.path.unshift(path29);
+    iss.path.unshift(path30);
     return iss;
   });
 }
@@ -17753,8 +17753,8 @@ var require_utils = __commonJS({
       }
       return ind;
     }
-    function removeDotSegments(path29) {
-      let input = path29;
+    function removeDotSegments(path30) {
+      let input = path30;
       const output = [];
       let nextSlash = -1;
       let len = 0;
@@ -17953,8 +17953,8 @@ var require_schemes = __commonJS({
         wsComponent.secure = void 0;
       }
       if (wsComponent.resourceName) {
-        const [path29, query] = wsComponent.resourceName.split("?");
-        wsComponent.path = path29 && path29 !== "/" ? path29 : void 0;
+        const [path30, query] = wsComponent.resourceName.split("?");
+        wsComponent.path = path30 && path30 !== "/" ? path30 : void 0;
         wsComponent.query = query;
         wsComponent.resourceName = void 0;
       }
@@ -21307,12 +21307,12 @@ var require_dist = __commonJS({
         throw new Error(`Unknown format "${name}"`);
       return f;
     };
-    function addFormats(ajv, list, fs27, exportName) {
+    function addFormats(ajv, list, fs28, exportName) {
       var _a;
       var _b;
       (_a = (_b = ajv.opts.code).formats) !== null && _a !== void 0 ? _a : _b.formats = (0, codegen_1._)`require("ajv-formats/dist/formats").${exportName}`;
       for (const f of list)
-        ajv.addFormat(f, fs27[f]);
+        ajv.addFormat(f, fs28[f]);
     }
     module.exports = exports = formatsPlugin;
     Object.defineProperty(exports, "__esModule", { value: true });
@@ -22424,8 +22424,8 @@ var require_parseUtil = __commonJS({
     var errors_js_1 = require_errors2();
     var en_js_1 = __importDefault(require_en());
     var makeIssue2 = (params) => {
-      const { data, path: path29, errorMaps, issueData } = params;
-      const fullPath = [...path29, ...issueData.path || []];
+      const { data, path: path30, errorMaps, issueData } = params;
+      const fullPath = [...path30, ...issueData.path || []];
       const fullIssue = {
         ...issueData,
         path: fullPath
@@ -22579,11 +22579,11 @@ var require_types2 = __commonJS({
     var parseUtil_js_1 = require_parseUtil();
     var util_js_1 = require_util2();
     var ParseInputLazyPath2 = class {
-      constructor(parent, value, path29, key) {
+      constructor(parent, value, path30, key) {
         this._cachedPath = [];
         this.parent = parent;
         this.data = value;
-        this._path = path29;
+        this._path = path30;
         this._key = key;
       }
       get path() {
@@ -26172,10 +26172,10 @@ var require_zod = __commonJS({
     };
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.z = void 0;
-    var z19 = __importStar(require_external());
-    exports.z = z19;
+    var z20 = __importStar(require_external());
+    exports.z = z20;
     __exportStar(require_external(), exports);
-    exports.default = z19;
+    exports.default = z20;
   }
 });
 
@@ -27084,8 +27084,8 @@ var init_stdio2 = __esm({
 // src/constants.ts
 import { createRequire } from "node:module";
 function resolveVersion() {
-  if ("3.25.14") {
-    return "3.25.14";
+  if ("3.26.0") {
+    return "3.26.0";
   }
   try {
     const require2 = createRequire(import.meta.url);
@@ -28933,6 +28933,10 @@ var init_http_backend = __esm({
       }
       http;
       sessionId;
+      /** COG-94: what the Slack-file transport needs — the channel and an origin-locked authorized fetch. */
+      fileTransport() {
+        return { sessionId: this.sessionId, http: this.http };
+      }
       /**
        * Register a peer in the cloud session.
        * POST /api/sessions/:sessionId/peers
@@ -28941,7 +28945,7 @@ var init_http_backend = __esm({
        * in cloud mode we ignore it and use this.sessionId (the cloud session).
        */
       async registerPeer(peerId, _sessionId, cwd, label, clientVersion, mode, _channelSessionId, capabilities, workspaceId, threadId, peerSecret) {
-        const path29 = PATHS.peers.replace(":sessionId", this.sessionId);
+        const path30 = PATHS.peers.replace(":sessionId", this.sessionId);
         const body = {
           peerId,
           cwd,
@@ -28972,7 +28976,7 @@ var init_http_backend = __esm({
         if (peerSecret !== void 0 && await relaySupports(this.http, "peer-ownership")) {
           body.peerSecret = peerSecret;
         }
-        const peer = await this.http.post(path29, body);
+        const peer = await this.http.post(path30, body);
         const issued = peer?.peerSecret;
         if (issued) {
           try {
@@ -28992,9 +28996,9 @@ var init_http_backend = __esm({
        * local mail creds. A 404 (peer not found) resolves to `{ removed: false, ... }`, not a throw.
        */
       async deregisterPeer(peerId, peerSecret) {
-        const path29 = PATHS.peer.replace(":sessionId", this.sessionId).replace(":peerId", peerId);
+        const path30 = PATHS.peer.replace(":sessionId", this.sessionId).replace(":peerId", peerId);
         try {
-          const headers = await this.http.delete(path29, peerSecret ? { peerSecret } : {});
+          const headers = await this.http.delete(path30, peerSecret ? { peerSecret } : {});
           const mailboxDeprovisioned = headers.get(MAILBOX_DEPROVISIONED_HEADER) === "true";
           return { removed: true, mailboxDeprovisioned };
         } catch (err) {
@@ -29018,8 +29022,8 @@ var init_http_backend = __esm({
        * GET /api/sessions/:sessionId/peers
        */
       async listPeers() {
-        const path29 = PATHS.peers.replace(":sessionId", this.sessionId);
-        const result = await this.http.get(path29);
+        const path30 = PATHS.peers.replace(":sessionId", this.sessionId);
+        const result = await this.http.get(path30);
         return result.peers;
       }
       /**
@@ -29027,8 +29031,8 @@ var init_http_backend = __esm({
        * Calls the lightweight heartbeat endpoint on the cloud relay server.
        */
       async updateLastSeen(peerId) {
-        const path29 = PATHS.heartbeat.replace(":sessionId", this.sessionId);
-        await this.http.post(path29, { peerId });
+        const path30 = PATHS.heartbeat.replace(":sessionId", this.sessionId);
+        await this.http.post(path30, { peerId });
       }
       /**
        * Record a message in the cloud session.
@@ -29039,7 +29043,7 @@ var init_http_backend = __esm({
        * the input record to construct a full MessageRecord.
        */
       async recordMessage(record2) {
-        const path29 = PATHS.messages.replace(":sessionId", this.sessionId);
+        const path30 = PATHS.messages.replace(":sessionId", this.sessionId);
         const body = {
           fromPeerId: record2.fromPeerId,
           toPeerId: record2.toPeerId,
@@ -29065,7 +29069,7 @@ var init_http_backend = __esm({
         if (record2.replyExpected === false && await relaySupports(this.http, "terminal-messages")) {
           body.replyExpected = false;
         }
-        const resp = await this.http.post(path29, body);
+        const resp = await this.http.post(path30, body);
         return {
           ...record2,
           id: resp.id,
@@ -29079,7 +29083,7 @@ var init_http_backend = __esm({
        * Supports optional peerId filter and limit (default 300).
        */
       async getHistory(peerId, limit, includeRelayEchoes, metadataOnly, dedupInferredEchoes) {
-        const path29 = PATHS.messages.replace(":sessionId", this.sessionId);
+        const path30 = PATHS.messages.replace(":sessionId", this.sessionId);
         const query = {};
         if (peerId) {
           query.peerId = peerId;
@@ -29094,7 +29098,7 @@ var init_http_backend = __esm({
         if (dedupInferredEchoes) {
           query.dedupInferredEchoes = "true";
         }
-        const result = await this.http.get(path29, query);
+        const result = await this.http.get(path30, query);
         return result.messages;
       }
       /**
@@ -29105,12 +29109,12 @@ var init_http_backend = __esm({
        * so that get-history shows the actual response (not null).
        */
       async updateMessageResponse(messageId, response, durationMs, pending) {
-        const path29 = PATHS.message.replace(":sessionId", this.sessionId).replace(":messageId", messageId);
+        const path30 = PATHS.message.replace(":sessionId", this.sessionId).replace(":messageId", messageId);
         const body = { response, durationMs };
         if (pending === true) {
           body.pending = true;
         }
-        await this.http.patch(path29, body);
+        await this.http.patch(path30, body);
       }
       /**
        * Validate a session.
@@ -29284,8 +29288,8 @@ var init_http_client = __esm({
        * Perform an authenticated GET request.
        * Appends query parameters to the URL if provided.
        */
-      async get(path29, query) {
-        const url = new URL(path29, this.baseUrl);
+      async get(path30, query) {
+        const url = new URL(path30, this.baseUrl);
         if (query) {
           for (const [k, v] of Object.entries(query)) {
             url.searchParams.set(k, v);
@@ -29300,8 +29304,8 @@ var init_http_client = __esm({
       /**
        * Perform an authenticated POST request with a JSON body.
        */
-      async post(path29, body) {
-        const url = new URL(path29, this.baseUrl);
+      async post(path30, body) {
+        const url = new URL(path30, this.baseUrl);
         const resp = await this.fetchWithTimeout(url, {
           method: "POST",
           headers: this.headers(),
@@ -29319,8 +29323,8 @@ var init_http_client = __esm({
        * Perform an authenticated PATCH request with a JSON body.
        * Used to update existing resources (e.g., message response fields).
        */
-      async patch(path29, body) {
-        const url = new URL(path29, this.baseUrl);
+      async patch(path30, body) {
+        const url = new URL(path30, this.baseUrl);
         const resp = await this.fetchWithTimeout(url, {
           method: "PATCH",
           headers: this.headers(),
@@ -29345,8 +29349,8 @@ var init_http_client = __esm({
        * "Malformed JSON in request body" 400 from cogent-server <=3.1.2 when
        * any client (including third-party tools) DELETEd a peer without a body.
        */
-      async delete(path29, body) {
-        const url = new URL(path29, this.baseUrl);
+      async delete(path30, body) {
+        const url = new URL(path30, this.baseUrl);
         const headers = {
           "Authorization": `Bearer ${this.token}`
         };
@@ -29362,6 +29366,31 @@ var init_http_client = __esm({
           await this.throwMappedError(resp);
         }
         return resp.headers;
+      }
+      /** The relay base URL this client talks to (its origin is the only one that ever sees the token). */
+      get endpoint() {
+        return this.baseUrl;
+      }
+      /**
+       * COG-94: an authorized request whose body/response the caller STREAMS (Slack files up to 1 GB),
+       * so no JSON handling and no 30s cap — the caller owns the abort signal.
+       *
+       * 🔴 The URL must be on the relay's own origin. File references arrive inside messages that any
+       * channel member can write; following an absolute URL elsewhere would hand this agent's Bearer
+       * token to whoever wrote the message.
+       */
+      async streamRequest(pathOrUrl, init) {
+        const url = new URL(pathOrUrl, this.baseUrl);
+        if (url.origin !== new URL(this.baseUrl).origin) {
+          throw new BridgeError(
+            "INVALID_INPUT" /* INVALID_INPUT */,
+            `Refusing to send credentials to ${url.origin}: file links must be on the relay (${new URL(this.baseUrl).origin})`,
+            "Only file references delivered by this channel's relay can be fetched."
+          );
+        }
+        const headers = new Headers(init.headers);
+        headers.set("Authorization", `Bearer ${this.token}`);
+        return fetch(url, { ...init, headers });
       }
       /**
        * Update the Bearer token (e.g., after join-session returns a new token).
@@ -31824,7 +31853,7 @@ var require_websocket = __commonJS({
     var net = __require("net");
     var tls = __require("tls");
     var { randomBytes, createHash: createHash2 } = __require("crypto");
-    var { Duplex, Readable } = __require("stream");
+    var { Duplex, Readable: Readable2 } = __require("stream");
     var { URL: URL2 } = __require("url");
     var PerMessageDeflate = require_permessage_deflate();
     var Receiver2 = require_receiver();
@@ -33647,14 +33676,14 @@ var init_ws_client = __esm({
         this.restoreCursor();
         const poll = async () => {
           try {
-            const path29 = `/api/sessions/${this.opts.sessionId}/poll`;
+            const path30 = `/api/sessions/${this.opts.sessionId}/poll`;
             const query = {
               peerId: this.opts.peerId
             };
             if (this.lastMessageId) {
               query.lastMessageId = this.lastMessageId;
             }
-            const result = await this.opts.http.get(path29, query);
+            const result = await this.opts.http.get(path30, query);
             if (result.messages && result.messages.length > 0) {
               this.opts.onMessages(result.messages);
               this.advanceCursor(result.messages[result.messages.length - 1].id);
@@ -35001,10 +35030,201 @@ var init_wake_lock = __esm({
   }
 });
 
+// src/cloud/slack-files.ts
+import fs22 from "node:fs";
+import fsp from "node:fs/promises";
+import path23 from "node:path";
+import { Readable, Transform } from "node:stream";
+import { pipeline } from "node:stream/promises";
+function isSlackFileRef(url) {
+  if (!url) return false;
+  try {
+    return FILE_REF_RE.test(new URL(url, "http://x").pathname) && (url.startsWith("/") || /^https?:\/\//.test(url));
+  } catch {
+    return false;
+  }
+}
+function safeFileName(name) {
+  const base = path23.basename(String(name ?? "")).replace(/[^\p{L}\p{N}_.\-() ]+/gu, "_").replace(/^\.+/, "").trim();
+  return (base || "file").slice(0, 200);
+}
+function filesRoot(stateDir) {
+  return path23.join(stateDir, "files");
+}
+async function errorFrom(resp, what) {
+  let body = {};
+  try {
+    body = await resp.json();
+  } catch {
+  }
+  const code = body.code && body.code in BridgeErrorCode ? body.code : "STARTUP_FAILED" /* STARTUP_FAILED */;
+  return new BridgeError(code, `${what} failed: HTTP ${resp.status}${body.message ? ` \u2014 ${body.message}` : ""}`, body.suggestion);
+}
+async function cleanupOldFiles(root, now = Date.now(), retentionMs = FILE_RETENTION_MS) {
+  let removed = 0;
+  let channels;
+  try {
+    channels = await fsp.readdir(root, { withFileTypes: true });
+  } catch {
+    return 0;
+  }
+  for (const ch of channels) {
+    if (!ch.isDirectory()) continue;
+    const dir = path23.join(root, ch.name);
+    for (const f of await fsp.readdir(dir, { withFileTypes: true }).catch(() => [])) {
+      if (!f.isFile()) continue;
+      const p = path23.join(dir, f.name);
+      const st = await fsp.stat(p).catch(() => null);
+      if (st && now - st.mtimeMs > retentionMs) {
+        await fsp.rm(p, { force: true });
+        removed++;
+      }
+    }
+    await fsp.rmdir(dir).catch(() => {
+    });
+  }
+  return removed;
+}
+function startFileSweeper(root, intervalMs = FILE_SWEEP_INTERVAL_MS) {
+  const sweep = () => void cleanupOldFiles(root).catch(() => {
+  });
+  sweep();
+  const timer = setInterval(sweep, intervalMs);
+  timer.unref();
+  return () => clearInterval(timer);
+}
+async function downloadSlackFile(http, sessionId, url, root, maxBytes = MAX_FILE_BYTES) {
+  const ref = new URL(url, http.endpoint);
+  const m = FILE_REF_RE.exec(ref.pathname);
+  if (!m) {
+    throw new BridgeError("INVALID_INPUT" /* INVALID_INPUT */, `Not a Slack file reference: ${url}`, "Pass the url from a message's \u{1F4CE} Attachments block.");
+  }
+  const [, refSession, fileId] = m;
+  if (refSession !== sessionId) {
+    throw new BridgeError("INVALID_INPUT" /* INVALID_INPUT */, "That file belongs to a different channel than the one this agent is in");
+  }
+  const ac = new AbortController();
+  let idle = setTimeout(() => ac.abort(), IDLE_TIMEOUT_MS);
+  const resp = await http.streamRequest(ref.toString(), { method: "GET", signal: ac.signal }).catch((e) => {
+    clearTimeout(idle);
+    throw e;
+  });
+  if (!resp.ok || !resp.body) {
+    clearTimeout(idle);
+    throw await errorFrom(resp, "File download");
+  }
+  const declared = Number(resp.headers.get("content-length") ?? NaN);
+  if (Number.isFinite(declared) && declared > maxBytes) {
+    clearTimeout(idle);
+    ac.abort();
+    throw new BridgeError("INVALID_INPUT" /* INVALID_INPUT */, `File is ${declared} bytes; the limit is ${maxBytes} (1 GB)`);
+  }
+  const name = safeFileName(decodeURIComponent(resp.headers.get("x-cogent-file-name") ?? fileId));
+  const dir = path23.join(root, sessionId);
+  await fsp.mkdir(dir, { recursive: true, mode: 448 });
+  const dest = path23.join(dir, `${fileId}-${name}`);
+  const part = `${dest}.part`;
+  let size = 0;
+  const counter = new Transform({
+    transform(chunk, _enc, cb) {
+      size += chunk.length;
+      clearTimeout(idle);
+      idle = setTimeout(() => ac.abort(), IDLE_TIMEOUT_MS);
+      if (size > maxBytes) return cb(new BridgeError("INVALID_INPUT" /* INVALID_INPUT */, `File exceeds the ${maxBytes}-byte (1 GB) limit`));
+      cb(null, chunk);
+    }
+  });
+  try {
+    await pipeline(Readable.fromWeb(resp.body), counter, fs22.createWriteStream(part, { mode: 384 }));
+    await fsp.rename(part, dest);
+  } catch (e) {
+    await fsp.rm(part, { force: true });
+    if (ac.signal.aborted && !(e instanceof BridgeError)) {
+      throw new BridgeError("NETWORK_TIMEOUT" /* NETWORK_TIMEOUT */, `File download stalled: nothing received for ${IDLE_TIMEOUT_MS / 1e3}s`);
+    }
+    throw e;
+  } finally {
+    clearTimeout(idle);
+  }
+  return { path: dest, name, size, mimeType: resp.headers.get("content-type") ?? void 0 };
+}
+async function assertAttachable(filePath, stateDir, sessionId) {
+  const real = await fsp.realpath(path23.resolve(filePath)).catch(() => {
+    throw new BridgeError("INVALID_INPUT" /* INVALID_INPUT */, `Not a file: ${path23.resolve(filePath)}`);
+  });
+  const stateReal = await fsp.realpath(stateDir).catch(() => path23.resolve(stateDir));
+  const inside = (root) => real === root || real.startsWith(root + path23.sep);
+  const ownCopies = path23.join(filesRoot(stateReal), sessionId);
+  if (inside(stateReal) && !inside(ownCopies)) {
+    throw new BridgeError("INVALID_INPUT" /* INVALID_INPUT */, `Refusing to attach ${real}: it is inside Cogent's state directory (credentials)`);
+  }
+  if (!inside(ownCopies) && real.split(path23.sep).some((part) => part.startsWith("."))) {
+    throw new BridgeError(
+      "INVALID_INPUT" /* INVALID_INPUT */,
+      `Refusing to attach ${real}: hidden files and folders (.ssh, .env, .aws, .git \u2026) are never posted into Slack`,
+      "Copy what you mean to share into a normal (non-hidden) file and attach that."
+    );
+  }
+  return real;
+}
+async function uploadSlackFile(http, sessionId, filePath, fromPeerId, stateDir, maxBytes = MAX_FILE_BYTES) {
+  const abs = await assertAttachable(filePath, stateDir, sessionId);
+  const fh = await fsp.open(abs, fs22.constants.O_RDONLY | fs22.constants.O_NOFOLLOW).catch(() => {
+    throw new BridgeError("INVALID_INPUT" /* INVALID_INPUT */, `Not a file: ${abs}`);
+  });
+  const st = await fh.stat();
+  const checked = await fsp.stat(abs).catch(() => null);
+  if (!st.isFile() || !checked || checked.dev !== st.dev || checked.ino !== st.ino) {
+    await fh.close();
+    throw new BridgeError("INVALID_INPUT" /* INVALID_INPUT */, `Not a file (or it changed while being checked): ${abs}`);
+  }
+  if (st.size > maxBytes) {
+    await fh.close();
+    throw new BridgeError("INVALID_INPUT" /* INVALID_INPUT */, `${path23.basename(abs)} is ${st.size} bytes; the limit is ${maxBytes} (1 GB)`);
+  }
+  const ac = new AbortController();
+  const timer = setTimeout(() => ac.abort(), UPLOAD_TIMEOUT_MS);
+  try {
+    const resp = await http.streamRequest(`/api/slack/files/${sessionId}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/octet-stream",
+        "Content-Length": String(st.size),
+        "X-Cogent-File-Name": encodeURIComponent(path23.basename(abs)),
+        "X-Cogent-From-Peer": encodeURIComponent(fromPeerId)
+      },
+      body: Readable.toWeb(fh.createReadStream()),
+      // Node's fetch requires this for a streamed request body.
+      duplex: "half",
+      signal: ac.signal
+    });
+    if (resp.status !== 201) throw await errorFrom(resp, `Upload of ${path23.basename(abs)}`);
+    const out = await resp.json();
+    return { url: out.url, name: out.name, size: out.size, ...out.mimeType ? { mimeType: out.mimeType } : {} };
+  } finally {
+    clearTimeout(timer);
+    await fh.close().catch(() => {
+    });
+  }
+}
+var MAX_FILE_BYTES, FILE_RETENTION_MS, IDLE_TIMEOUT_MS, UPLOAD_TIMEOUT_MS, FILE_REF_RE, FILE_SWEEP_INTERVAL_MS;
+var init_slack_files = __esm({
+  "src/cloud/slack-files.ts"() {
+    "use strict";
+    init_errors4();
+    MAX_FILE_BYTES = 1e9;
+    FILE_RETENTION_MS = 7 * 24 * 60 * 60 * 1e3;
+    IDLE_TIMEOUT_MS = 6e4;
+    UPLOAD_TIMEOUT_MS = 60 * 60 * 1e3;
+    FILE_REF_RE = /^\/api\/slack\/files\/([A-Za-z0-9-]+)\/([A-Za-z0-9]+)$/;
+    FILE_SWEEP_INTERVAL_MS = 60 * 60 * 1e3;
+  }
+});
+
 // src/services/auto-relay.ts
 import { randomUUID as randomUUID2 } from "node:crypto";
-import fs22 from "node:fs";
-import path23 from "node:path";
+import fs23 from "node:fs";
+import path24 from "node:path";
 function buildStatusNotice(status, peerId, traceId, opts) {
   const tail = traceId ? ` (trace ${traceId})` : "";
   if (status === RELAY_STATUS.PROCESSING && opts?.midEditTotalSeconds !== void 0) {
@@ -35031,14 +35251,15 @@ function formatAttachmentsBlock(attachments) {
   if (!attachments || attachments.length === 0) return "";
   const lines = attachments.map((a) => {
     const name = a.name || a.mailMessageId || a.url || "file";
-    const ref = a.mailMessageId ? `fetch via cogent_fetch_mail (${a.mailMessageId})` : a.url ? a.url : "no fetchable reference";
+    const ref = a.mailMessageId ? `fetch via cogent_fetch_mail (${a.mailMessageId})` : isSlackFileRef(a.url) ? `fetch via cogent_fetch_file (${a.url})` : a.url ? a.url : "no fetchable reference";
     const meta = [a.mimeType, a.size != null ? `${a.size}B` : null].filter(Boolean).join(", ");
     return `  [file: ${name}${meta ? ` (${meta})` : ""} \u2014 ${ref}]`;
   });
+  const fetchNote = attachments.some((a) => !a.mailMessageId && isSlackFileRef(a.url)) ? "\n  (You may call cogent_fetch_file to open these \u2014 it only downloads the file to this machine.)" : "";
   return `
 
-\u{1F4CE} Attachments (byte transport = email):
-${lines.join("\n")}`;
+\u{1F4CE} Attachments:
+${lines.join("\n")}${fetchNote}`;
 }
 function formatRelayMessage(fromLabel, fromPeerId, message, attachments) {
   return `[Cogent Bridge message from ${fromLabel} (${fromPeerId})]
@@ -35168,15 +35389,15 @@ function lateFailureReason(r, lateAnswerMaxMs, timeoutSeconds) {
 }
 function isInsideOwnFolder(dir) {
   try {
-    const real = fs22.realpathSync.native(dir);
-    return real === process.cwd() || real.startsWith(process.cwd() + path23.sep);
+    const real = fs23.realpathSync.native(dir);
+    return real === process.cwd() || real.startsWith(process.cwd() + path24.sep);
   } catch {
     return false;
   }
 }
 function isOwnFolder(dir) {
   try {
-    return fs22.realpathSync.native(dir) === fs22.realpathSync.native(process.cwd());
+    return fs23.realpathSync.native(dir) === fs23.realpathSync.native(process.cwd());
   } catch {
     return false;
   }
@@ -35200,6 +35421,7 @@ var init_auto_relay = __esm({
     init_constants();
     init_logger();
     init_npm_update_check();
+    init_slack_files();
     RELAY_STATUS = {
       QUEUED: "queued",
       PROCESSING: "processing",
@@ -35315,8 +35537,8 @@ var init_auto_relay = __esm({
         logger.info(
           `Auto-relay configured for peer ${peerId} (session: ${sessionId}, pinned: ${this.pinnedSessionId}, mode: ${this.localMode}, label: ${this.localLabel})`
         );
-        const dirs = /* @__PURE__ */ new Set([path23.resolve(cwd)]);
-        if (isInsideOwnFolder(path23.resolve(cwd))) dirs.add(process.cwd());
+        const dirs = /* @__PURE__ */ new Set([path24.resolve(cwd)]);
+        if (isInsideOwnFolder(path24.resolve(cwd))) dirs.add(process.cwd());
         for (const dir of dirs) {
           this.announcedCwds.add(dir);
           announceBridge(dir, peerId, CLIENT_VERSION, getConfig().COGENT_ENDPOINT ?? "local");
@@ -35699,7 +35921,7 @@ var init_auto_relay = __esm({
           return;
         }
         if (this.localPeerId && this.localCwd) {
-          const dirs = /* @__PURE__ */ new Set([path23.resolve(this.localCwd), ...isOwnFolder(this.localCwd) ? [process.cwd()] : []]);
+          const dirs = /* @__PURE__ */ new Set([path24.resolve(this.localCwd), ...isOwnFolder(this.localCwd) ? [process.cwd()] : []]);
           for (const dir of dirs) {
             const own = checkWakeOwnership(dir, this.localPeerId);
             if (!own.isOwner) {
@@ -36967,8 +37189,8 @@ __export(startup_exports, {
   triggerReRegistration: () => triggerReRegistration
 });
 import os17 from "node:os";
-import path24 from "node:path";
-import fs23 from "node:fs/promises";
+import path25 from "node:path";
+import fs24 from "node:fs/promises";
 import readline2 from "node:readline";
 import { execFile as execFile5 } from "node:child_process";
 import { promisify as promisify4 } from "node:util";
@@ -36986,7 +37208,7 @@ function bindInboxNotifier() {
 }
 async function loadPersistedConfig() {
   try {
-    const raw = await fs23.readFile(PERSIST_PATH, "utf-8");
+    const raw = await fs24.readFile(PERSIST_PATH, "utf-8");
     return JSON.parse(raw);
   } catch {
     return {};
@@ -36994,7 +37216,7 @@ async function loadPersistedConfig() {
 }
 async function savePersistedConfig(config2) {
   try {
-    await fs23.writeFile(PERSIST_PATH, JSON.stringify(config2, null, 2) + "\n", "utf-8");
+    await fs24.writeFile(PERSIST_PATH, JSON.stringify(config2, null, 2) + "\n", "utf-8");
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     logger.warn(`Could not save config to ${PERSIST_PATH}: ${msg}`);
@@ -37029,11 +37251,11 @@ First run detected. Where should cogent-bridge store its data?
   });
 }
 async function validateStateDir(statePath) {
-  await fs23.mkdir(statePath, { recursive: true });
-  const testFile = path24.join(statePath, ".write-test");
+  await fs24.mkdir(statePath, { recursive: true });
+  const testFile = path25.join(statePath, ".write-test");
   try {
-    await fs23.writeFile(testFile, "test", "utf-8");
-    await fs23.unlink(testFile);
+    await fs24.writeFile(testFile, "test", "utf-8");
+    await fs24.unlink(testFile);
   } catch {
     throw new BridgeError(
       "STARTUP_FAILED" /* STARTUP_FAILED */,
@@ -37358,10 +37580,10 @@ async function runStartup() {
   if (envStatePath) {
     statePath = envStatePath;
   } else {
-    const defaultPath = path24.join(os17.homedir(), ".cogent");
+    const defaultPath = path25.join(os17.homedir(), ".cogent");
     statePath = await firstRunPrompt(defaultPath);
   }
-  if (!envStatePath && statePath !== path24.join(os17.homedir(), ".cogent")) {
+  if (!envStatePath && statePath !== path25.join(os17.homedir(), ".cogent")) {
     process.env.COGENT_STATE_PATH = statePath;
   } else if (!envStatePath) {
     process.env.COGENT_STATE_PATH = statePath;
@@ -37425,7 +37647,7 @@ async function runStartup() {
   }
   initLogger(
     config2.COGENT_LOG_LEVEL,
-    path24.join(config2.COGENT_STATE_PATH, "logs")
+    path25.join(config2.COGENT_STATE_PATH, "logs")
   );
   if (isCloud && effectiveSessionId && effectiveToken) {
     cloudInbox = new MessageInbox();
@@ -37491,7 +37713,7 @@ var init_startup = __esm({
     init_auto_relay();
     UUID_V4_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     execFileAsync3 = promisify4(execFile5);
-    PERSIST_PATH = path24.join(os17.homedir(), ".cogent-config.json");
+    PERSIST_PATH = path25.join(os17.homedir(), ".cogent-config.json");
     legacyWarnEmitted = false;
     cloudWsClient = null;
     cloudInbox = null;
@@ -37510,12 +37732,12 @@ var init_startup = __esm({
 
 // src/cloud/mail-credential-store.ts
 import crypto9 from "node:crypto";
-import fs24 from "node:fs/promises";
-import path25 from "node:path";
+import fs25 from "node:fs/promises";
+import path26 from "node:path";
 import os18 from "node:os";
 function defaultMailCredentialPath(cwd = process.cwd()) {
-  const hash = crypto9.createHash("sha256").update(path25.resolve(cwd)).digest("hex").slice(0, 16);
-  return path25.join(os18.homedir(), ".cogent", "mail-credentials", `${hash}.json`);
+  const hash = crypto9.createHash("sha256").update(path26.resolve(cwd)).digest("hex").slice(0, 16);
+  return path26.join(os18.homedir(), ".cogent", "mail-credentials", `${hash}.json`);
 }
 function resolveMailCredentialPath(credentialPath) {
   if (credentialPath) return credentialPath;
@@ -37526,16 +37748,16 @@ function resolveMailCredentialPath(credentialPath) {
 async function loadMailCredentials(credentialPath) {
   const filePath = resolveMailCredentialPath(credentialPath);
   try {
-    return JSON.parse(await fs24.readFile(filePath, "utf-8"));
+    return JSON.parse(await fs25.readFile(filePath, "utf-8"));
   } catch {
     return null;
   }
 }
 async function saveMailCredentials(creds, credentialPath) {
   const filePath = resolveMailCredentialPath(credentialPath);
-  await fs24.mkdir(path25.dirname(filePath), { recursive: true, mode: 448 });
-  await fs24.writeFile(filePath, JSON.stringify(creds, null, 2) + "\n", { encoding: "utf-8", mode: 384 });
-  await fs24.chmod(filePath, 384);
+  await fs25.mkdir(path26.dirname(filePath), { recursive: true, mode: 448 });
+  await fs25.writeFile(filePath, JSON.stringify(creds, null, 2) + "\n", { encoding: "utf-8", mode: 384 });
+  await fs25.chmod(filePath, 384);
 }
 async function persistProvisionedMailbox(mailbox, credentialPath) {
   if (!mailbox?.address || !mailbox.password) return false;
@@ -37556,7 +37778,7 @@ async function persistProvisionedMailbox(mailbox, credentialPath) {
 async function clearMailCredentials(credentialPath) {
   const filePath = resolveMailCredentialPath(credentialPath);
   try {
-    await fs24.unlink(filePath);
+    await fs25.unlink(filePath);
   } catch (err) {
     if (err.code !== "ENOENT") throw err;
   }
@@ -38094,6 +38316,9 @@ function registerSendMessageTool(server) {
         message: import_zod4.z.string().describe("The message content to send to the target peer"),
         replyExpected: import_zod4.z.boolean().optional().describe(
           "Set false for a TERMINAL message \u2014 an acknowledgement, confirmation or FYI that conveys information and needs no answer. The recipient's check-on-stop hook then never counts it as owing a reply. Omit (or true) for anything that asks a question or expects a response. Without this, two agents acknowledging each other never terminate: every ACK is itself a directed message demanding an ACK."
+        ),
+        files: import_zod4.z.array(import_zod4.z.string()).optional().describe(
+          "Local file paths to attach (each up to 1 GB). They are posted into this channel's Slack channel, so send them to '*' or to a person in Slack. For a file meant only for another agent, use cogent_send_mail."
         )
       },
       annotations: {
@@ -38103,7 +38328,7 @@ function registerSendMessageTool(server) {
         openWorldHint: true
       }
     },
-    async ({ fromPeerId, toPeerId, message, replyExpected }) => {
+    async ({ fromPeerId, toPeerId, message, replyExpected, files }) => {
       try {
         if (isCloudDeferred(getConfig().COGENT_ENDPOINT)) {
           return successResult({
@@ -38135,6 +38360,29 @@ function registerSendMessageTool(server) {
             )
           );
         }
+        let attachments;
+        if (files && files.length > 0) {
+          const toPlatform = to?.platform;
+          if (!isBroadcast && toPlatform !== "slack") {
+            return errorResult(
+              new BridgeError(
+                "INVALID_INPUT" /* INVALID_INPUT */,
+                `Files are posted into this channel's Slack channel, and '${normalizedToPeerId}' is not a Slack person`,
+                "Send the files to '*' (everyone) or to a person in Slack. For a file meant only for another agent, use cogent_send_mail."
+              )
+            );
+          }
+          if (!(backend instanceof HttpBackend)) {
+            return errorResult(
+              new BridgeError("JOIN_NOT_CONFIRMED" /* JOIN_NOT_CONFIRMED */, "Files need a cloud channel", "Join the channel first (cogent_join_session).")
+            );
+          }
+          const { sessionId, http } = backend.fileTransport();
+          attachments = [];
+          const stateDir = getConfig().COGENT_STATE_PATH;
+          for (const f of files) await assertAttachable(f, stateDir, sessionId);
+          for (const f of files) attachments.push(await uploadSlackFile(http, sessionId, f, fromPeerId, stateDir));
+        }
         if (isBroadcast) {
           const startMs2 = Date.now();
           try {
@@ -38146,11 +38394,13 @@ function registerSendMessageTool(server) {
               durationMs: Date.now() - startMs2,
               success: true,
               error: null,
-              ...replyExpected === false ? { replyExpected: false } : {}
+              ...replyExpected === false ? { replyExpected: false } : {},
+              ...attachments ? { attachments } : {}
             });
             return successResult({
               success: true,
               response: `Broadcast message sent to all peers in the session.`,
+              ...attachments ? { attachments } : {},
               error: null,
               durationMs: Date.now() - startMs2
             });
@@ -38210,7 +38460,8 @@ function registerSendMessageTool(server) {
                 durationMs,
                 success: true,
                 error: null,
-                ...replyExpected === false ? { replyExpected: false } : {}
+                ...replyExpected === false ? { replyExpected: false } : {},
+                ...attachments ? { attachments } : {}
               });
             } catch (recordErr) {
               autoRelay.clearExpectation(toPeerId);
@@ -38345,6 +38596,7 @@ var init_send_message = __esm({
     "use strict";
     import_zod4 = __toESM(require_zod(), 1);
     init_backend();
+    init_slack_files();
     init_errors4();
     init_config();
     init_logger();
@@ -39883,8 +40135,8 @@ var require_cookies = __commonJS({
         if (urlparts.hostname !== cookie.domain && (cookie.domain.charAt(0) !== "." || ("." + urlparts.hostname).substr(-cookie.domain.length) !== cookie.domain)) {
           return false;
         }
-        let path29 = this.getPath(urlparts.pathname);
-        if (path29.substr(0, cookie.path.length) !== cookie.path) {
+        let path30 = this.getPath(urlparts.pathname);
+        if (path30.substr(0, cookie.path.length) !== cookie.path) {
           return false;
         }
         if (cookie.secure && urlparts.protocol !== "https:") {
@@ -39944,16 +40196,16 @@ var require_cookies = __commonJS({
        * @returns {String} Normalized path
        */
       getPath(pathname) {
-        let path29 = (pathname || "/").split("/");
-        path29.pop();
-        path29 = path29.join("/").trim();
-        if (path29.charAt(0) !== "/") {
-          path29 = "/" + path29;
+        let path30 = (pathname || "/").split("/");
+        path30.pop();
+        path30 = path30.join("/").trim();
+        if (path30.charAt(0) !== "/") {
+          path30 = "/" + path30;
         }
-        if (path29.substr(-1) !== "/") {
-          path29 += "/";
+        if (path30.substr(-1) !== "/") {
+          path30 += "/";
         }
-        return path29;
+        return path30;
       }
     };
     module.exports = Cookies;
@@ -40254,7 +40506,7 @@ var require_shared = __commonJS({
     "use strict";
     var urllib = __require("url");
     var util2 = __require("util");
-    var fs27 = __require("fs");
+    var fs28 = __require("fs");
     var nmfetch = require_fetch();
     var dns = __require("dns");
     var net = __require("net");
@@ -40640,7 +40892,7 @@ var require_shared = __commonJS({
           }
           return callback(null, parsedDataUri.data);
         } else if (content.path) {
-          return resolveStream(fs27.createReadStream(content.path), callback);
+          return resolveStream(fs28.createReadStream(content.path), callback);
         }
       }
       if (typeof data[key].content === "string" && !["utf8", "usascii", "ascii"].includes(encoding)) {
@@ -40764,7 +41016,7 @@ var require_shared = __commonJS({
 var require_mime_types = __commonJS({
   "node_modules/nodemailer/lib/mime-funcs/mime-types.js"(exports, module) {
     "use strict";
-    var path29 = __require("path");
+    var path30 = __require("path");
     var defaultMimeType = "application/octet-stream";
     var defaultExtension = "bin";
     var mimeTypes = /* @__PURE__ */ new Map([
@@ -42822,7 +43074,7 @@ var require_mime_types = __commonJS({
         if (!filename) {
           return defaultMimeType;
         }
-        let parsed = path29.parse(filename);
+        let parsed = path30.parse(filename);
         let extension = (parsed.ext.substr(1) || parsed.name || "").split("?").shift().trim().toLowerCase();
         let value = defaultMimeType;
         if (extensions.has(extension)) {
@@ -43104,7 +43356,7 @@ var require_punycode = __commonJS({
 var require_base64 = __commonJS({
   "node_modules/nodemailer/lib/base64/index.js"(exports, module) {
     "use strict";
-    var Transform = __require("stream").Transform;
+    var Transform2 = __require("stream").Transform;
     function encode(buffer) {
       if (typeof buffer === "string") {
         buffer = Buffer.from(buffer, "utf-8");
@@ -43127,7 +43379,7 @@ var require_base64 = __commonJS({
       }
       return result.join("\r\n").trim();
     }
-    var Encoder = class extends Transform {
+    var Encoder = class extends Transform2 {
       constructor(options) {
         super();
         this.options = options || {};
@@ -43202,7 +43454,7 @@ var require_base64 = __commonJS({
 var require_qp = __commonJS({
   "node_modules/nodemailer/lib/qp/index.js"(exports, module) {
     "use strict";
-    var Transform = __require("stream").Transform;
+    var Transform2 = __require("stream").Transform;
     function encode(buffer) {
       if (typeof buffer === "string") {
         buffer = Buffer.from(buffer, "utf-8");
@@ -43306,7 +43558,7 @@ var require_qp = __commonJS({
       }
       return false;
     }
-    var Encoder = class extends Transform {
+    var Encoder = class extends Transform2 {
       constructor(options) {
         super();
         this.options = options || {};
@@ -44109,8 +44361,8 @@ var require_addressparser = __commonJS({
 var require_last_newline = __commonJS({
   "node_modules/nodemailer/lib/mime-node/last-newline.js"(exports, module) {
     "use strict";
-    var Transform = __require("stream").Transform;
-    var LastNewline = class extends Transform {
+    var Transform2 = __require("stream").Transform;
+    var LastNewline = class extends Transform2 {
       constructor() {
         super();
         this.lastByte = false;
@@ -44143,8 +44395,8 @@ var require_le_windows = __commonJS({
   "node_modules/nodemailer/lib/mime-node/le-windows.js"(exports, module) {
     "use strict";
     var stream = __require("stream");
-    var Transform = stream.Transform;
-    var LeWindows = class extends Transform {
+    var Transform2 = stream.Transform;
+    var LeWindows = class extends Transform2 {
       constructor(options) {
         super(options);
         this.options = options || {};
@@ -44187,8 +44439,8 @@ var require_le_unix = __commonJS({
   "node_modules/nodemailer/lib/mime-node/le-unix.js"(exports, module) {
     "use strict";
     var stream = __require("stream");
-    var Transform = stream.Transform;
-    var LeWindows = class extends Transform {
+    var Transform2 = stream.Transform;
+    var LeWindows = class extends Transform2 {
       constructor(options) {
         super(options);
         this.options = options || {};
@@ -44224,7 +44476,7 @@ var require_mime_node = __commonJS({
   "node_modules/nodemailer/lib/mime-node/index.js"(exports, module) {
     "use strict";
     var crypto12 = __require("crypto");
-    var fs27 = __require("fs");
+    var fs28 = __require("fs");
     var punycode = require_punycode();
     var PassThrough = __require("stream").PassThrough;
     var shared = require_shared();
@@ -44939,7 +45191,7 @@ var require_mime_node = __commonJS({
             setImmediate(() => contentStream.emit("error", new Error("File access rejected for " + content.path)));
             return contentStream;
           }
-          return fs27.createReadStream(content.path);
+          return fs28.createReadStream(content.path);
         } else if (content && typeof content.href === "string") {
           if (this.disableUrlAccess) {
             contentStream = new PassThrough();
@@ -45643,8 +45895,8 @@ var require_mail_composer = __commonJS({
 var require_message_parser = __commonJS({
   "node_modules/nodemailer/lib/dkim/message-parser.js"(exports, module) {
     "use strict";
-    var Transform = __require("stream").Transform;
-    var MessageParser = class extends Transform {
+    var Transform2 = __require("stream").Transform;
+    var MessageParser = class extends Transform2 {
       constructor(options) {
         super(options);
         this.lastBytes = Buffer.alloc(4);
@@ -45774,9 +46026,9 @@ var require_message_parser = __commonJS({
 var require_relaxed_body = __commonJS({
   "node_modules/nodemailer/lib/dkim/relaxed-body.js"(exports, module) {
     "use strict";
-    var Transform = __require("stream").Transform;
+    var Transform2 = __require("stream").Transform;
     var crypto12 = __require("crypto");
-    var RelaxedBody = class extends Transform {
+    var RelaxedBody = class extends Transform2 {
       constructor(options) {
         super();
         options = options || {};
@@ -45960,8 +46212,8 @@ var require_dkim = __commonJS({
     var RelaxedBody = require_relaxed_body();
     var sign = require_sign();
     var PassThrough = __require("stream").PassThrough;
-    var fs27 = __require("fs");
-    var path29 = __require("path");
+    var fs28 = __require("fs");
+    var path30 = __require("path");
     var crypto12 = __require("crypto");
     var DKIM_ALGO = "sha256";
     var MAX_MESSAGE_SIZE = 128 * 1024;
@@ -45975,7 +46227,7 @@ var require_dkim = __commonJS({
         this.chunks = [];
         this.chunklen = 0;
         this.readPos = 0;
-        this.cachePath = this.cacheDir ? path29.join(this.cacheDir, "message." + Date.now() + "-" + crypto12.randomBytes(14).toString("hex")) : false;
+        this.cachePath = this.cacheDir ? path30.join(this.cacheDir, "message." + Date.now() + "-" + crypto12.randomBytes(14).toString("hex")) : false;
         this.cache = false;
         this.headers = false;
         this.bodyHash = false;
@@ -45995,10 +46247,10 @@ var require_dkim = __commonJS({
         if (!this.cache || !this.cachePath) {
           return;
         }
-        fs27.unlink(this.cachePath, () => false);
+        fs28.unlink(this.cachePath, () => false);
       }
       createReadCache() {
-        this.cache = fs27.createReadStream(this.cachePath);
+        this.cache = fs28.createReadStream(this.cachePath);
         this.cache.once("error", (err) => {
           this.cleanup();
           this.output.emit("error", err);
@@ -46054,7 +46306,7 @@ var require_dkim = __commonJS({
       }
       createWriteCache() {
         this.output.usingCache = true;
-        this.cache = fs27.createWriteStream(this.cachePath);
+        this.cache = fs28.createWriteStream(this.cachePath);
         this.cache.once("error", (err) => {
           this.cleanup();
           this.relaxedBody.unpipe(this.cache);
@@ -46889,8 +47141,8 @@ var require_data_stream = __commonJS({
   "node_modules/nodemailer/lib/smtp-connection/data-stream.js"(exports, module) {
     "use strict";
     var stream = __require("stream");
-    var Transform = stream.Transform;
-    var DataStream = class extends Transform {
+    var Transform2 = stream.Transform;
+    var DataStream = class extends Transform2 {
       constructor(options) {
         super(options);
         this.options = options || {};
@@ -50943,13 +51195,13 @@ var require_nodemailer = __commonJS({
 });
 
 // src/mail/mail-sender.ts
-import fs25 from "node:fs/promises";
-import path26 from "node:path";
+import fs26 from "node:fs/promises";
+import path27 from "node:path";
 async function buildAndSendMail(sender, creds, params) {
   const attachments = [];
   for (const p of params.attachmentPaths ?? []) {
-    const content = await fs25.readFile(p);
-    attachments.push({ filename: path26.basename(p), content });
+    const content = await fs26.readFile(p);
+    attachments.push({ filename: path27.basename(p), content });
   }
   const { messageId } = await sender.send({
     from: creds.address,
@@ -51338,8 +51590,8 @@ var require_req = __commonJS({
       if (req.originalUrl) {
         _req.url = req.originalUrl;
       } else {
-        const path29 = req.path;
-        _req.url = typeof path29 === "string" ? path29 : req.url ? req.url.path || req.url : void 0;
+        const path30 = req.path;
+        _req.url = typeof path30 === "string" ? path30 : req.url ? req.url.path || req.url : void 0;
       }
       if (req.query) {
         _req.query = req.query;
@@ -51504,14 +51756,14 @@ var require_redact = __commonJS({
       }
       return obj;
     }
-    function parsePath(path29) {
+    function parsePath(path30) {
       const parts = [];
       let current = "";
       let inBrackets = false;
       let inQuotes = false;
       let quoteChar = "";
-      for (let i = 0; i < path29.length; i++) {
-        const char = path29[i];
+      for (let i = 0; i < path30.length; i++) {
+        const char = path30[i];
         if (!inBrackets && char === ".") {
           if (current) {
             parts.push(current);
@@ -51642,10 +51894,10 @@ var require_redact = __commonJS({
       return current;
     }
     function redactPaths(obj, paths, censor, remove = false) {
-      for (const path29 of paths) {
-        const parts = parsePath(path29);
+      for (const path30 of paths) {
+        const parts = parsePath(path30);
         if (parts.includes("*")) {
-          redactWildcardPath(obj, parts, censor, path29, remove);
+          redactWildcardPath(obj, parts, censor, path30, remove);
         } else {
           if (remove) {
             removeKey(obj, parts);
@@ -51730,8 +51982,8 @@ var require_redact = __commonJS({
           }
         } else {
           if (afterWildcard.includes("*")) {
-            const wrappedCensor = typeof censor === "function" ? (value, path29) => {
-              const fullPath = [...pathArray.slice(0, pathLength), ...path29];
+            const wrappedCensor = typeof censor === "function" ? (value, path30) => {
+              const fullPath = [...pathArray.slice(0, pathLength), ...path30];
               return censor(value, fullPath);
             } : censor;
             redactWildcardPath(current, afterWildcard, wrappedCensor, originalPath, remove);
@@ -51766,8 +52018,8 @@ var require_redact = __commonJS({
         return null;
       }
       const pathStructure = /* @__PURE__ */ new Map();
-      for (const path29 of pathsToClone) {
-        const parts = parsePath(path29);
+      for (const path30 of pathsToClone) {
+        const parts = parsePath(path30);
         let current = pathStructure;
         for (let i = 0; i < parts.length; i++) {
           const part = parts[i];
@@ -51819,24 +52071,24 @@ var require_redact = __commonJS({
       }
       return cloneSelectively(obj, pathStructure);
     }
-    function validatePath(path29) {
-      if (typeof path29 !== "string") {
+    function validatePath(path30) {
+      if (typeof path30 !== "string") {
         throw new Error("Paths must be (non-empty) strings");
       }
-      if (path29 === "") {
+      if (path30 === "") {
         throw new Error("Invalid redaction path ()");
       }
-      if (path29.includes("..")) {
-        throw new Error(`Invalid redaction path (${path29})`);
+      if (path30.includes("..")) {
+        throw new Error(`Invalid redaction path (${path30})`);
       }
-      if (path29.includes(",")) {
-        throw new Error(`Invalid redaction path (${path29})`);
+      if (path30.includes(",")) {
+        throw new Error(`Invalid redaction path (${path30})`);
       }
       let bracketCount = 0;
       let inQuotes = false;
       let quoteChar = "";
-      for (let i = 0; i < path29.length; i++) {
-        const char = path29[i];
+      for (let i = 0; i < path30.length; i++) {
+        const char = path30[i];
         if ((char === '"' || char === "'") && bracketCount > 0) {
           if (!inQuotes) {
             inQuotes = true;
@@ -51850,20 +52102,20 @@ var require_redact = __commonJS({
         } else if (char === "]" && !inQuotes) {
           bracketCount--;
           if (bracketCount < 0) {
-            throw new Error(`Invalid redaction path (${path29})`);
+            throw new Error(`Invalid redaction path (${path30})`);
           }
         }
       }
       if (bracketCount !== 0) {
-        throw new Error(`Invalid redaction path (${path29})`);
+        throw new Error(`Invalid redaction path (${path30})`);
       }
     }
     function validatePaths(paths) {
       if (!Array.isArray(paths)) {
         throw new TypeError("paths must be an array");
       }
-      for (const path29 of paths) {
-        validatePath(path29);
+      for (const path30 of paths) {
+        validatePath(path30);
       }
     }
     function slowRedact(options = {}) {
@@ -52031,8 +52283,8 @@ var require_redaction = __commonJS({
         if (shape[k] === null) {
           o[k] = (value) => topCensor(value, [k]);
         } else {
-          const wrappedCensor = typeof censor === "function" ? (value, path29) => {
-            return censor(value, [k, ...path29]);
+          const wrappedCensor = typeof censor === "function" ? (value, path30) => {
+            return censor(value, [k, ...path30]);
           } : censor;
           o[k] = Redact({
             paths: shape[k],
@@ -52250,10 +52502,10 @@ var require_atomic_sleep = __commonJS({
 var require_sonic_boom = __commonJS({
   "node_modules/sonic-boom/index.js"(exports, module) {
     "use strict";
-    var fs27 = __require("fs");
+    var fs28 = __require("fs");
     var EventEmitter = __require("events");
     var inherits = __require("util").inherits;
-    var path29 = __require("path");
+    var path30 = __require("path");
     var sleep4 = require_atomic_sleep();
     var assert2 = __require("assert");
     var BUSY_WRITE_TIMEOUT = 100;
@@ -52307,20 +52559,20 @@ var require_sonic_boom = __commonJS({
       const mode = sonic.mode;
       if (sonic.sync) {
         try {
-          if (sonic.mkdir) fs27.mkdirSync(path29.dirname(file), { recursive: true });
-          const fd = fs27.openSync(file, flags, mode);
+          if (sonic.mkdir) fs28.mkdirSync(path30.dirname(file), { recursive: true });
+          const fd = fs28.openSync(file, flags, mode);
           fileOpened(null, fd);
         } catch (err) {
           fileOpened(err);
           throw err;
         }
       } else if (sonic.mkdir) {
-        fs27.mkdir(path29.dirname(file), { recursive: true }, (err) => {
+        fs28.mkdir(path30.dirname(file), { recursive: true }, (err) => {
           if (err) return fileOpened(err);
-          fs27.open(file, flags, mode, fileOpened);
+          fs28.open(file, flags, mode, fileOpened);
         });
       } else {
-        fs27.open(file, flags, mode, fileOpened);
+        fs28.open(file, flags, mode, fileOpened);
       }
     }
     function SonicBoom(opts) {
@@ -52361,8 +52613,8 @@ var require_sonic_boom = __commonJS({
         this.flush = flushBuffer;
         this.flushSync = flushBufferSync;
         this._actualWrite = actualWriteBuffer;
-        fsWriteSync = () => fs27.writeSync(this.fd, this._writingBuf);
-        fsWrite = () => fs27.write(this.fd, this._writingBuf, this.release);
+        fsWriteSync = () => fs28.writeSync(this.fd, this._writingBuf);
+        fsWrite = () => fs28.write(this.fd, this._writingBuf, this.release);
       } else if (contentMode === void 0 || contentMode === kContentModeUtf8) {
         this._writingBuf = "";
         this.write = write;
@@ -52371,15 +52623,15 @@ var require_sonic_boom = __commonJS({
         this._actualWrite = actualWrite;
         fsWriteSync = () => {
           if (Buffer.isBuffer(this._writingBuf)) {
-            return fs27.writeSync(this.fd, this._writingBuf);
+            return fs28.writeSync(this.fd, this._writingBuf);
           }
-          return fs27.writeSync(this.fd, this._writingBuf, "utf8");
+          return fs28.writeSync(this.fd, this._writingBuf, "utf8");
         };
         fsWrite = () => {
           if (Buffer.isBuffer(this._writingBuf)) {
-            return fs27.write(this.fd, this._writingBuf, this.release);
+            return fs28.write(this.fd, this._writingBuf, this.release);
           }
-          return fs27.write(this.fd, this._writingBuf, "utf8", this.release);
+          return fs28.write(this.fd, this._writingBuf, "utf8", this.release);
         };
       } else {
         throw new Error(`SonicBoom supports "${kContentModeUtf8}" and "${kContentModeBuffer}", but passed ${contentMode}`);
@@ -52436,7 +52688,7 @@ var require_sonic_boom = __commonJS({
           }
         }
         if (this._fsync) {
-          fs27.fsyncSync(this.fd);
+          fs28.fsyncSync(this.fd);
         }
         const len = this._len;
         if (this._reopening) {
@@ -52550,7 +52802,7 @@ var require_sonic_boom = __commonJS({
       const onDrain = () => {
         if (!this._fsync) {
           try {
-            fs27.fsync(this.fd, (err) => {
+            fs28.fsync(this.fd, (err) => {
               this._flushPending = false;
               cb(err);
             });
@@ -52652,7 +52904,7 @@ var require_sonic_boom = __commonJS({
       const fd = this.fd;
       this.once("ready", () => {
         if (fd !== this.fd) {
-          fs27.close(fd, (err) => {
+          fs28.close(fd, (err) => {
             if (err) {
               return this.emit("error", err);
             }
@@ -52701,7 +52953,7 @@ var require_sonic_boom = __commonJS({
           buf = this._bufs[0];
         }
         try {
-          const n = Buffer.isBuffer(buf) ? fs27.writeSync(this.fd, buf) : fs27.writeSync(this.fd, buf, "utf8");
+          const n = Buffer.isBuffer(buf) ? fs28.writeSync(this.fd, buf) : fs28.writeSync(this.fd, buf, "utf8");
           const releasedBufObj = releaseWritingBuf(buf, this._len, n);
           buf = releasedBufObj.writingBuf;
           this._len = releasedBufObj.len;
@@ -52717,7 +52969,7 @@ var require_sonic_boom = __commonJS({
         }
       }
       try {
-        fs27.fsyncSync(this.fd);
+        fs28.fsyncSync(this.fd);
       } catch {
       }
     }
@@ -52738,7 +52990,7 @@ var require_sonic_boom = __commonJS({
           buf = mergeBuf(this._bufs[0], this._lens[0]);
         }
         try {
-          const n = fs27.writeSync(this.fd, buf);
+          const n = fs28.writeSync(this.fd, buf);
           buf = buf.subarray(n);
           this._len = Math.max(this._len - n, 0);
           if (buf.length <= 0) {
@@ -52766,13 +53018,13 @@ var require_sonic_boom = __commonJS({
       this._writingBuf = this._writingBuf.length ? this._writingBuf : this._bufs.shift() || "";
       if (this.sync) {
         try {
-          const written = Buffer.isBuffer(this._writingBuf) ? fs27.writeSync(this.fd, this._writingBuf) : fs27.writeSync(this.fd, this._writingBuf, "utf8");
+          const written = Buffer.isBuffer(this._writingBuf) ? fs28.writeSync(this.fd, this._writingBuf) : fs28.writeSync(this.fd, this._writingBuf, "utf8");
           release(null, written);
         } catch (err) {
           release(err);
         }
       } else {
-        fs27.write(this.fd, this._writingBuf, release);
+        fs28.write(this.fd, this._writingBuf, release);
       }
     }
     function actualWriteBuffer() {
@@ -52781,7 +53033,7 @@ var require_sonic_boom = __commonJS({
       this._writingBuf = this._writingBuf.length ? this._writingBuf : mergeBuf(this._bufs.shift(), this._lens.shift());
       if (this.sync) {
         try {
-          const written = fs27.writeSync(this.fd, this._writingBuf);
+          const written = fs28.writeSync(this.fd, this._writingBuf);
           release(null, written);
         } catch (err) {
           release(err);
@@ -52790,7 +53042,7 @@ var require_sonic_boom = __commonJS({
         if (kCopyBuffer) {
           this._writingBuf = Buffer.from(this._writingBuf);
         }
-        fs27.write(this.fd, this._writingBuf, release);
+        fs28.write(this.fd, this._writingBuf, release);
       }
     }
     function actualClose(sonic) {
@@ -52806,12 +53058,12 @@ var require_sonic_boom = __commonJS({
       sonic._lens = [];
       assert2(typeof sonic.fd === "number", `sonic.fd must be a number, got ${typeof sonic.fd}`);
       try {
-        fs27.fsync(sonic.fd, closeWrapped);
+        fs28.fsync(sonic.fd, closeWrapped);
       } catch {
       }
       function closeWrapped() {
         if (sonic.fd !== 1 && sonic.fd !== 2) {
-          fs27.close(sonic.fd, done);
+          fs28.close(sonic.fd, done);
         } else {
           done();
         }
@@ -53647,15 +53899,15 @@ var require_transport = __commonJS({
       if (!unquoted) {
         return false;
       }
-      let path29 = unquoted;
-      if (path29.startsWith("file://")) {
+      let path30 = unquoted;
+      if (path30.startsWith("file://")) {
         try {
-          path29 = fileURLToPath(path29);
+          path30 = fileURLToPath(path30);
         } catch {
           return false;
         }
       }
-      return isAbsolute(path29) && !existsSync(path29);
+      return isAbsolute(path30) && !existsSync(path30);
     }
     function stripQuotes(value) {
       const first = value[0];
@@ -53725,7 +53977,7 @@ var require_transport = __commonJS({
       stream.flushSync();
     }
     function transport(fullOptions) {
-      const { pipeline, targets, levels, dedupe, worker = {}, caller = getCallers(), sync = false } = fullOptions;
+      const { pipeline: pipeline2, targets, levels, dedupe, worker = {}, caller = getCallers(), sync = false } = fullOptions;
       const options = {
         ...fullOptions.options
       };
@@ -53753,9 +54005,9 @@ var require_transport = __commonJS({
             };
           });
         });
-      } else if (pipeline) {
+      } else if (pipeline2) {
         target = bundlerOverrides["pino-worker"] || join2(__dirname, "worker.js");
-        options.pipelines = [pipeline.map((dest) => {
+        options.pipelines = [pipeline2.map((dest) => {
           return {
             ...dest,
             target: fixTarget(dest.target)
@@ -53769,7 +54021,7 @@ var require_transport = __commonJS({
         options.dedupe = dedupe;
       }
       options.pinoWillSendConfig = true;
-      const name = targets || pipeline ? "pino.transport" : target;
+      const name = targets || pipeline2 ? "pino.transport" : target;
       return buildStream(fixTarget(target), options, worker, sync, name);
       function fixTarget(origin) {
         origin = bundlerOverrides[origin] || origin;
@@ -59130,14 +59382,14 @@ var require_streams = __commonJS({
     "use strict";
     var Buffer2 = require_safer().Buffer;
     module.exports = function(streamModule) {
-      var Transform = streamModule.Transform;
+      var Transform2 = streamModule.Transform;
       function IconvLiteEncoderStream(conv, options) {
         this.conv = conv;
         options = options || {};
         options.decodeStrings = false;
-        Transform.call(this, options);
+        Transform2.call(this, options);
       }
-      IconvLiteEncoderStream.prototype = Object.create(Transform.prototype, {
+      IconvLiteEncoderStream.prototype = Object.create(Transform2.prototype, {
         constructor: { value: IconvLiteEncoderStream }
       });
       IconvLiteEncoderStream.prototype._transform = function(chunk, encoding, done) {
@@ -59176,9 +59428,9 @@ var require_streams = __commonJS({
         this.conv = conv;
         options = options || {};
         options.encoding = this.encoding = "utf8";
-        Transform.call(this, options);
+        Transform2.call(this, options);
       }
-      IconvLiteDecoderStream.prototype = Object.create(Transform.prototype, {
+      IconvLiteDecoderStream.prototype = Object.create(Transform2.prototype, {
         constructor: { value: IconvLiteDecoderStream }
       });
       IconvLiteDecoderStream.prototype._transform = function(chunk, encoding, done) {
@@ -76107,7 +76359,7 @@ var require_libbase64 = __commonJS({
     "use strict";
     var { Buffer: Buffer2 } = __require("node:buffer");
     var stream = __require("node:stream");
-    var Transform = stream.Transform;
+    var Transform2 = stream.Transform;
     function encode(buffer) {
       if (typeof buffer === "string") {
         buffer = Buffer2.from(buffer, "utf-8");
@@ -76134,7 +76386,7 @@ var require_libbase64 = __commonJS({
       }
       return result.join("\r\n").trim();
     }
-    var Encoder = class extends Transform {
+    var Encoder = class extends Transform2 {
       constructor(options) {
         super();
         this.options = options || {};
@@ -76224,7 +76476,7 @@ var require_libbase64 = __commonJS({
         done();
       }
     };
-    var Decoder = class extends Transform {
+    var Decoder = class extends Transform2 {
       constructor(options) {
         super();
         this.options = options || {};
@@ -76282,7 +76534,7 @@ var require_libqp = __commonJS({
     "use strict";
     var { Buffer: Buffer2 } = __require("node:buffer");
     var stream = __require("node:stream");
-    var Transform = stream.Transform;
+    var Transform2 = stream.Transform;
     function encode(buffer) {
       if (typeof buffer === "string") {
         buffer = Buffer2.from(buffer, "utf-8");
@@ -76396,7 +76648,7 @@ var require_libqp = __commonJS({
       }
       return false;
     }
-    var Encoder = class extends Transform {
+    var Encoder = class extends Transform2 {
       constructor(options) {
         super();
         this.options = options || {};
@@ -76406,7 +76658,7 @@ var require_libqp = __commonJS({
         this._curLine = "";
         this.inputBytes = 0;
         this.outputBytes = 0;
-        Transform.call(this, this.options);
+        Transform2.call(this, this.options);
       }
       _transform(chunk, encoding, done) {
         let qp;
@@ -76443,7 +76695,7 @@ var require_libqp = __commonJS({
         done();
       }
     };
-    var Decoder = class extends Transform {
+    var Decoder = class extends Transform2 {
       constructor(options) {
         options = options || {};
         super(options);
@@ -79290,7 +79542,7 @@ var require_headers = __commonJS({
       /** @type {any} */
       libmime.Libmime
     );
-    var Headers = class {
+    var Headers2 = class {
       /**
        * @param {string | Buffer | HeaderLine[] | false} [headers] Raw header source or already parsed lines.
        * @param {LibmimeOptions} [config] Optional libmime configuration.
@@ -79636,7 +79888,7 @@ var require_headers = __commonJS({
         return utf8.includes("\uFFFD") ? str : utf8;
       }
     };
-    module.exports = Headers;
+    module.exports = Headers2;
   }
 });
 
@@ -79644,7 +79896,7 @@ var require_headers = __commonJS({
 var require_mime_node2 = __commonJS({
   "node_modules/@zone-eu/mailsplit/lib/mime-node.js"(exports, module) {
     "use strict";
-    var Headers = require_headers();
+    var Headers2 = require_headers();
     var libmime = require_libmime();
     var libqp = require_libqp();
     var libbase64 = require_libbase64();
@@ -79717,7 +79969,7 @@ var require_mime_node2 = __commonJS({
         if (this.headers) {
           return;
         }
-        this.headers = new Headers(Buffer.concat(this._headersLines, this._headerlen), this.config);
+        this.headers = new Headers2(Buffer.concat(this._headersLines, this._headerlen), this.config);
         let headers = this.headers;
         this._parsedContentDisposition = this.libmime.parseHeaderValue(headers.getFirst("Content-Disposition"));
         let parsedContentDisposition = (
@@ -79943,7 +80195,7 @@ var require_mime_node2 = __commonJS({
 var require_message_splitter = __commonJS({
   "node_modules/@zone-eu/mailsplit/lib/message-splitter.js"(exports, module) {
     "use strict";
-    var Transform = __require("stream").Transform;
+    var Transform2 = __require("stream").Transform;
     var MimeNode = require_mime_node2();
     var MAX_HEAD_SIZE = 1 * 1024 * 1024;
     var MAX_CHILD_NODES = 1e3;
@@ -79973,7 +80225,7 @@ var require_message_splitter = __commonJS({
       }
       return end;
     }
-    var MessageSplitter = class extends Transform {
+    var MessageSplitter = class extends Transform2 {
       /**
        * @param {SplitterOptions} [config]
        */
@@ -80420,8 +80672,8 @@ var require_message_splitter = __commonJS({
 var require_message_joiner = __commonJS({
   "node_modules/@zone-eu/mailsplit/lib/message-joiner.js"(exports, module) {
     "use strict";
-    var Transform = __require("stream").Transform;
-    var MessageJoiner = class extends Transform {
+    var Transform2 = __require("stream").Transform;
+    var MessageJoiner = class extends Transform2 {
       /**
        * Creates a joiner that accepts splitter objects and emits Buffer chunks.
        */
@@ -80464,13 +80716,13 @@ var require_message_joiner = __commonJS({
 var require_flowed_decoder = __commonJS({
   "node_modules/@zone-eu/mailsplit/lib/flowed-decoder.js"(exports, module) {
     "use strict";
-    var Transform = __require("stream").Transform;
+    var Transform2 = __require("stream").Transform;
     var libmime = require_libmime();
     var Libmime = (
       /** @type {any} */
       libmime.Libmime
     );
-    var FlowedDecoder = class extends Transform {
+    var FlowedDecoder = class extends Transform2 {
       /**
        * @param {FlowedDecoderOptions} [config] Flowed text and charset decoding settings.
        */
@@ -80522,9 +80774,9 @@ var require_flowed_decoder = __commonJS({
 var require_node_rewriter = __commonJS({
   "node_modules/@zone-eu/mailsplit/lib/node-rewriter.js"(exports, module) {
     "use strict";
-    var Transform = __require("stream").Transform;
+    var Transform2 = __require("stream").Transform;
     var FlowedDecoder = require_flowed_decoder();
-    var NodeRewriter = class extends Transform {
+    var NodeRewriter = class extends Transform2 {
       /**
        * @param {FilterFunc} filterFunc Function that receives a MIME node and returns true to rewrite it.
        * @param {Function} [rewriteAction] Optional compatibility hook stored on the instance.
@@ -80710,9 +80962,9 @@ var require_node_rewriter = __commonJS({
 var require_node_streamer = __commonJS({
   "node_modules/@zone-eu/mailsplit/lib/node-streamer.js"(exports, module) {
     "use strict";
-    var Transform = __require("stream").Transform;
+    var Transform2 = __require("stream").Transform;
     var FlowedDecoder = require_flowed_decoder();
-    var NodeStreamer = class extends Transform {
+    var NodeStreamer = class extends Transform2 {
       /**
        * @param {FilterFunc} filterFunc Function that receives a MIME node and returns true to stream it.
        * @param {Function} [streamAction] Optional compatibility hook stored on the instance.
@@ -80846,8 +81098,8 @@ var require_node_streamer = __commonJS({
 var require_chunked_passthrough = __commonJS({
   "node_modules/@zone-eu/mailsplit/lib/chunked-passthrough.js"(exports, module) {
     "use strict";
-    var { Transform } = __require("stream");
-    var ChunkedPassthrough = class extends Transform {
+    var { Transform: Transform2 } = __require("stream");
+    var ChunkedPassthrough = class extends Transform2 {
       /**
        * @param {import('..').ChunkedPassthroughOptions} [options]
        */
@@ -80898,7 +81150,7 @@ var require_mailsplit = __commonJS({
     var MessageJoiner = require_message_joiner();
     var NodeRewriter = require_node_rewriter();
     var NodeStreamer = require_node_streamer();
-    var Headers = require_headers();
+    var Headers2 = require_headers();
     var ChunkedPassthrough = require_chunked_passthrough();
     var MimeNode = require_mime_node2();
     module.exports = {
@@ -80907,7 +81159,7 @@ var require_mailsplit = __commonJS({
       Rewriter: NodeRewriter,
       Streamer: NodeStreamer,
       ChunkedPassthrough,
-      Headers,
+      Headers: Headers2,
       MimeNode
     };
   }
@@ -80917,12 +81169,12 @@ var require_mailsplit = __commonJS({
 var require_limited_passthrough = __commonJS({
   "node_modules/imapflow/lib/limited-passthrough.js"(exports, module) {
     "use strict";
-    var { Transform } = __require("stream");
+    var { Transform: Transform2 } = __require("stream");
     var normalizeByteLimit = (value) => {
       let bytes = Number(value);
       return Number.isFinite(bytes) && bytes > 0 ? Math.max(Math.floor(bytes), 1) : Infinity;
     };
-    var LimitedPassthrough = class extends Transform {
+    var LimitedPassthrough = class extends Transform2 {
       constructor(options) {
         super();
         this.options = options || {};
@@ -80977,7 +81229,7 @@ var require_limits = __commonJS({
 var require_imap_stream = __commonJS({
   "node_modules/imapflow/lib/handler/imap-stream.js"(exports, module) {
     "use strict";
-    var Transform = __require("stream").Transform;
+    var Transform2 = __require("stream").Transform;
     var logger2 = require_logger();
     var { MAX_LITERAL_SIZE, MAX_LINE_SIZE, MAX_RESPONSE_SIZE, normalizeLimit, createLiteralTooLargeError } = require_limits();
     var LINE = 1;
@@ -80988,7 +81240,7 @@ var require_imap_stream = __commonJS({
     var NUM_9 = 57;
     var CURLY_OPEN = 123;
     var CURLY_CLOSE = 125;
-    var ImapStream = class extends Transform {
+    var ImapStream = class extends Transform2 {
       /**
        * Creates a new ImapStream instance.
        *
@@ -87529,10 +87781,10 @@ var require_charsets2 = __commonJS({
 var require_jp_decoder = __commonJS({
   "node_modules/imapflow/lib/jp-decoder.js"(exports, module) {
     "use strict";
-    var { Transform } = __require("stream");
+    var { Transform: Transform2 } = __require("stream");
     var encodingJapanese = require_src();
     var { normalizeByteLimit } = require_limited_passthrough();
-    var JPDecoder = class extends Transform {
+    var JPDecoder = class extends Transform2 {
       constructor(charset, maxBytes) {
         super();
         this.charset = charset;
@@ -87722,15 +87974,15 @@ var require_tools2 = __commonJS({
        * @param {String} path - Mailbox path to encode
        * @returns {String} Encoded mailbox path
        */
-      encodePath(connection, path29) {
-        path29 = (path29 || "").toString();
-        if (!connection.enabled.has("UTF8=ACCEPT") && !tools.isRev2Active(connection) && /[&\x00-\x08\x0b-\x0c\x0e-\x1f\u0080-\uffff]/.test(path29)) {
+      encodePath(connection, path30) {
+        path30 = (path30 || "").toString();
+        if (!connection.enabled.has("UTF8=ACCEPT") && !tools.isRev2Active(connection) && /[&\x00-\x08\x0b-\x0c\x0e-\x1f\u0080-\uffff]/.test(path30)) {
           try {
-            path29 = iconv.encode(path29, "utf-7-imap").toString();
+            path30 = iconv.encode(path30, "utf-7-imap").toString();
           } catch {
           }
         }
-        return path29;
+        return path30;
       },
       /**
        * Decodes a mailbox path from modified UTF-7 if the server does not support UTF8=ACCEPT.
@@ -87739,15 +87991,15 @@ var require_tools2 = __commonJS({
        * @param {String} path - Mailbox path to decode
        * @returns {String} Decoded mailbox path
        */
-      decodePath(connection, path29) {
-        path29 = (path29 || "").toString();
-        if (!connection.enabled.has("UTF8=ACCEPT") && !tools.isRev2Active(connection) && /[&]/.test(path29)) {
+      decodePath(connection, path30) {
+        path30 = (path30 || "").toString();
+        if (!connection.enabled.has("UTF8=ACCEPT") && !tools.isRev2Active(connection) && /[&]/.test(path30)) {
           try {
-            path29 = iconv.decode(Buffer.from(path29), "utf-7-imap").toString();
+            path30 = iconv.decode(Buffer.from(path30), "utf-7-imap").toString();
           } catch {
           }
         }
-        return path29;
+        return path30;
       },
       /**
        * Normalizes a mailbox path by joining array segments with the namespace delimiter,
@@ -87758,17 +88010,17 @@ var require_tools2 = __commonJS({
        * @param {Boolean} [skipNamespace] - If true, skips prepending the namespace prefix
        * @returns {String} Normalized mailbox path
        */
-      normalizePath(connection, path29, skipNamespace) {
-        if (Array.isArray(path29)) {
-          path29 = path29.join(connection.namespace && connection.namespace.delimiter || "");
+      normalizePath(connection, path30, skipNamespace) {
+        if (Array.isArray(path30)) {
+          path30 = path30.join(connection.namespace && connection.namespace.delimiter || "");
         }
-        if (path29.toUpperCase() === "INBOX") {
+        if (path30.toUpperCase() === "INBOX") {
           return "INBOX";
         }
-        if (!skipNamespace && connection.namespace && connection.namespace.prefix && !path29.startsWith(connection.namespace.prefix)) {
-          path29 = connection.namespace.prefix + path29;
+        if (!skipNamespace && connection.namespace && connection.namespace.prefix && !path30.startsWith(connection.namespace.prefix)) {
+          path30 = connection.namespace.prefix + path30;
         }
-        return path29;
+        return path30;
       },
       /**
        * Compares two mailbox paths for equality after normalization.
@@ -88099,14 +88351,14 @@ var require_tools2 = __commonJS({
           }
         }
         if (map.emailId || map.uid) {
-          let path29 = mailbox.path;
-          if (/[\u0080-\uffff]/.test(path29)) {
+          let path30 = mailbox.path;
+          if (/[\u0080-\uffff]/.test(path30)) {
             try {
-              path29 = iconv.encode(path29, "utf-7-imap").toString();
+              path30 = iconv.encode(path30, "utf-7-imap").toString();
             } catch {
             }
           }
-          map.id = map.emailId || createHash2("md5").update([path29, mailbox.uidValidity?.toString() || "", map.uid.toString()].join(":")).digest("hex");
+          map.id = map.emailId || createHash2("md5").update([path30, mailbox.uidValidity?.toString() || "", map.uid.toString()].join(":")).digest("hex");
         }
         if (map.flags) {
           let flagColor = tools.getFlagColor(map.flags);
@@ -88281,16 +88533,16 @@ var require_tools2 = __commonJS({
        * @returns {Object} Parsed body structure tree with part numbers, types, parameters, and child nodes
        */
       parseBodystructure(entry) {
-        let walk = (node, path29) => {
-          path29 = path29 || [];
+        let walk = (node, path30) => {
+          path30 = path30 || [];
           let curNode = {}, i = 0, part = 0;
-          if (path29.length) {
-            curNode.part = path29.join(".");
+          if (path30.length) {
+            curNode.part = path30.join(".");
           }
           if (Array.isArray(node[0])) {
             curNode.childNodes = [];
             while (Array.isArray(node[i])) {
-              curNode.childNodes.push(walk(node[i], path29.concat(++part)));
+              curNode.childNodes.push(walk(node[i], path30.concat(++part)));
               i++;
             }
             curNode.type = "multipart/" + ((node[i++] || {}).value || "").toString().toLowerCase();
@@ -88333,7 +88585,7 @@ var require_tools2 = __commonJS({
                   // the encapsulated message shares the part number with its wrapper.
                   // Distinction is via suffixes: path.MIME = wrapper headers,
                   // path.HEADER = encapsulated message headers.
-                  walk(node[i], path29)
+                  walk(node[i], path30)
                 ];
               }
               i++;
@@ -90295,14 +90547,14 @@ var require_select = __commonJS({
       // update into a silent no-op for the rest of the session.
       permanentflags: { key: "permanentFlags", parse: (value) => Array.isArray(value) && new Set(value) }
     });
-    module.exports = async (connection, path29, options) => {
+    module.exports = async (connection, path30, options) => {
       if (![connection.states.AUTHENTICATED, connection.states.SELECTED].includes(connection.state)) {
         return;
       }
       options = options || {};
-      path29 = normalizePath(connection, path29);
-      if (!connection.folders.has(path29)) {
-        let folders = await connection.run("LIST", "", path29);
+      path30 = normalizePath(connection, path30);
+      if (!connection.folders.has(path30)) {
+        let folders = await connection.run("LIST", "", path30);
         if (!folders) {
           throw new Error("Failed to fetch folders");
         }
@@ -90310,10 +90562,10 @@ var require_select = __commonJS({
           connection.folders.set(folder.path, folder);
         });
       }
-      let folderListData = connection.folders.has(path29) ? connection.folders.get(path29) : false;
+      let folderListData = connection.folders.has(path30) ? connection.folders.get(path30) : false;
       let response;
       try {
-        let map = { path: path29 };
+        let map = { path: path30 };
         if (folderListData) {
           ["delimiter", "specialUse", "subscribed", "listed"].forEach((key) => {
             if (folderListData[key]) {
@@ -90332,7 +90584,7 @@ var require_select = __commonJS({
           ]);
           map.qresync = true;
         }
-        let encodedPath = encodePath(connection, path29);
+        let encodedPath = encodePath(connection, path30);
         let selectCommand = {
           command: !options.readOnly ? "SELECT" : "EXAMINE",
           /* c8 ignore next */
@@ -90392,12 +90644,12 @@ var require_select = __commonJS({
             // since the client's last known state. Only received when QRESYNC was requested.
             // A dummy mailbox object is passed because the mailbox isn't officially open yet.
             VANISHED: async (untagged) => {
-              await connection.untaggedVanished(untagged, { path: path29, uidNext: false, uidValidity: false });
+              await connection.untaggedVanished(untagged, { path: path30, uidNext: false, uidValidity: false });
             },
             // Untagged FETCH during SELECT/EXAMINE: only occurs with QRESYNC, delivering
             // updated flags for messages that changed since the client's last modseq.
             FETCH: async (untagged) => {
-              await connection.untaggedFetch(untagged, { path: path29, uidNext: false, uidValidity: false });
+              await connection.untaggedFetch(untagged, { path: path30, uidNext: false, uidValidity: false });
             }
           }
         });
@@ -90411,13 +90663,13 @@ var require_select = __commonJS({
         }
         let currentMailbox = connection.mailbox;
         connection.mailbox = false;
-        if (currentMailbox && currentMailbox.path !== path29) {
+        if (currentMailbox && currentMailbox.path !== path30) {
           connection.emit("mailboxClose", currentMailbox);
         }
         connection.mailbox = map;
         connection.currentSelectCommand = selectCommand;
         connection.state = connection.states.SELECTED;
-        if (!currentMailbox || currentMailbox.path !== path29) {
+        if (!currentMailbox || currentMailbox.path !== path30) {
           connection.emit("mailboxOpen", connection.mailbox);
         }
         response.next();
@@ -90632,17 +90884,17 @@ var require_create = __commonJS({
   "node_modules/imapflow/lib/commands/create.js"(exports, module) {
     "use strict";
     var { encodePath, normalizePath, getStatusCode, enhanceCommandError } = require_tools2();
-    module.exports = async (connection, path29) => {
+    module.exports = async (connection, path30) => {
       if (![connection.states.AUTHENTICATED, connection.states.SELECTED].includes(connection.state)) {
         return;
       }
-      path29 = normalizePath(connection, path29);
+      path30 = normalizePath(connection, path30);
       let response;
       try {
         let map = {
-          path: path29
+          path: path30
         };
-        response = await connection.exec("CREATE", [{ type: "ATOM", value: encodePath(connection, path29) }]);
+        response = await connection.exec("CREATE", [{ type: "ATOM", value: encodePath(connection, path30) }]);
         let section = response.response.attributes && response.response.attributes[0] && response.response.attributes[0].section && response.response.attributes[0].section.length ? response.response.attributes[0].section : false;
         if (section) {
           let key;
@@ -90668,13 +90920,13 @@ var require_create = __commonJS({
         }
         map.created = true;
         response.next();
-        await connection.run("SUBSCRIBE", path29);
+        await connection.run("SUBSCRIBE", path30);
         return map;
       } catch (err) {
         let errorCode = getStatusCode(err.response);
         if (errorCode === "ALREADYEXISTS") {
           return {
-            path: path29,
+            path: path30,
             created: false
           };
         }
@@ -90691,20 +90943,20 @@ var require_delete = __commonJS({
   "node_modules/imapflow/lib/commands/delete.js"(exports, module) {
     "use strict";
     var { encodePath, normalizePath, enhanceCommandError } = require_tools2();
-    module.exports = async (connection, path29) => {
+    module.exports = async (connection, path30) => {
       if (![connection.states.AUTHENTICATED, connection.states.SELECTED].includes(connection.state)) {
         return;
       }
-      path29 = normalizePath(connection, path29);
-      if (connection.state === connection.states.SELECTED && connection.mailbox.path === path29) {
+      path30 = normalizePath(connection, path30);
+      if (connection.state === connection.states.SELECTED && connection.mailbox.path === path30) {
         await connection.run("CLOSE");
       }
       let response;
       try {
         let map = {
-          path: path29
+          path: path30
         };
-        response = await connection.exec("DELETE", [{ type: "ATOM", value: encodePath(connection, path29) }]);
+        response = await connection.exec("DELETE", [{ type: "ATOM", value: encodePath(connection, path30) }]);
         response.next();
         return map;
       } catch (err) {
@@ -90721,23 +90973,23 @@ var require_rename = __commonJS({
   "node_modules/imapflow/lib/commands/rename.js"(exports, module) {
     "use strict";
     var { encodePath, normalizePath, enhanceCommandError } = require_tools2();
-    module.exports = async (connection, path29, newPath) => {
+    module.exports = async (connection, path30, newPath) => {
       if (![connection.states.AUTHENTICATED, connection.states.SELECTED].includes(connection.state)) {
         return;
       }
-      path29 = normalizePath(connection, path29);
+      path30 = normalizePath(connection, path30);
       newPath = normalizePath(connection, newPath);
-      if (connection.state === connection.states.SELECTED && connection.mailbox.path === path29) {
+      if (connection.state === connection.states.SELECTED && connection.mailbox.path === path30) {
         await connection.run("CLOSE");
       }
       let response;
       try {
         let map = {
-          path: path29,
+          path: path30,
           newPath
         };
         response = await connection.exec("RENAME", [
-          { type: "ATOM", value: encodePath(connection, path29) },
+          { type: "ATOM", value: encodePath(connection, path30) },
           { type: "ATOM", value: encodePath(connection, newPath) }
         ]);
         response.next();
@@ -90784,14 +91036,14 @@ var require_subscribe = __commonJS({
   "node_modules/imapflow/lib/commands/subscribe.js"(exports, module) {
     "use strict";
     var { encodePath, normalizePath, enhanceCommandError } = require_tools2();
-    module.exports = async (connection, path29) => {
+    module.exports = async (connection, path30) => {
       if (![connection.states.AUTHENTICATED, connection.states.SELECTED].includes(connection.state)) {
         return;
       }
-      path29 = normalizePath(connection, path29);
+      path30 = normalizePath(connection, path30);
       let response;
       try {
-        response = await connection.exec("SUBSCRIBE", [{ type: "ATOM", value: encodePath(connection, path29) }]);
+        response = await connection.exec("SUBSCRIBE", [{ type: "ATOM", value: encodePath(connection, path30) }]);
         response.next();
         return true;
       } catch (err) {
@@ -90808,14 +91060,14 @@ var require_unsubscribe = __commonJS({
   "node_modules/imapflow/lib/commands/unsubscribe.js"(exports, module) {
     "use strict";
     var { encodePath, normalizePath, enhanceCommandError } = require_tools2();
-    module.exports = async (connection, path29) => {
+    module.exports = async (connection, path30) => {
       if (![connection.states.AUTHENTICATED, connection.states.SELECTED].includes(connection.state)) {
         return;
       }
-      path29 = normalizePath(connection, path29);
+      path30 = normalizePath(connection, path30);
       let response;
       try {
-        response = await connection.exec("UNSUBSCRIBE", [{ type: "ATOM", value: encodePath(connection, path29) }]);
+        response = await connection.exec("UNSUBSCRIBE", [{ type: "ATOM", value: encodePath(connection, path30) }]);
         response.next();
         return true;
       } catch (err) {
@@ -91621,11 +91873,11 @@ var require_status = __commonJS({
     var { encodePath, normalizePath, buildStatusQueryAttributes, isRev2Active } = require_tools2();
     var { parseStatusList } = require_status_fields();
     var MAILBOX_UPDATERS = {
-      messages: (value, connection, path29) => {
+      messages: (value, connection, path30) => {
         let prevCount = connection.mailbox.exists;
         if (prevCount !== value) {
           connection.mailbox.exists = value;
-          connection.emit("exists", { path: path29, count: value, prevCount });
+          connection.emit("exists", { path: path30, count: value, prevCount });
         }
       },
       uidNext: (value, connection) => {
@@ -91635,28 +91887,28 @@ var require_status = __commonJS({
         connection.mailbox.highestModseq = value;
       }
     };
-    module.exports = async (connection, path29, query) => {
-      if (![connection.states.AUTHENTICATED, connection.states.SELECTED].includes(connection.state) || !path29) {
+    module.exports = async (connection, path30, query) => {
+      if (![connection.states.AUTHENTICATED, connection.states.SELECTED].includes(connection.state) || !path30) {
         return false;
       }
-      path29 = normalizePath(connection, path29);
-      let encodedPath = encodePath(connection, path29);
+      path30 = normalizePath(connection, path30);
+      let encodedPath = encodePath(connection, path30);
       let attributes = [{ type: encodedPath.indexOf("&") >= 0 ? "STRING" : "ATOM", value: encodedPath }];
       let queryAttributes = buildStatusQueryAttributes(connection, query);
       let syntheticRecent = query && query.recent && isRev2Active(connection);
       if (!queryAttributes.length) {
-        return syntheticRecent ? { path: path29, recent: 0 } : false;
+        return syntheticRecent ? { path: path30, recent: 0 } : false;
       }
       attributes.push(queryAttributes);
       let response;
       try {
-        let map = { path: path29 };
+        let map = { path: path30 };
         response = await connection.exec("STATUS", attributes, {
           untagged: {
             // STATUS response: * STATUS <mailbox> (<key> <value> <key> <value> ...)
             // Parsed as alternating key-value pairs (i % 2 pattern).
             STATUS: async (untagged) => {
-              let updateCurrent = connection.state === connection.states.SELECTED && path29 === connection.mailbox.path;
+              let updateCurrent = connection.state === connection.states.SELECTED && path30 === connection.mailbox.path;
               let list = untagged.attributes && Array.isArray(untagged.attributes[1]) ? untagged.attributes[1] : false;
               if (!list) {
                 return;
@@ -91664,7 +91916,7 @@ var require_status = __commonJS({
               parseStatusList(list, (key, value) => {
                 map[key] = value;
                 if (updateCurrent && MAILBOX_UPDATERS[key]) {
-                  MAILBOX_UPDATERS[key](value, connection, path29);
+                  MAILBOX_UPDATERS[key](value, connection, path30);
                 }
               });
             }
@@ -91677,9 +91929,9 @@ var require_status = __commonJS({
         return map;
       } catch (err) {
         if (err.responseStatus === "NO") {
-          let folders = await connection.run("LIST", "", path29, { listOnly: true });
+          let folders = await connection.run("LIST", "", path30, { listOnly: true });
           if (folders && !folders.length) {
-            let error2 = new Error(`Mailbox doesn't exist: ${path29}`);
+            let error2 = new Error(`Mailbox doesn't exist: ${path30}`);
             error2.code = "NotFound";
             error2.response = err;
             throw error2;
@@ -91826,15 +92078,15 @@ var require_quota = __commonJS({
   "node_modules/imapflow/lib/commands/quota.js"(exports, module) {
     "use strict";
     var { encodePath, normalizePath, enhanceCommandError, parseUintValue, isUnsafeKey } = require_tools2();
-    module.exports = async (connection, path29) => {
-      if (![connection.states.AUTHENTICATED, connection.states.SELECTED].includes(connection.state) || !path29) {
+    module.exports = async (connection, path30) => {
+      if (![connection.states.AUTHENTICATED, connection.states.SELECTED].includes(connection.state) || !path30) {
         return;
       }
       if (!connection.capabilities.has("QUOTA")) {
         return false;
       }
-      path29 = normalizePath(connection, path29);
-      let map = { path: path29 };
+      path30 = normalizePath(connection, path30);
+      let map = { path: path30 };
       let processQuotaResponse = (untagged) => {
         let attributes = untagged.attributes && untagged.attributes[1];
         if (!attributes || !attributes.length) {
@@ -91874,7 +92126,7 @@ var require_quota = __commonJS({
       let quotaFound = false;
       let response;
       try {
-        response = await connection.exec("GETQUOTAROOT", [{ type: "ATOM", value: encodePath(connection, path29) }], {
+        response = await connection.exec("GETQUOTAROOT", [{ type: "ATOM", value: encodePath(connection, path30) }], {
           untagged: {
             // QUOTAROOT response tells us which quota root applies to this mailbox.
             // A mailbox may have zero or one quota root.
@@ -92017,15 +92269,15 @@ var require_idle = __commonJS({
       }
     }
     async function pollOnce2(connection, session) {
-      let path29 = connection.mailbox && connection.mailbox.path;
+      let path30 = connection.mailbox && connection.mailbox.path;
       switch (connection.missingIdleCommand) {
         case "SELECT":
           connection.log.debug({ src: "c", msg: `Running SELECT to detect changes in folder`, cid: connection.id });
-          await connection.runInternal("SELECT", path29, { readOnly: session.selectCommand.command === "EXAMINE" });
+          await connection.runInternal("SELECT", path30, { readOnly: session.selectCommand.command === "EXAMINE" });
           break;
         case "STATUS": {
           connection.log.debug({ src: "c", msg: `Running STATUS to detect changes in folder`, cid: connection.id });
-          let status = await connection.runInternal("STATUS", path29, {
+          let status = await connection.runInternal("STATUS", path30, {
             messages: true,
             uidNext: true,
             uidValidity: true,
@@ -92323,7 +92575,7 @@ var require_imap_flow = __commonJS({
     var logger2 = require_logger();
     var libmime = require_libmime();
     var zlib = __require("zlib");
-    var { Headers } = require_mailsplit();
+    var { Headers: Headers2 } = require_mailsplit();
     var { LimitedPassthrough, normalizeByteLimit } = require_limited_passthrough();
     var { ImapStream } = require_imap_stream();
     var { parser, compiler } = require_imap_handler();
@@ -93712,12 +93964,12 @@ var require_imap_flow = __commonJS({
           this.emit("flags", updateEvent);
         }
       }
-      async ensureSelectedMailbox(path29) {
-        if (!path29) {
+      async ensureSelectedMailbox(path30) {
+        if (!path30) {
           return false;
         }
-        if (!this.mailbox || !comparePaths(this, this.mailbox.path, path29)) {
-          return await this.mailboxOpen(path29);
+        if (!this.mailbox || !comparePaths(this, this.mailbox.path, path30)) {
+          return await this.mailboxOpen(path30);
         }
         return true;
       }
@@ -94132,9 +94384,9 @@ var require_imap_flow = __commonJS({
        * let quota = await client.getQuota();
        * console.log(quota.storage.used, quota.storage.limit)
        */
-      async getQuota(path29) {
-        path29 = path29 || "INBOX";
-        return await this.run("QUOTA", path29);
+      async getQuota(path30) {
+        path30 = path30 || "INBOX";
+        return await this.run("QUOTA", path30);
       }
       /**
        * @typedef {Object} ListResponse
@@ -94244,8 +94496,8 @@ var require_imap_flow = __commonJS({
        * console.log(info.path);
        * // "INBOX.parent.child" // assumes "INBOX." as namespace prefix and "." as delimiter
        */
-      async mailboxCreate(path29) {
-        return await this.run("CREATE", path29);
+      async mailboxCreate(path30) {
+        return await this.run("CREATE", path30);
       }
       /**
        * @typedef {Object} MailboxRenameResponse
@@ -94266,8 +94518,8 @@ var require_imap_flow = __commonJS({
        * console.log(info.newPath);
        * // "INBOX.Important stuff ❗️" // assumes "INBOX." as namespace prefix
        */
-      async mailboxRename(path29, newPath) {
-        return await this.run("RENAME", path29, newPath);
+      async mailboxRename(path30, newPath) {
+        return await this.run("RENAME", path30, newPath);
       }
       /**
        * @typedef {Object} MailboxDeleteResponse
@@ -94286,8 +94538,8 @@ var require_imap_flow = __commonJS({
        * console.log(info.path);
        * // "INBOX.Important stuff ❗️" // assumes "INBOX." as namespace prefix
        */
-      async mailboxDelete(path29) {
-        return await this.run("DELETE", path29);
+      async mailboxDelete(path30) {
+        return await this.run("DELETE", path30);
       }
       /**
        * Subscribes to a mailbox
@@ -94298,8 +94550,8 @@ var require_imap_flow = __commonJS({
        * @example
        * await client.mailboxSubscribe('Important stuff ❗️');
        */
-      async mailboxSubscribe(path29) {
-        return await this.run("SUBSCRIBE", path29);
+      async mailboxSubscribe(path30) {
+        return await this.run("SUBSCRIBE", path30);
       }
       /**
        * Unsubscribes from a mailbox
@@ -94310,8 +94562,8 @@ var require_imap_flow = __commonJS({
        * @example
        * await client.mailboxUnsubscribe('Important stuff ❗️');
        */
-      async mailboxUnsubscribe(path29) {
-        return await this.run("UNSUBSCRIBE", path29);
+      async mailboxUnsubscribe(path30) {
+        return await this.run("UNSUBSCRIBE", path30);
       }
       /**
        * Opens a mailbox to access messages. You can perform message operations only against an opened mailbox.
@@ -94329,8 +94581,8 @@ var require_imap_flow = __commonJS({
        * console.log(mailbox.exists);
        * // 125
        */
-      async mailboxOpen(path29, options) {
-        return await this.run("SELECT", path29, options);
+      async mailboxOpen(path30, options) {
+        return await this.run("SELECT", path30, options);
       }
       /**
        * Closes a previously opened mailbox
@@ -94377,8 +94629,8 @@ var require_imap_flow = __commonJS({
        * console.log(status.unseen);
        * // 123
        */
-      async status(path29, query) {
-        return await this.run("STATUS", path29, query);
+      async status(path30, query) {
+        return await this.run("STATUS", path30, query);
       }
       /**
        * Starts listening for new or deleted messages from the currently opened mailbox. Only required if {@link ImapFlow#disableAutoIdle} is set to `true`
@@ -94632,8 +94884,8 @@ var require_imap_flow = __commonJS({
        * @example
        * await client.append('INBOX', rawMessageBuffer, ['\\Seen'], new Date(2000, 1, 1));
        */
-      async append(path29, content, flags, idate) {
-        return await this.run("APPEND", path29, content, flags, idate) || false;
+      async append(path30, content, flags, idate) {
+        return await this.run("APPEND", path30, content, flags, idate) || false;
       }
       /**
        * @typedef {Object} CopyResponseObject
@@ -95121,7 +95373,7 @@ var require_imap_flow = __commonJS({
         if (!part) {
           meta.contentType = "message/rfc822";
         } else if (mime) {
-          let headers = new Headers(mime);
+          let headers = new Headers2(mime);
           let contentType = libmime.parseHeaderValue(headers.getFirst("Content-Type"));
           let transferEncoding = libmime.parseHeaderValue(headers.getFirst("Content-Transfer-Encoding"));
           let disposition = libmime.parseHeaderValue(headers.getFirst("Content-Disposition"));
@@ -95352,7 +95604,7 @@ var require_imap_flow = __commonJS({
             if (!data[key].meta) {
               data[key].meta = {};
             }
-            let headers = new Headers(content);
+            let headers = new Headers2(content);
             let contentType = libmime.parseHeaderValue(headers.getFirst("Content-Type"));
             let transferEncoding = libmime.parseHeaderValue(headers.getFirst("Content-Transfer-Encoding"));
             let disposition = libmime.parseHeaderValue(headers.getFirst("Content-Disposition"));
@@ -95477,7 +95729,7 @@ var require_imap_flow = __commonJS({
               await new Promise((resolve2) => setImmediate(resolve2));
             }
             const lock = this.locks.shift();
-            const { resolve, reject, path: path29, options, lockId } = lock;
+            const { resolve, reject, path: path30, options, lockId } = lock;
             if (lock.acquireTimer) {
               clearTimeout(lock.acquireTimer);
               lock.acquireTimer = null;
@@ -95493,7 +95745,7 @@ var require_imap_flow = __commonJS({
                 this.log.warn({
                   msg: "Mailbox lock held for a long time",
                   lockId: lock.lockId,
-                  path: path29,
+                  path: path30,
                   heldFor: Date.now() - lock.heldAt,
                   /* c8 ignore next */
                   // the held-lock-warning diagnostic with a description set is a timing-dependent log detail
@@ -95529,52 +95781,52 @@ var require_imap_flow = __commonJS({
               }
             };
             if (!this.usable || !this.socket || this.socket.destroyed) {
-              this.log.trace({ msg: "Failed to acquire mailbox lock", path: path29, lockId, idling: this.idling });
+              this.log.trace({ msg: "Failed to acquire mailbox lock", path: path30, lockId, idling: this.idling });
               let error2 = new Error("Connection not available");
               error2.code = "NoConnection";
               reject(error2);
               continue;
             }
-            if (this.mailbox && this.mailbox.path === path29 && !!this.mailbox.readOnly === !!options.readOnly) {
+            if (this.mailbox && this.mailbox.path === path30 && !!this.mailbox.readOnly === !!options.readOnly) {
               this.log.trace({
                 msg: "Mailbox lock acquired [existing]",
-                path: path29,
+                path: path30,
                 lockId,
                 idling: this.idling,
                 ...options.description && { description: options.description }
               });
               this.currentLock = lock;
               armHeldTimer();
-              resolve({ path: path29, release });
+              resolve({ path: path30, release });
               break;
             }
             try {
-              await this.mailboxOpen(path29, options);
+              await this.mailboxOpen(path30, options);
               this.log.trace({
                 msg: "Mailbox lock acquired [selected]",
-                path: path29,
+                path: path30,
                 lockId,
                 idling: this.idling,
                 ...options.description && { description: options.description }
               });
               this.currentLock = lock;
               armHeldTimer();
-              resolve({ path: path29, release });
+              resolve({ path: path30, release });
               break;
             } catch (err) {
               if (err.responseStatus === "NO") {
                 try {
-                  let folders = await this.run("LIST", "", path29, { listOnly: true });
+                  let folders = await this.run("LIST", "", path30, { listOnly: true });
                   if (!folders || !folders.length) {
                     err.mailboxMissing = true;
                   }
                 } catch (E) {
-                  this.log.trace({ msg: "Failed to verify failed mailbox", path: path29, err: E });
+                  this.log.trace({ msg: "Failed to verify failed mailbox", path: path30, err: E });
                 }
               }
               this.log.trace({
                 msg: "Failed to acquire mailbox lock",
-                path: path29,
+                path: path30,
                 lockId,
                 idling: this.idling,
                 ...options.description && { description: options.description },
@@ -95613,13 +95865,13 @@ var require_imap_flow = __commonJS({
        *   lock.release();
        * }
        */
-      getMailboxLock(path29, options) {
+      getMailboxLock(path30, options) {
         options = options || {};
-        path29 = normalizePath(this, path29);
+        path30 = normalizePath(this, path30);
         let lockId = ++this.lockCounter;
         this.log.trace({
           msg: "Requesting lock",
-          path: path29,
+          path: path30,
           lockId,
           ...options.description && { description: options.description },
           activeLock: this.currentLock ? {
@@ -95628,7 +95880,7 @@ var require_imap_flow = __commonJS({
           } : null
         });
         let lockPromise = new Promise((resolve, reject) => {
-          let lockEntry = { resolve, reject, path: path29, options, lockId };
+          let lockEntry = { resolve, reject, path: path30, options, lockId };
           this.locks.push(lockEntry);
           if (Number(options.acquireTimeout) > 0) {
             lockEntry.acquireTimer = setTimeout(() => {
@@ -95717,16 +95969,16 @@ var require_imap_flow = __commonJS({
 });
 
 // src/mail/mail-fetcher.ts
-import fs26 from "node:fs/promises";
-import path27 from "node:path";
+import fs27 from "node:fs/promises";
+import path28 from "node:path";
 async function saveAttachments(attachments, downloadDir) {
   if (attachments.length === 0) return [];
-  await fs26.mkdir(downloadDir, { recursive: true });
+  await fs27.mkdir(downloadDir, { recursive: true });
   const saved = [];
   for (const a of attachments) {
-    const name = path27.basename(a.filename) || "attachment";
-    const savedPath = path27.join(downloadDir, name);
-    await fs26.writeFile(savedPath, a.content);
+    const name = path28.basename(a.filename) || "attachment";
+    const savedPath = path28.join(downloadDir, name);
+    await fs27.writeFile(savedPath, a.content);
     saved.push({ filename: name, savedPath, size: a.content.length });
   }
   return saved;
@@ -95857,7 +96109,7 @@ var init_mail_fetcher = __esm({
 
 // src/tools/fetch-mail.ts
 import os19 from "node:os";
-import path28 from "node:path";
+import path29 from "node:path";
 function registerFetchMailTool(server, deps = {}) {
   const makeFetcher = deps.fetcherFactory ?? ((creds) => new ImapflowMailFetcher(creds));
   server.registerTool(
@@ -95919,7 +96171,50 @@ var init_fetch_mail = __esm({
     init_mail_fetcher();
     init_auth_error();
     init_validate();
-    DEFAULT_DOWNLOAD_DIR = path28.join(os19.homedir(), ".cogent", "mail-downloads");
+    DEFAULT_DOWNLOAD_DIR = path29.join(os19.homedir(), ".cogent", "mail-downloads");
+  }
+});
+
+// src/tools/fetch-file.ts
+function registerFetchFileTool(server) {
+  server.registerTool(
+    "cogent_fetch_file",
+    {
+      title: "Fetch a Slack file",
+      description: "Download a file shared in this channel's Slack channel (up to 1 GB). Pass the url from a message's \u{1F4CE} Attachments block. Returns the local path; the copy is deleted after 7 days.",
+      inputSchema: {
+        url: import_zod20.z.string().describe("The file url from the \u{1F4CE} Attachments block, e.g. /api/slack/files/<channel>/<fileId>")
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true }
+    },
+    async ({ url }) => {
+      try {
+        const backend = getBackend();
+        if (!(backend instanceof HttpBackend)) {
+          return errorResult(
+            new BridgeError("JOIN_NOT_CONFIRMED" /* JOIN_NOT_CONFIRMED */, "Not connected to a cloud channel", "Join the channel first (cogent_join_session).")
+          );
+        }
+        const root = filesRoot(getConfig().COGENT_STATE_PATH);
+        const removed = await cleanupOldFiles(root);
+        const { sessionId, http } = backend.fileTransport();
+        const file = await downloadSlackFile(http, sessionId, url, root);
+        return successResult({ ...file, deletedAfterDays: 7, ...removed ? { expiredCopiesRemoved: removed } : {} });
+      } catch (err) {
+        return errorResult(err);
+      }
+    }
+  );
+}
+var import_zod20;
+var init_fetch_file = __esm({
+  "src/tools/fetch-file.ts"() {
+    "use strict";
+    import_zod20 = __toESM(require_zod(), 1);
+    init_errors4();
+    init_backend();
+    init_config();
+    init_slack_files();
   }
 });
 
@@ -96090,6 +96385,7 @@ async function main() {
   registerSetupMailTool(server);
   registerSendMailTool(server);
   registerFetchMailTool(server);
+  registerFetchFileTool(server);
   registerRotateMailCredsTool(server);
   if (isCloudMode2()) {
     server.registerResource(
@@ -96124,6 +96420,7 @@ async function main() {
   const transport = new StdioServerTransport();
   transport.onclose = () => void clientGone("MCP transport closed");
   await server.connect(transport);
+  startFileSweeper(filesRoot(getConfig().COGENT_STATE_PATH));
   const sdkOnMessage = transport.onmessage;
   transport.onmessage = (msg) => {
     if ("method" in msg && "id" in msg) {
@@ -96182,6 +96479,7 @@ var init_index = __esm({
     init_npm_update_check();
     init_startup();
     init_config();
+    init_slack_files();
     init_logger();
     init_register_peer();
     init_send_message();
@@ -96195,6 +96493,7 @@ var init_index = __esm({
     init_setup_mail();
     init_send_mail();
     init_fetch_mail();
+    init_fetch_file();
     init_rotate_mail_creds();
     init_heartbeat();
     init_wake_inflight();
