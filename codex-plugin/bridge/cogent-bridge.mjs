@@ -21307,12 +21307,12 @@ var require_dist = __commonJS({
         throw new Error(`Unknown format "${name}"`);
       return f;
     };
-    function addFormats(ajv, list, fs28, exportName) {
+    function addFormats(ajv, list, fs29, exportName) {
       var _a;
       var _b;
       (_a = (_b = ajv.opts.code).formats) !== null && _a !== void 0 ? _a : _b.formats = (0, codegen_1._)`require("ajv-formats/dist/formats").${exportName}`;
       for (const f of list)
-        ajv.addFormat(f, fs28[f]);
+        ajv.addFormat(f, fs29[f]);
     }
     module.exports = exports = formatsPlugin;
     Object.defineProperty(exports, "__esModule", { value: true });
@@ -27084,8 +27084,8 @@ var init_stdio2 = __esm({
 // src/constants.ts
 import { createRequire } from "node:module";
 function resolveVersion() {
-  if ("3.26.0") {
-    return "3.26.0";
+  if ("3.26.1") {
+    return "3.26.1";
   }
   try {
     const require2 = createRequire(import.meta.url);
@@ -36713,6 +36713,7 @@ var init_auto_relay = __esm({
 });
 
 // src/services/peer-presence.ts
+import fs24 from "node:fs";
 function holderRelation(holderSession, ownSession) {
   if (holderSession && ownSession) return holderSession === ownSession ? "same-session" : "other-session";
   return holderSession || ownSession ? "unknown" : "no-session";
@@ -36763,7 +36764,55 @@ function mayBeOwnPreSessionBridge(holder, ownSession) {
   const [maj, min, pat] = [Number(v[1]), Number(v[2]), Number(v[3])];
   return maj < 3 || maj === 3 && (min < 25 || min === 25 && pat < 7);
 }
-function heldNameAdvice(peerId, holder, own) {
+function scriptOf(argv) {
+  const [first = "", second = ""] = argv.trim().split(/\s+/);
+  const pick2 = INTERPRETER_RE.test(first.split("/").pop() ?? "") && second && !second.startsWith("-") ? second : first;
+  const safe5 = pick2.replace(/[^A-Za-z0-9._/-]/g, "").slice(0, 120);
+  return safe5 || void 0;
+}
+function readProcCgroup(pid) {
+  return process.platform === "linux" ? fs24.readFileSync(`/proc/${pid}/cgroup`, "utf8") : null;
+}
+function holderLauncher(pid, procs, readCgroup = readProcCgroup) {
+  let text;
+  try {
+    text = readCgroup(pid);
+  } catch {
+    return void 0;
+  }
+  if (!text) return void 0;
+  let unit;
+  let cgroup = "";
+  for (const line of text.split("\n")) {
+    const at = line.split(":").slice(2).join(":");
+    const m = /\/([^/]+)\.service$/.exec(at.trim());
+    if (m && !/^user@\d+$/.test(m[1])) {
+      unit = m[1];
+      cgroup = at;
+      break;
+    }
+  }
+  if (!unit || !SAFE_UNIT_RE.test(unit)) return void 0;
+  const byPid = new Map(procs.map((p) => [p.pid, p]));
+  if (!byPid.has(pid)) return void 0;
+  const seen = /* @__PURE__ */ new Set();
+  for (let cur = byPid.get(pid)?.ppid; cur && cur > 1 && !seen.has(cur); cur = byPid.get(cur)?.ppid) {
+    seen.add(cur);
+    const tokens = (byPid.get(cur)?.argv ?? "").trim().split(/\s+/).slice(0, 3);
+    if (tokens.some((t) => AGENT_CLI_RE.test(t.split("/").pop() ?? ""))) return void 0;
+  }
+  const parent = byPid.get(byPid.get(pid)?.ppid ?? -1);
+  return {
+    unit,
+    scope: /\/user@\d+\.service\//.test(cgroup) ? "user" : "system",
+    ...parent && scriptOf(parent.argv) ? { script: scriptOf(parent.argv) } : {}
+  };
+}
+function heldNameAdvice(peerId, holder, own, launcher) {
+  if (launcher) {
+    const stop = launcher.scope === "user" ? `systemctl --user disable --now '${launcher.unit}.service'` : `sudo systemctl disable --now '${launcher.unit}.service'`;
+    return `'${peerId}' is held by a bridge that the systemd ${launcher.scope === "user" ? "user " : ""}service '${launcher.unit}.service' runs${launcher.script ? ` (it runs ${launcher.script})` : ""} \u2014 a background service, not an agent window. systemd restarts it, so waiting will not free the name. Do not take the name and do not rename: tell the user that service holds '${peerId}' and ask whether to stop it with: ${stop} (its files stay, so it can be enabled again). After it is stopped, run /cogent:register again with the SAME peer name '${peerId}'`;
+  }
   const otherSession = !!(holder?.sessionId && own?.sessionId && holder.sessionId !== own.sessionId);
   const otherPlatform = !!(holder?.platform && own?.platform && holder.platform !== own.platform);
   if (otherSession || otherPlatform) {
@@ -36841,11 +36890,12 @@ async function restorePresence(deps) {
       const started = Number.isFinite(servedBy.startedAt) ? new Date(servedBy.startedAt).toISOString() : "unknown";
       const recheck = holder === "same-session";
       const every = deps.recheckSeconds ? ` (re-checked every ${deps.recheckSeconds}s)` : "";
-      const take = heldNameAdvice(peerId);
+      const launcher = deps.holderLauncher?.(served.pid);
+      const take = heldNameAdvice(peerId, void 0, void 0, launcher);
       const why = {
         "same-session": `That bridge serves this same agent session (${session})`,
         "no-session": `Neither bridge records an agent session (codex, gemini), so it cannot be told whether that bridge is this agent's previous one or another agent's. ${take}`,
-        "other-session": `That bridge serves another agent session (${servedBy.sessionId}; ours: ${session}). ` + heldNameAdvice(peerId, { sessionId: servedBy.sessionId }, { sessionId: session }),
+        "other-session": `That bridge serves another agent session (${servedBy.sessionId}; ours: ${session}). ` + heldNameAdvice(peerId, { sessionId: servedBy.sessionId }, { sessionId: session }, launcher),
         unknown: `Its agent session cannot be compared with this one (that bridge: ${servedBy.sessionId ?? "not recorded"}; this bridge: ${session ?? "not known"}): it may be this agent's own other bridge of an older version, or another agent's. ${take}`
       };
       return {
@@ -36925,7 +36975,7 @@ function logPresence(outcome) {
     logger.debug(`Presence: ${outcome.state} \u2014 ${outcome.detail}.`);
   }
 }
-var ORPHAN_PARENT_RE, NPX_WRAPPER_RE, HOLDER_LINGER_SECONDS, lastPresence;
+var ORPHAN_PARENT_RE, NPX_WRAPPER_RE, HOLDER_LINGER_SECONDS, AGENT_CLI_RE, SAFE_UNIT_RE, INTERPRETER_RE, lastPresence;
 var init_peer_presence = __esm({
   "src/services/peer-presence.ts"() {
     "use strict";
@@ -36934,6 +36984,9 @@ var init_peer_presence = __esm({
     ORPHAN_PARENT_RE = /^(init|launchd|systemd)$/;
     NPX_WRAPPER_RE = /^(?:\S*\/)?(?:sh|bash|dash) -c cogent-bridge\b|^npm exec @essentialai\/cogent-bridge/;
     HOLDER_LINGER_SECONDS = 60;
+    AGENT_CLI_RE = /^(claude|codex|gemini)(\.js)?$/;
+    SAFE_UNIT_RE = /^[A-Za-z0-9:_.@\\-]+$/;
+    INTERPRETER_RE = /^(node|nodejs|bun|deno|python[0-9.]*|bash|sh|dash|zsh|perl|ruby)$/;
     lastPresence = null;
   }
 });
@@ -37190,7 +37243,7 @@ __export(startup_exports, {
 });
 import os17 from "node:os";
 import path25 from "node:path";
-import fs24 from "node:fs/promises";
+import fs25 from "node:fs/promises";
 import readline2 from "node:readline";
 import { execFile as execFile5 } from "node:child_process";
 import { promisify as promisify4 } from "node:util";
@@ -37208,7 +37261,7 @@ function bindInboxNotifier() {
 }
 async function loadPersistedConfig() {
   try {
-    const raw = await fs24.readFile(PERSIST_PATH, "utf-8");
+    const raw = await fs25.readFile(PERSIST_PATH, "utf-8");
     return JSON.parse(raw);
   } catch {
     return {};
@@ -37216,7 +37269,7 @@ async function loadPersistedConfig() {
 }
 async function savePersistedConfig(config2) {
   try {
-    await fs24.writeFile(PERSIST_PATH, JSON.stringify(config2, null, 2) + "\n", "utf-8");
+    await fs25.writeFile(PERSIST_PATH, JSON.stringify(config2, null, 2) + "\n", "utf-8");
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     logger.warn(`Could not save config to ${PERSIST_PATH}: ${msg}`);
@@ -37251,11 +37304,11 @@ First run detected. Where should cogent-bridge store its data?
   });
 }
 async function validateStateDir(statePath) {
-  await fs24.mkdir(statePath, { recursive: true });
+  await fs25.mkdir(statePath, { recursive: true });
   const testFile = path25.join(statePath, ".write-test");
   try {
-    await fs24.writeFile(testFile, "test", "utf-8");
-    await fs24.unlink(testFile);
+    await fs25.writeFile(testFile, "test", "utf-8");
+    await fs25.unlink(testFile);
   } catch {
     throw new BridgeError(
       "STARTUP_FAILED" /* STARTUP_FAILED */,
@@ -37392,6 +37445,7 @@ async function restorePeerPresence(attempt = 0) {
       }
     },
     agentSessionId: () => agentSessionId(),
+    holderLauncher: (pid) => holderLauncher(pid, ps()),
     startedByWakeTurn: () => insideCodexWakeTurn(process.pid, ps()),
     // COG-80: the identity THIS agent saved, not whichever agent registered in this folder last.
     loadCredentials: () => restoreCandidate(),
@@ -37732,7 +37786,7 @@ var init_startup = __esm({
 
 // src/cloud/mail-credential-store.ts
 import crypto9 from "node:crypto";
-import fs25 from "node:fs/promises";
+import fs26 from "node:fs/promises";
 import path26 from "node:path";
 import os18 from "node:os";
 function defaultMailCredentialPath(cwd = process.cwd()) {
@@ -37748,16 +37802,16 @@ function resolveMailCredentialPath(credentialPath) {
 async function loadMailCredentials(credentialPath) {
   const filePath = resolveMailCredentialPath(credentialPath);
   try {
-    return JSON.parse(await fs25.readFile(filePath, "utf-8"));
+    return JSON.parse(await fs26.readFile(filePath, "utf-8"));
   } catch {
     return null;
   }
 }
 async function saveMailCredentials(creds, credentialPath) {
   const filePath = resolveMailCredentialPath(credentialPath);
-  await fs25.mkdir(path26.dirname(filePath), { recursive: true, mode: 448 });
-  await fs25.writeFile(filePath, JSON.stringify(creds, null, 2) + "\n", { encoding: "utf-8", mode: 384 });
-  await fs25.chmod(filePath, 384);
+  await fs26.mkdir(path26.dirname(filePath), { recursive: true, mode: 448 });
+  await fs26.writeFile(filePath, JSON.stringify(creds, null, 2) + "\n", { encoding: "utf-8", mode: 384 });
+  await fs26.chmod(filePath, 384);
 }
 async function persistProvisionedMailbox(mailbox, credentialPath) {
   if (!mailbox?.address || !mailbox.password) return false;
@@ -37778,7 +37832,7 @@ async function persistProvisionedMailbox(mailbox, credentialPath) {
 async function clearMailCredentials(credentialPath) {
   const filePath = resolveMailCredentialPath(credentialPath);
   try {
-    await fs25.unlink(filePath);
+    await fs26.unlink(filePath);
   } catch (err) {
     if (err.code !== "ENOENT") throw err;
   }
@@ -37883,7 +37937,8 @@ function registerRegisterPeerTool(server) {
               new BridgeError(
                 "PEER_HELD_IN_FOLDER" /* PEER_HELD_IN_FOLDER */,
                 `'${peerId}' is held by another live connection in this folder (bridge pid ${holder.pid}, version ${registryText(holder.version)}); this bridge has NOT registered`,
-                heldNameAdvice(peerId, holder, { sessionId: own, platform: config2.COGENT_PLATFORM })
+                // COG-98: a systemd service holding the name is named, with the command that stops it.
+                heldNameAdvice(peerId, holder, { sessionId: own, platform: config2.COGENT_PLATFORM }, holderLauncher(holder.pid, listProcesses()))
               )
             );
           }
@@ -40506,7 +40561,7 @@ var require_shared = __commonJS({
     "use strict";
     var urllib = __require("url");
     var util2 = __require("util");
-    var fs28 = __require("fs");
+    var fs29 = __require("fs");
     var nmfetch = require_fetch();
     var dns = __require("dns");
     var net = __require("net");
@@ -40892,7 +40947,7 @@ var require_shared = __commonJS({
           }
           return callback(null, parsedDataUri.data);
         } else if (content.path) {
-          return resolveStream(fs28.createReadStream(content.path), callback);
+          return resolveStream(fs29.createReadStream(content.path), callback);
         }
       }
       if (typeof data[key].content === "string" && !["utf8", "usascii", "ascii"].includes(encoding)) {
@@ -44476,7 +44531,7 @@ var require_mime_node = __commonJS({
   "node_modules/nodemailer/lib/mime-node/index.js"(exports, module) {
     "use strict";
     var crypto12 = __require("crypto");
-    var fs28 = __require("fs");
+    var fs29 = __require("fs");
     var punycode = require_punycode();
     var PassThrough = __require("stream").PassThrough;
     var shared = require_shared();
@@ -45191,7 +45246,7 @@ var require_mime_node = __commonJS({
             setImmediate(() => contentStream.emit("error", new Error("File access rejected for " + content.path)));
             return contentStream;
           }
-          return fs28.createReadStream(content.path);
+          return fs29.createReadStream(content.path);
         } else if (content && typeof content.href === "string") {
           if (this.disableUrlAccess) {
             contentStream = new PassThrough();
@@ -46212,7 +46267,7 @@ var require_dkim = __commonJS({
     var RelaxedBody = require_relaxed_body();
     var sign = require_sign();
     var PassThrough = __require("stream").PassThrough;
-    var fs28 = __require("fs");
+    var fs29 = __require("fs");
     var path30 = __require("path");
     var crypto12 = __require("crypto");
     var DKIM_ALGO = "sha256";
@@ -46247,10 +46302,10 @@ var require_dkim = __commonJS({
         if (!this.cache || !this.cachePath) {
           return;
         }
-        fs28.unlink(this.cachePath, () => false);
+        fs29.unlink(this.cachePath, () => false);
       }
       createReadCache() {
-        this.cache = fs28.createReadStream(this.cachePath);
+        this.cache = fs29.createReadStream(this.cachePath);
         this.cache.once("error", (err) => {
           this.cleanup();
           this.output.emit("error", err);
@@ -46306,7 +46361,7 @@ var require_dkim = __commonJS({
       }
       createWriteCache() {
         this.output.usingCache = true;
-        this.cache = fs28.createWriteStream(this.cachePath);
+        this.cache = fs29.createWriteStream(this.cachePath);
         this.cache.once("error", (err) => {
           this.cleanup();
           this.relaxedBody.unpipe(this.cache);
@@ -51195,12 +51250,12 @@ var require_nodemailer = __commonJS({
 });
 
 // src/mail/mail-sender.ts
-import fs26 from "node:fs/promises";
+import fs27 from "node:fs/promises";
 import path27 from "node:path";
 async function buildAndSendMail(sender, creds, params) {
   const attachments = [];
   for (const p of params.attachmentPaths ?? []) {
-    const content = await fs26.readFile(p);
+    const content = await fs27.readFile(p);
     attachments.push({ filename: path27.basename(p), content });
   }
   const { messageId } = await sender.send({
@@ -52502,7 +52557,7 @@ var require_atomic_sleep = __commonJS({
 var require_sonic_boom = __commonJS({
   "node_modules/sonic-boom/index.js"(exports, module) {
     "use strict";
-    var fs28 = __require("fs");
+    var fs29 = __require("fs");
     var EventEmitter = __require("events");
     var inherits = __require("util").inherits;
     var path30 = __require("path");
@@ -52559,20 +52614,20 @@ var require_sonic_boom = __commonJS({
       const mode = sonic.mode;
       if (sonic.sync) {
         try {
-          if (sonic.mkdir) fs28.mkdirSync(path30.dirname(file), { recursive: true });
-          const fd = fs28.openSync(file, flags, mode);
+          if (sonic.mkdir) fs29.mkdirSync(path30.dirname(file), { recursive: true });
+          const fd = fs29.openSync(file, flags, mode);
           fileOpened(null, fd);
         } catch (err) {
           fileOpened(err);
           throw err;
         }
       } else if (sonic.mkdir) {
-        fs28.mkdir(path30.dirname(file), { recursive: true }, (err) => {
+        fs29.mkdir(path30.dirname(file), { recursive: true }, (err) => {
           if (err) return fileOpened(err);
-          fs28.open(file, flags, mode, fileOpened);
+          fs29.open(file, flags, mode, fileOpened);
         });
       } else {
-        fs28.open(file, flags, mode, fileOpened);
+        fs29.open(file, flags, mode, fileOpened);
       }
     }
     function SonicBoom(opts) {
@@ -52613,8 +52668,8 @@ var require_sonic_boom = __commonJS({
         this.flush = flushBuffer;
         this.flushSync = flushBufferSync;
         this._actualWrite = actualWriteBuffer;
-        fsWriteSync = () => fs28.writeSync(this.fd, this._writingBuf);
-        fsWrite = () => fs28.write(this.fd, this._writingBuf, this.release);
+        fsWriteSync = () => fs29.writeSync(this.fd, this._writingBuf);
+        fsWrite = () => fs29.write(this.fd, this._writingBuf, this.release);
       } else if (contentMode === void 0 || contentMode === kContentModeUtf8) {
         this._writingBuf = "";
         this.write = write;
@@ -52623,15 +52678,15 @@ var require_sonic_boom = __commonJS({
         this._actualWrite = actualWrite;
         fsWriteSync = () => {
           if (Buffer.isBuffer(this._writingBuf)) {
-            return fs28.writeSync(this.fd, this._writingBuf);
+            return fs29.writeSync(this.fd, this._writingBuf);
           }
-          return fs28.writeSync(this.fd, this._writingBuf, "utf8");
+          return fs29.writeSync(this.fd, this._writingBuf, "utf8");
         };
         fsWrite = () => {
           if (Buffer.isBuffer(this._writingBuf)) {
-            return fs28.write(this.fd, this._writingBuf, this.release);
+            return fs29.write(this.fd, this._writingBuf, this.release);
           }
-          return fs28.write(this.fd, this._writingBuf, "utf8", this.release);
+          return fs29.write(this.fd, this._writingBuf, "utf8", this.release);
         };
       } else {
         throw new Error(`SonicBoom supports "${kContentModeUtf8}" and "${kContentModeBuffer}", but passed ${contentMode}`);
@@ -52688,7 +52743,7 @@ var require_sonic_boom = __commonJS({
           }
         }
         if (this._fsync) {
-          fs28.fsyncSync(this.fd);
+          fs29.fsyncSync(this.fd);
         }
         const len = this._len;
         if (this._reopening) {
@@ -52802,7 +52857,7 @@ var require_sonic_boom = __commonJS({
       const onDrain = () => {
         if (!this._fsync) {
           try {
-            fs28.fsync(this.fd, (err) => {
+            fs29.fsync(this.fd, (err) => {
               this._flushPending = false;
               cb(err);
             });
@@ -52904,7 +52959,7 @@ var require_sonic_boom = __commonJS({
       const fd = this.fd;
       this.once("ready", () => {
         if (fd !== this.fd) {
-          fs28.close(fd, (err) => {
+          fs29.close(fd, (err) => {
             if (err) {
               return this.emit("error", err);
             }
@@ -52953,7 +53008,7 @@ var require_sonic_boom = __commonJS({
           buf = this._bufs[0];
         }
         try {
-          const n = Buffer.isBuffer(buf) ? fs28.writeSync(this.fd, buf) : fs28.writeSync(this.fd, buf, "utf8");
+          const n = Buffer.isBuffer(buf) ? fs29.writeSync(this.fd, buf) : fs29.writeSync(this.fd, buf, "utf8");
           const releasedBufObj = releaseWritingBuf(buf, this._len, n);
           buf = releasedBufObj.writingBuf;
           this._len = releasedBufObj.len;
@@ -52969,7 +53024,7 @@ var require_sonic_boom = __commonJS({
         }
       }
       try {
-        fs28.fsyncSync(this.fd);
+        fs29.fsyncSync(this.fd);
       } catch {
       }
     }
@@ -52990,7 +53045,7 @@ var require_sonic_boom = __commonJS({
           buf = mergeBuf(this._bufs[0], this._lens[0]);
         }
         try {
-          const n = fs28.writeSync(this.fd, buf);
+          const n = fs29.writeSync(this.fd, buf);
           buf = buf.subarray(n);
           this._len = Math.max(this._len - n, 0);
           if (buf.length <= 0) {
@@ -53018,13 +53073,13 @@ var require_sonic_boom = __commonJS({
       this._writingBuf = this._writingBuf.length ? this._writingBuf : this._bufs.shift() || "";
       if (this.sync) {
         try {
-          const written = Buffer.isBuffer(this._writingBuf) ? fs28.writeSync(this.fd, this._writingBuf) : fs28.writeSync(this.fd, this._writingBuf, "utf8");
+          const written = Buffer.isBuffer(this._writingBuf) ? fs29.writeSync(this.fd, this._writingBuf) : fs29.writeSync(this.fd, this._writingBuf, "utf8");
           release(null, written);
         } catch (err) {
           release(err);
         }
       } else {
-        fs28.write(this.fd, this._writingBuf, release);
+        fs29.write(this.fd, this._writingBuf, release);
       }
     }
     function actualWriteBuffer() {
@@ -53033,7 +53088,7 @@ var require_sonic_boom = __commonJS({
       this._writingBuf = this._writingBuf.length ? this._writingBuf : mergeBuf(this._bufs.shift(), this._lens.shift());
       if (this.sync) {
         try {
-          const written = fs28.writeSync(this.fd, this._writingBuf);
+          const written = fs29.writeSync(this.fd, this._writingBuf);
           release(null, written);
         } catch (err) {
           release(err);
@@ -53042,7 +53097,7 @@ var require_sonic_boom = __commonJS({
         if (kCopyBuffer) {
           this._writingBuf = Buffer.from(this._writingBuf);
         }
-        fs28.write(this.fd, this._writingBuf, release);
+        fs29.write(this.fd, this._writingBuf, release);
       }
     }
     function actualClose(sonic) {
@@ -53058,12 +53113,12 @@ var require_sonic_boom = __commonJS({
       sonic._lens = [];
       assert2(typeof sonic.fd === "number", `sonic.fd must be a number, got ${typeof sonic.fd}`);
       try {
-        fs28.fsync(sonic.fd, closeWrapped);
+        fs29.fsync(sonic.fd, closeWrapped);
       } catch {
       }
       function closeWrapped() {
         if (sonic.fd !== 1 && sonic.fd !== 2) {
-          fs28.close(sonic.fd, done);
+          fs29.close(sonic.fd, done);
         } else {
           done();
         }
@@ -95969,16 +96024,16 @@ var require_imap_flow = __commonJS({
 });
 
 // src/mail/mail-fetcher.ts
-import fs27 from "node:fs/promises";
+import fs28 from "node:fs/promises";
 import path28 from "node:path";
 async function saveAttachments(attachments, downloadDir) {
   if (attachments.length === 0) return [];
-  await fs27.mkdir(downloadDir, { recursive: true });
+  await fs28.mkdir(downloadDir, { recursive: true });
   const saved = [];
   for (const a of attachments) {
     const name = path28.basename(a.filename) || "attachment";
     const savedPath = path28.join(downloadDir, name);
-    await fs27.writeFile(savedPath, a.content);
+    await fs28.writeFile(savedPath, a.content);
     saved.push({ filename: name, savedPath, size: a.content.length });
   }
   return saved;
