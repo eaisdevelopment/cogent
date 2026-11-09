@@ -27084,8 +27084,8 @@ var init_stdio2 = __esm({
 // src/constants.ts
 import { createRequire } from "node:module";
 function resolveVersion() {
-  if ("3.26.1") {
-    return "3.26.1";
+  if ("3.26.2") {
+    return "3.26.2";
   }
   try {
     const require2 = createRequire(import.meta.url);
@@ -39335,6 +39335,7 @@ function registerDeregisterPeerTool(server) {
         }
         const { removed, mailboxDeprovisioned } = await backend.deregisterPeer(peerId, ownershipProof);
         if (removed) heartbeat.stop();
+        if (removed && autoRelay.getLocalPeer()?.peerId === peerId) autoRelay.withdrawAnnouncement();
         if (mailboxDeprovisioned) {
           try {
             await clearMailCredentials();
@@ -39377,6 +39378,7 @@ var init_deregister_peer = __esm({
     init_errors4();
     init_logger();
     init_heartbeat();
+    init_auto_relay();
     init_mail_credential_store();
     init_credential_store();
   }
