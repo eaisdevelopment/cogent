@@ -27084,8 +27084,8 @@ var init_stdio2 = __esm({
 // src/constants.ts
 import { createRequire } from "node:module";
 function resolveVersion() {
-  if ("3.26.2") {
-    return "3.26.2";
+  if ("3.26.3") {
+    return "3.26.3";
   }
   try {
     const require2 = createRequire(import.meta.url);
@@ -33741,7 +33741,7 @@ var init_cloud = __esm({
 
 // src/services/codex-app-server.ts
 import path18 from "node:path";
-import { statSync } from "node:fs";
+import { readFileSync, readlinkSync, statSync } from "node:fs";
 import fs17 from "node:fs/promises";
 import { spawn as spawn3, spawnSync } from "node:child_process";
 function appServerSocketPath(codexHome = codexHomeDir()) {
@@ -33762,7 +33762,7 @@ function ancestryHasAppServer(startPid, getProc, maxDepth = 8) {
   for (let i = 0; i < maxDepth && pid > 1; i++) {
     const p = getProc(pid);
     if (!p) return false;
-    if (/(?:^|\/)codex\S*\s+app-server(?:\s|$)/.test(p.cmd)) return true;
+    if (APP_SERVER_CMD.test(p.cmd)) return true;
     pid = p.ppid;
   }
   return false;
@@ -33785,6 +33785,73 @@ function runningUnderAppServerDaemon() {
     _underDaemon = ancestryHasAppServer(process.ppid, psProc);
   }
   return _underDaemon;
+}
+function readDaemonRecord(codexHome) {
+  const file = path18.join(codexHome, "app-server-daemon", "daemon.pid");
+  try {
+    const rec = JSON.parse(readFileSync(file, "utf8"));
+    const pid = rec?.pid;
+    if (!Number.isInteger(pid) || pid <= 1) return null;
+    const id = rec.processIdentity ?? {};
+    return {
+      pid,
+      ...typeof id.bootId === "string" ? { bootId: id.bootId } : {},
+      ...Number.isInteger(id.startTicks) ? { startTicks: id.startTicks } : {},
+      writtenMs: statSync(file).mtimeMs
+    };
+  } catch {
+    return null;
+  }
+}
+function daemonIdentityMatches(rec, procRoot = "/proc") {
+  try {
+    if (rec.bootId !== void 0) {
+      const boot = readFileSync(path18.join(procRoot, "sys", "kernel", "random", "boot_id"), "utf8").trim();
+      if (boot !== rec.bootId) return false;
+    }
+  } catch {
+  }
+  try {
+    if (rec.startTicks !== void 0) {
+      const stat = readFileSync(path18.join(procRoot, String(rec.pid), "stat"), "utf8");
+      const ticks = Number(stat.slice(stat.lastIndexOf(")") + 2).split(" ")[19]);
+      if (ticks !== rec.startTicks) return false;
+    }
+  } catch {
+  }
+  return true;
+}
+function sameMountNamespace(pid, procRoot = "/proc") {
+  try {
+    return readlinkSync(path18.join(procRoot, "self", "ns", "mnt")) === readlinkSync(path18.join(procRoot, String(pid), "ns", "mnt"));
+  } catch {
+    return process.platform !== "linux";
+  }
+}
+function appServerSocketGone(codexHome = codexHomeDir(), deps = {}) {
+  const link = appServerSocketPath(codexHome);
+  try {
+    statSync(link);
+    return null;
+  } catch (err) {
+    if (err.code !== "ENOENT") return null;
+  }
+  const rec = readDaemonRecord(codexHome);
+  if (rec === null) return null;
+  if ((deps.now ?? Date.now)() - rec.writtenMs < DAEMON_STARTING_MS) return null;
+  const p = (deps.proc ?? psProc)(rec.pid);
+  if (!p || !APP_SERVER_DAEMON_CMD.test(p.cmd)) return null;
+  const same = deps.sameDaemon ?? ((r) => daemonIdentityMatches(r) && sameMountNamespace(r.pid));
+  if (!same(rec)) return null;
+  let socket = link;
+  try {
+    socket = path18.resolve(path18.dirname(link), readlinkSync(link));
+  } catch {
+  }
+  return { pid: rec.pid, socket };
+}
+function socketGoneReason(gone) {
+  return `APP_SERVER_SOCKET_GONE: the codex app-server daemon (pid ${gone.pid}) is running, but its socket ${gone.socket} no longer exists, so no new connection can reach it. Only a restart re-creates it: \`codex app-server daemon restart\`, run by a person on that machine when no Codex turn is running. Agents: do not run it yourselves \u2014 it restarts the MCP servers of every Codex agent on that machine; tell your human instead.`;
 }
 async function ensureDaemon(codexHome = codexHomeDir(), deps = {}) {
   if (ensuredSock) return ensuredSock;
@@ -34243,7 +34310,7 @@ function armLateWait(client, windowMs, setDeliver, offNotifications, released) {
     }
   });
 }
-var defaultWsFactory, _underDaemon, ensuredSock, defaultRun, defaultSocketExists, sleep2, AppServerClient, RESTORE_TIMEOUT_MS, threadWakes, PROBE_TIMEOUT_MS, COGENT_STOP_HOOK_KEY, loggedInitKeys, idempotencyCache, IDEMPOTENCY_TTL_MS;
+var defaultWsFactory, APP_SERVER_CMD, _underDaemon, APP_SERVER_DAEMON_CMD, DAEMON_STARTING_MS, ensuredSock, defaultRun, defaultSocketExists, sleep2, AppServerClient, RESTORE_TIMEOUT_MS, threadWakes, PROBE_TIMEOUT_MS, COGENT_STOP_HOOK_KEY, loggedInitKeys, idempotencyCache, IDEMPOTENCY_TTL_MS;
 var init_codex_app_server = __esm({
   "src/services/codex-app-server.ts"() {
     "use strict";
@@ -34253,6 +34320,9 @@ var init_codex_app_server = __esm({
     init_agent_config();
     init_codex_cli();
     defaultWsFactory = (url, opts) => new wrapper_default(url, opts);
+    APP_SERVER_CMD = /(?:^|\/)codex\S*\s+app-server(?:\s|$)/;
+    APP_SERVER_DAEMON_CMD = /(?:^|\/)codex\S*\s+app-server\s+--listen(?:\s|=|$)/;
+    DAEMON_STARTING_MS = 1e4;
     ensuredSock = null;
     defaultRun = (cmd, args, env) => new Promise((resolve) => {
       const child = spawn3(cmd, args, { env, stdio: ["ignore", "pipe", "pipe"] });
@@ -34377,7 +34447,9 @@ var init_codex_app_server = __esm({
 // src/services/exec-remote.ts
 async function execCodexWake(sessionId, message, cwd, timeoutMs, idempotencyKey, lateAnswerMaxMs, sandbox) {
   const wake = getConfig().COGENT_CODEX_WAKE;
-  const useAppServer = wake === "app-server" || wake === "auto" && (runningUnderAppServerDaemon() || appServerDaemonRunning());
+  const gone = wake === "exec-resume" ? null : appServerSocketGone();
+  const useAppServer = !gone && (wake === "app-server" || wake === "auto" && (runningUnderAppServerDaemon() || appServerDaemonRunning()));
+  let appServerError = gone ? socketGoneReason(gone) : void 0;
   if (useAppServer) {
     try {
       const sock = await ensureDaemon();
@@ -34388,10 +34460,17 @@ async function execCodexWake(sessionId, message, cwd, timeoutMs, idempotencyKey,
         ...sandbox ? { sandbox } : {}
       });
       if (!result.appServerUnavailable) return { ...result, rail: "app-server" };
-    } catch {
+      appServerError = result.stderr;
+    } catch (err) {
+      appServerError = `APP_SERVER_UNAVAILABLE: ${err.message}`;
     }
   }
-  return { ...await execCodex(sessionId, message, cwd, timeoutMs, sandbox), rail: "exec-resume" };
+  if (appServerError) logger.warn(`Codex wake: falling back to exec-resume \u2014 ${appServerError}`);
+  return {
+    ...await execCodex(sessionId, message, cwd, timeoutMs, sandbox),
+    rail: "exec-resume",
+    ...appServerError ? { appServerError } : {}
+  };
 }
 function execRemote(platform, sessionId, message, cwd, timeoutMs, opts) {
   switch (platform) {
@@ -34453,6 +34532,7 @@ var init_exec_remote = __esm({
     init_cc_cli();
     init_codex_cli();
     init_codex_app_server();
+    init_logger();
   }
 });
 
@@ -35364,6 +35444,13 @@ function truncate(s) {
   const flat = s.replace(/\s+/g, " ").trim();
   return flat.length > DIAGNOSTIC_MAX ? `${flat.slice(0, DIAGNOSTIC_MAX - 1)}\u2026` : flat;
 }
+function describeAppServerError(err) {
+  if (!err) return "";
+  const gone = /^APP_SERVER_SOCKET_GONE:\s*(.*)$/s.exec(err);
+  if (gone) return gone[1].charAt(0).toUpperCase() + gone[1].slice(1);
+  const first = err.replace(/^APP_SERVER_UNAVAILABLE:\s*/, "").split(/(?<=\.)\s/)[0];
+  return `Codex's app-server daemon on that machine could not be reached (${truncate(first)}). A person there can read the full reason in its wake log (cogent_wake_log).`;
+}
 function describeChangedFiles(files) {
   if (!files || files.length === 0) return "";
   const n = files.length;
@@ -36267,7 +36354,8 @@ var init_auto_relay = __esm({
               exitCode: result.exitCode,
               stderr: result.stderr,
               stdout: result.stdout,
-              filesChanged: this._changedSince(treeBefore)
+              filesChanged: this._changedSince(treeBefore),
+              appServerError: result.appServerError
             });
           }
         } catch (err) {
@@ -36319,6 +36407,7 @@ var init_auto_relay = __esm({
         const cfg = getConfig();
         return {
           ...result?.rail ? { rail: result.rail } : {},
+          ...result?.appServerError ? { appServerError: result.appServerError } : {},
           // What the primary run STARTED with, as its rail reports it — not a fresh read: the switch may
           // have flipped since, and a sandbox-blocked self-heal sets a bypass override for the retry.
           sandbox: cfg.COGENT_PLATFORM === "codex" ? result?.sandbox ?? null : null,
@@ -36519,7 +36608,11 @@ var init_auto_relay = __esm({
        */
       async _recordNoReplyFailure(msg, traceId, durationMs, opts) {
         const codexLive = opts?.codexLiveSession === true;
-        const message = codexLive ? `\u{1F4E8} Queued for "${this.localPeerId}": it's live in an interactive Codex session, so Cogent can't resume it in real time \u2014 it will see this at its next turn. For real-time replies, launch it via \`cogent-codex\` (COGENT_CODEX_WAKE=app-server). (trace ${traceId})` : `\u26A0\uFE0F Cogent could not capture a reply from "${this.localPeerId}". ${opts?.reason ?? (describeWakeFailure(wakeAgentFor(getConfig().COGENT_PLATFORM), opts?.exitCode, opts?.stderr, opts?.stdout) || "It may have been busy, or the resume produced no output.")}${describeChangedFiles(opts?.filesChanged)} Manual response required \u2014 the target agent must reply in its own session. (trace ${traceId})`;
+        const appServer = describeAppServerError(opts?.appServerError);
+        const message = codexLive ? appServer ? `\u{1F4E8} Queued for "${this.localPeerId}": Cogent could not wake it in real time. ${appServer} "${this.localPeerId}" is live in an interactive Codex session, so it will see this at its next turn. (trace ${traceId})` : `\u{1F4E8} Queued for "${this.localPeerId}": it's live in an interactive Codex session, so Cogent can't resume it in real time \u2014 it will see this at its next turn. For real-time replies, launch it via \`cogent-codex\` (COGENT_CODEX_WAKE=app-server). (trace ${traceId})` : `\u26A0\uFE0F Cogent could not capture a reply from "${this.localPeerId}". ` + (appServer ? `${appServer} The fallback (codex exec resume) failed too: ` : "") + // Say WHAT the subprocess actually reported. Falling back to the old
+        // guess only when it reported nothing at all keeps the notice honest:
+        // a real diagnosis when one exists, an admitted unknown when it does not.
+        `${opts?.reason ?? (describeWakeFailure(wakeAgentFor(getConfig().COGENT_PLATFORM), opts?.exitCode, opts?.stderr, opts?.stdout) || "It may have been busy, or the resume produced no output.")}${describeChangedFiles(opts?.filesChanged)} Manual response required \u2014 the target agent must reply in its own session. (trace ${traceId})`;
         try {
           await getBackend().recordMessage({
             fromPeerId: this.localPeerId,
